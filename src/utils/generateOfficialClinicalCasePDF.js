@@ -1517,7 +1517,11 @@ export const generateOfficialClinicalCasePDF = ({
     }
   }
 
-  // DIRECT PDF FILE DOWNLOAD PER FORM TYPE
-  const formSuffix = selectedForm.toUpperCase();
-  doc.save(`${norm.caseId}_${formSuffix}_Documentation.pdf`);
+  // DIRECT PDF FILE DOWNLOAD PER FORM TYPE (Requirement 10)
+  const cleanCaseId = String(norm.caseId).replace(/[^A-Za-z0-9_-]/g, '_');
+  const formSuffix = selectedForm ? selectedForm.toUpperCase() : 'APPROVED_CASE';
+  const outFileName = (selectedForm === 'all' || selectedForm === 'complete')
+    ? `PHARMDVERSE_${cleanCaseId}_Approved_Case.pdf`
+    : `PHARMDVERSE_${cleanCaseId}_${formSuffix}.pdf`;
+  doc.save(outFileName);
 };

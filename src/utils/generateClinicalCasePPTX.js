@@ -540,7 +540,8 @@ export const generateClinicalCasePPTX = async ({
     addFooterToSlide(slide, idx + 1, totalSlides);
   });
 
-  // Save presentation file directly
-  const fileName = `${norm.caseId}_Presentation.pptx`;
+  // Save presentation file directly (Requirement 10)
+  const cleanCaseId = String(norm.caseId).replace(/[^A-Za-z0-9_-]/g, '_');
+  const fileName = `PHARMDVERSE_${cleanCaseId}_Approved_Case.pptx`;
   await pptx.writeFile({ fileName });
 };

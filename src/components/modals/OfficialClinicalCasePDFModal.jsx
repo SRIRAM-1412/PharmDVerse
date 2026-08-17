@@ -42,13 +42,34 @@ export const OfficialClinicalCasePDFModal = ({ isOpen, onClose, clinicalCase, st
   const [collegeData, setCollegeData] = useState(college);
   const [assignedPreceptorObj, setAssignedPreceptorObj] = useState(preceptor);
 
+  const [authError, setAuthError] = useState(null);
+
   const studentRoll = student?.roll_number || student?.roll_no || clinicalCase?.roll_number || 'Y22PHD0314';
 
   useEffect(() => {
     const loadModules = async () => {
       if (!clinicalCase?.id) return;
       setLoading(true);
-      const collegeId = clinicalCase?.college_id || student?.college_id || college?.id;
+      setAuthError(null);
+
+      // Section 8: College Isolation Verification
+      const userCollegeId = college?.id || student?.college_id || preceptor?.college_id;
+      const caseCollegeId = clinicalCase?.college_id || student?.colleges?.id || preceptor?.colleges?.id;
+
+      if (userCollegeId && caseCollegeId && String(userCollegeId) !== String(caseCollegeId)) {
+        setAuthError('Unauthorized access: Case belongs to another registered college.');
+        setLoading(false);
+        return;
+      }
+
+      // Section 1: Student Ownership Verification
+      if (student?.id && clinicalCase?.student_id && String(student.id) !== String(clinicalCase.student_id)) {
+        setAuthError('Unauthorized access: Students can only access and download their own approved cases.');
+        setLoading(false);
+        return;
+      }
+
+      const collegeId = caseCollegeId || userCollegeId;
       const targetPreceptorId = clinicalCase?.preceptor_id || clinicalCase?.assigned_preceptor_id || clinicalCase?.approved_by_preceptor_id || preceptor?.id;
 
       const [res, brandRes, collegeRes, preceptorRes] = await Promise.all([
@@ -106,7 +127,7 @@ export const OfficialClinicalCasePDFModal = ({ isOpen, onClose, clinicalCase, st
     if (isOpen) {
       loadModules();
     }
-  }, [isOpen, clinicalCase?.id, college?.id, student?.college_id, clinicalCase?.college_id]);
+  }, [isOpen, clinicalCase?.id, college?.id, student?.college_id, clinicalCase?.college_id, preceptor?.college_id, student?.id, clinicalCase?.student_id]);
 
   const finalCollegeObj = collegeData || college || student?.colleges;
   const finalPreceptorObj = assignedPreceptorObj || preceptor;
@@ -126,6 +147,10 @@ export const OfficialClinicalCasePDFModal = ({ isOpen, onClose, clinicalCase, st
     : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   const handleDownloadPDF = async (formType = 'profile') => {
+    if (authError) {
+      alert(authError);
+      return;
+    }
     setDownloading(true);
     setActiveFormDownloading(formType);
     try {
@@ -148,6 +173,10 @@ export const OfficialClinicalCasePDFModal = ({ isOpen, onClose, clinicalCase, st
   };
 
   const handleDownloadPPT = async () => {
+    if (authError) {
+      alert(authError);
+      return;
+    }
     setExportingPPT(true);
     try {
       await generateClinicalCasePPTX({
@@ -198,6 +227,14 @@ export const OfficialClinicalCasePDFModal = ({ isOpen, onClose, clinicalCase, st
             <div className="py-12 flex flex-col items-center justify-center space-y-3">
               <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
               <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Verifying approved module records...</p>
+            </div>
+          ) : authError ? (
+            <div className="p-6 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl flex items-start gap-3 text-rose-900 dark:text-rose-200">
+              <AlertCircle className="w-6 h-6 text-rose-600 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-bold text-sm">Access Denied</h4>
+                <p className="text-xs text-rose-700 dark:text-rose-300 mt-1">{authError}</p>
+              </div>
             </div>
           ) : (
             <>
