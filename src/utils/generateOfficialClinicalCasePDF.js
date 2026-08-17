@@ -14,14 +14,22 @@ const getImageFormat = (imgUrl) => {
   return 'PNG';
 };
 
+const ALL_COUNSELLING_CHECKLIST_POINTS = [
+  'Name and purpose of medication',
+  'Dosage regimen',
+  'Advice on missed dose',
+  'Potential side effects',
+  'Significant interactions (Drug-Drug, Drug-food, drug-Disease)',
+  'Precautions to be taken',
+  'Storage recommendations',
+  'Benefits of completing case',
+  'Life style modifications'
+];
+
 /**
  * High-Precision Vector PDF Generator for PharmDVerse Approved Clinical Cases.
  * 
- * CRITICAL REFINEMENTS:
- * 1. 0% TEXT OVERFLOW: Custom Patient Details cell widths + 8.5pt font + clean line bounds.
- * 2. CASE ID BESIDE FORM NAME: Printed as "PATIENT PROFILE DOCUMENTATION  (CASE ID: <caseId>)".
- * 3. 100% STUDENT PRESCRIBED MEDICATION COLUMNS: Exactly S.No | Brand / Trade Name | Generic Name | Route | Dose | Freq | Start Date | Stop Date (removed fake Therapeutic Indication).
- * 4. FULL LABS DATA EXTRACTION: Renders category, parameter, value, reference range, unit, and inference.
+ * STEP 12: PATIENT COUNSELLING FORM ONLY (Individual PDF)
  */
 export const generateOfficialClinicalCasePDF = ({
   clinicalCase = {},
@@ -649,20 +657,167 @@ export const generateOfficialClinicalCasePDF = ({
   }
 
   // =========================================================================
-  // 2. PATIENT COUNSELLING DOCUMENTATION FORM ONLY
+  // 2. PATIENT COUNSELLING DOCUMENTATION FORM ONLY (STEP 12)
   // =========================================================================
   if (selectedForm === 'counselling') {
     doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(2, 132, 199);
     doc.text(`PATIENT COUNSELLING DOCUMENTATION  (CASE ID: ${norm.caseId})`, marginX, y);
     y += 6;
 
-    drawSectionBox('Counselling Date & Time:', `${counselling.date || 'N/A'} ${counselling.time || ''}`, 12);
-    drawSectionBox('Patient Type & Provided To:', `${counselling.providedTo || 'Patient'} (${counselling.patientType || 'Inpatient'})`, 12);
-    drawSectionBox('Duration & Representative Details:', `${counselling.timeTaken || '15 min'} ${counselling.representativeReasons ? `— ${counselling.representativeReasons}` : ''}`, 12);
-    drawSectionBox('Disease Counselled:', counselling.diseaseCounselled || norm.diagnosis.final || 'N/A', 12);
-    drawSectionBox('Key Focus Points & Instructions:', counselling.pointsCovered || 'Medication compliance & dietary restrictions.', 16);
-    drawSectionBox('Barriers & Actions Taken:', `${counselling.majorBarriers || 'None'} ${counselling.barrierOvercome ? `— Action: ${counselling.barrierOvercome}` : ''}`, 14);
-    drawSectionBox('Understanding Ascertained:', counselling.understandingAscertained || 'Yes', 12);
+    // 1. SESSION OVERVIEW BOX
+    ensureSpace(24);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(bodyFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('1. Session Overview:', marginX, y);
+    y += 4;
+
+    const cSessY = y;
+    doc.setDrawColor(15, 23, 42);
+    doc.setFillColor(248, 250, 252);
+    doc.rect(marginX, cSessY, contentWidth, 22, 'FD');
+    doc.line(marginX, cSessY + 7, marginX + contentWidth, cSessY + 7);
+    doc.line(marginX, cSessY + 14, marginX + contentWidth, cSessY + 14);
+
+    doc.setFontSize(9.5);
+    // Row 1: Patient Initials, Age/Sex, Date, Time
+    doc.setFont(fontFamily, 'normal'); doc.text('Patient Initials: ', marginX + 2, cSessY + 5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(counselling.patient_name || norm.demographics.patientName || 'N/A'), marginX + 24, cSessY + 5, { maxWidth: 22 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Age/Sex: ', marginX + 48, cSessY + 5);
+    doc.setFont(fontFamily, 'bold'); doc.text(`${counselling.age || norm.demographics.age} Yrs / ${counselling.sex || norm.demographics.gender}`, marginX + 62, cSessY + 5, { maxWidth: 26 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Date: ', marginX + 94, cSessY + 5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(counselling.counselling_date || norm.dates.counsellingDate), marginX + 104, cSessY + 5);
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Time: ', marginX + 140, cSessY + 5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(counselling.counselling_time || norm.dates.counsellingTime), marginX + 150, cSessY + 5);
+
+    // Row 2: IP/OP No, Type, Ward/Unit, Department
+    doc.setFont(fontFamily, 'normal'); doc.text('IP/OP No: ', marginX + 2, cSessY + 12);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(counselling.ip_op_number || norm.demographics.ipOpNo), marginX + 16, cSessY + 12, { maxWidth: 30 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Type: ', marginX + 48, cSessY + 12);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(counselling.patient_type || 'Inpatient'), marginX + 57, cSessY + 12, { maxWidth: 30 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Ward/Unit: ', marginX + 94, cSessY + 12);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(counselling.unit_ward || norm.demographics.wardBed), marginX + 110, cSessY + 12, { maxWidth: 28 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Dept: ', marginX + 140, cSessY + 12);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(counselling.department || norm.demographics.department), marginX + 149, cSessY + 12, { maxWidth: 28 });
+
+    // Row 3: Known Allergies
+    doc.setFont(fontFamily, 'normal'); doc.text('Known Allergies: ', marginX + 2, cSessY + 19);
+    doc.setFont(fontFamily, 'bold'); doc.setTextColor(190, 18, 60);
+    doc.text(String(counselling.allergies || norm.demographics.allergyDrugs || 'None'), marginX + 27, cSessY + 19, { maxWidth: 150 });
+    doc.setTextColor(15, 23, 42);
+
+    y = cSessY + 28;
+
+    // 2. CLINICAL FOCUS BOXES
+    drawSectionBox('2. Disease Condition Counselled:', counselling.disease_counselled || counselling.disease_condition || norm.diagnosis.final || 'N/A', 12);
+    drawSectionBox('3. Medications Counselled:', counselling.medications_counselled || 'N/A', 14);
+
+    // 4. COUNSELLING POINTS COVERED CHECKLIST (9 STANDARDIZED POINTS)
+    ensureSpace(42);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('4. Counselling Points Covered Checklist:', marginX, y);
+    y += 5;
+
+    const checkY = y;
+    const pointsCoveredList = Array.isArray(counselling.points_covered) ? counselling.points_covered : (typeof counselling.points_covered === 'string' ? counselling.points_covered.split(',') : []);
+
+    doc.setDrawColor(15, 23, 42);
+    doc.setFillColor(248, 250, 252);
+    doc.rect(marginX, checkY, contentWidth, 34, 'FD');
+
+    doc.setFontSize(9.5);
+    ALL_COUNSELLING_CHECKLIST_POINTS.forEach((point, idx) => {
+      const isChecked = pointsCoveredList.some(p => String(p).trim().toLowerCase() === point.toLowerCase());
+      const col = idx % 2 === 0 ? marginX + 4 : marginX + 94;
+      const rowOffset = Math.floor(idx / 2) * 6.5 + 5;
+
+      if (isChecked) {
+        doc.setFont(fontFamily, 'bold'); doc.setTextColor(2, 132, 199);
+        doc.text('[ ✓ ]', col, checkY + rowOffset);
+        doc.setFont(fontFamily, 'bold'); doc.setTextColor(15, 23, 42);
+        doc.text(point, col + 8, checkY + rowOffset, { maxWidth: 80 });
+      } else {
+        doc.setFont(fontFamily, 'normal'); doc.setTextColor(148, 163, 184);
+        doc.text('[   ]', col, checkY + rowOffset);
+        doc.setTextColor(100, 116, 139);
+        doc.text(point, col + 8, checkY + rowOffset, { maxWidth: 80 });
+      }
+    });
+    doc.setTextColor(15, 23, 42);
+    y = checkY + 39;
+
+    // 5. BARRIERS TO COMPLIANCE & RESOLUTION BOX
+    ensureSpace(28);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('5. Barriers to Compliance & Resolution:', marginX, y);
+    y += 5;
+
+    const barY = y;
+    const hasBarriers = Boolean(counselling.major_barriers_involved);
+    const barrierOvercome = Boolean(counselling.barrier_overcome);
+
+    doc.setDrawColor(15, 23, 42);
+    doc.setFillColor(248, 250, 252);
+    doc.rect(marginX, barY, contentWidth, hasBarriers ? 22 : 12, 'FD');
+
+    doc.setFontSize(10);
+    doc.setFont(fontFamily, 'normal'); doc.text('Major Barriers Involved: ', marginX + 3, barY + 6);
+    doc.setFont(fontFamily, 'bold'); doc.text(hasBarriers ? 'Yes' : 'No', marginX + 40, barY + 6);
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Barrier Overcome Rightly: ', marginX + 90, barY + 6);
+    doc.setFont(fontFamily, 'bold'); doc.text(barrierOvercome ? 'Yes' : 'No / N/A', marginX + 130, barY + 6);
+
+    if (hasBarriers) {
+      doc.line(marginX, barY + 9, marginX + contentWidth, barY + 9);
+      doc.setFont(fontFamily, 'normal'); doc.text('Details of Barrier: ', marginX + 3, barY + 15);
+      doc.setFont(fontFamily, 'italic');
+      doc.text(String(counselling.barrier_details || counselling.barriers_identified || 'None specified.'), marginX + 32, barY + 15, { maxWidth: 144 });
+    }
+
+    y = barY + (hasBarriers ? 27 : 17);
+
+    // 6. DURATION & RECIPIENT BOX
+    ensureSpace(22);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('6. Session Duration & Recipient:', marginX, y);
+    y += 5;
+
+    const durY = y;
+    const providedTo = counselling.counselling_provided_to || counselling.provided_to || 'Patient';
+    const repReasons = Array.isArray(counselling.representative_reasons) ? counselling.representative_reasons.join(', ') : (counselling.representative_reasons || '');
+    const repOther = counselling.representative_other_reason ? ` (${counselling.representative_other_reason})` : '';
+
+    doc.setDrawColor(15, 23, 42);
+    doc.setFillColor(248, 250, 252);
+    doc.rect(marginX, durY, contentWidth, providedTo === 'Patient representative' ? 18 : 10, 'FD');
+
+    doc.setFontSize(10);
+    doc.setFont(fontFamily, 'normal'); doc.text('Session Duration: ', marginX + 3, durY + 6);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(counselling.time_taken || counselling.duration_minutes || '10 to 20 min.'), marginX + 32, durY + 6);
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Counselled To: ', marginX + 90, durY + 6);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(providedTo), marginX + 116, durY + 6);
+
+    if (providedTo === 'Patient representative') {
+      doc.line(marginX, durY + 9, marginX + contentWidth, durY + 9);
+      doc.setFont(fontFamily, 'normal'); doc.text('Representative Reason: ', marginX + 3, durY + 14);
+      doc.setFont(fontFamily, 'bold'); doc.text(`${repReasons}${repOther}`, marginX + 40, durY + 14, { maxWidth: 135 });
+    }
+
+    y = durY + (providedTo === 'Patient representative' ? 23 : 15);
+
+    // 7. LEAFLETS & VISUAL AIDS PROVIDED BOX
+    drawSectionBox('7. Aids Used:', counselling.counselling_aids_used || 'None', 12);
+    drawSectionBox('8. Educational Material Provided:', counselling.counselling_material_provided || counselling.educational_materials_used || 'None', 12);
+
+    ensureSpace(14);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
+    doc.text(`Patient Understanding Ascertained:  ${counselling.understanding_ascertained !== false ? 'YES (Ascertained)' : 'NO'}`, marginX, y);
+    y += 8;
   }
 
   // =========================================================================
