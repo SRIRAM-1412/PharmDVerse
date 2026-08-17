@@ -89,18 +89,33 @@ export const buildNormalizedApprovedCaseData = ({
     adrEndedAt: adr.reaction_ended_at || 'N/A'
   };
 
+  // Safe Array Extractors
+  const safeArray = (val) => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+      return val.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    return [];
+  };
+
   // Demographics
   const demographics = {
     patientName: profile.patient_name || clinicalCase?.patient_name || 'N/A',
     age: profile.age || clinicalCase?.age || 'N/A',
     gender: profile.gender || clinicalCase?.gender || 'N/A',
-    ipOpNo: profile.ip_no || profile.ip_op_number || clinicalCase?.ip_op_number || 'N/A',
+    ipOpNo: profile.ip_no || profile.ip_op_number || profile.op_no || clinicalCase?.ip_op_number || 'N/A',
     wardBed: profile.ward ? `${profile.ward} ${profile.bed_number ? `(Bed: ${profile.bed_number})` : ''}` : (clinicalCase?.ward || 'N/A'),
     department: profile.department || clinicalCase?.department || 'N/A',
     physician: profile.attending_physician || profile.physician || 'Attending Consultant',
     height: profile.height ? `${profile.height} cm` : '—',
     weight: profile.weight ? `${profile.weight} kg` : '—',
-    bmi: profile.bmi ? `${profile.bmi}` : '—',
+    bmi: profile.bmi ? `${profile.bmi} kg/m²` : '—',
+    bsa: profile.bsa ? `${profile.bsa} m²` : '—',
     allergyDrugs: profile.allergy_drugs || profile.allergies || 'NIL',
     allergyFood: profile.allergy_food || 'NIL',
     socialHistory: profile.social_history || [
@@ -114,34 +129,25 @@ export const buildNormalizedApprovedCaseData = ({
   // Clinical History
   const history = {
     chiefComplaints: profile.chief_complaints || 'N/A',
+    hpi: profile.history_of_present_illness || profile.hpi || '',
     pastMedicalHistory: profile.past_medical_history || profile.past_history || 'NIL',
+    pastSurgicalHistory: profile.past_surgical_history || profile.surgical_history || '',
     pastMedicationHistory: profile.past_medication_history || '',
     familyHistory: profile.family_history || '',
     generalExam: profile.general_examination || [
       profile.cyanosis ? `Cyanosis: ${profile.cyanosis}` : null,
       profile.icterus ? `Icterus: ${profile.icterus}` : null,
-      profile.pallor ? `Pallor: ${profile.pallor}` : null
+      profile.pallor ? `Pallor: ${profile.pallor}` : null,
+      profile.clubbing ? `Clubbing: ${profile.clubbing}` : null,
+      profile.edema ? `Edema: ${profile.edema}` : null
     ].filter(Boolean).join(', ') || 'Conscious and coherent.',
     systemicExam: profile.systemic_examination || [
       profile.cvs ? `CVS: ${profile.cvs}` : null,
       profile.gi ? `GI: ${profile.gi}` : null,
       profile.rs ? `RS: ${profile.rs}` : null,
-      profile.cns ? `CNS: ${profile.cns}` : null
+      profile.cns ? `CNS: ${profile.cns}` : null,
+      profile.musculoskeletal ? `MSS: ${profile.musculoskeletal}` : null
     ].filter(Boolean).join(', ') || 'CVS: S1S2, RS: Clear, GI: Soft.'
-  };
-
-  // Safe Array Extractors
-  const safeArray = (val) => {
-    if (!val) return [];
-    if (Array.isArray(val)) return val;
-    if (typeof val === 'string') {
-      try {
-        const parsed = JSON.parse(val);
-        if (Array.isArray(parsed)) return parsed;
-      } catch (e) {}
-      return val.split(',').map(s => s.trim()).filter(Boolean);
-    }
-    return [];
   };
 
   const vitals = safeArray(caseModulesData?.vitals || profile.vital_signs || profile.vitals || clinicalCase?.vital_signs || clinicalCase?.vitals);
@@ -160,7 +166,8 @@ export const buildNormalizedApprovedCaseData = ({
   const diagnosis = {
     provisional: profile.provisional_diagnosis || clinicalCase?.provisional_diagnosis || '',
     final: profile.final_diagnosis || clinicalCase?.final_diagnosis || 'N/A',
-    dischargeSummary: profile.discharge_summary || ''
+    dischargeSummary: profile.discharge_summary || profile.discharge_instructions || '',
+    followUpAdvice: profile.follow_up_advice || profile.follow_up || ''
   };
 
   // Detailed Counselling Map
@@ -177,9 +184,10 @@ export const buildNormalizedApprovedCaseData = ({
     majorBarriers: safeArray(counselling.major_barriers_involved).join(', ') || counselling.barriers_involved || '',
     barrierDetails: counselling.barrier_details || '',
     barrierOvercome: counselling.barrier_overcome || counselling.barriers_action || '',
-    aidsUsed: counselling.counselling_aids_used || '',
-    materialProvided: counselling.counselling_material_provided || '',
-    understandingAscertained: counselling.understanding_ascertained !== false ? 'Yes (Ascertained)' : 'No'
+    aidsUsed: safeArray(counselling.counselling_aids_used).join(', ') || counselling.counselling_aids || '',
+    materialProvided: safeArray(counselling.counselling_material_provided).join(', ') || counselling.materials_provided || '',
+    understandingAscertained: counselling.understanding_ascertained !== false ? 'Yes (Ascertained)' : 'No',
+    studentNotes: counselling.student_notes || counselling.notes || ''
   };
 
   // Detailed Pharmacist Intervention Map
@@ -187,7 +195,7 @@ export const buildNormalizedApprovedCaseData = ({
     date: dates.interventionDate,
     reportingDate: dates.reportingDate,
     presentDiagnosis: intervention.present_diagnosis || diagnosis.final,
-    prescriptionDetails: safeArray(intervention.prescription_details),
+    prescriptionDetails: safeArray(intervention.prescription_details || intervention.drugs_involved),
     prescriptionProblems: safeArray(intervention.prescription_problems).join(', ') || intervention.description_of_problem || intervention.problem_identified || 'None',
     otherProblem: intervention.prescription_problem_other || '',
     problemDescription: intervention.description_of_problem || intervention.problem_description || '',
@@ -196,7 +204,7 @@ export const buildNormalizedApprovedCaseData = ({
     significanceLevel: intervention.significance_level || intervention.significance_of_intervention || 'Moderate',
     physicianAcceptance: intervention.physician_acceptance || intervention.intervention_outcome || intervention.status || 'Accepted',
     outcomeComments: intervention.outcome_comments || intervention.reasons_if_no || '',
-    referencesText: intervention.references_text || '',
+    referencesText: intervention.references_text || safeArray(intervention.references).join(', ') || '',
     followUp: intervention.follow_up || ''
   };
 
@@ -209,11 +217,13 @@ export const buildNormalizedApprovedCaseData = ({
     phoneNo: dir.phone_no || dir.contact_no || '',
     unitWard: dir.unit_ward || demographics.wardBed,
     professionalStatus: dir.professional_status || 'Physician',
+    modeOfEnquiry: dir.mode_of_enquiry || 'Ward Round / In-person',
     questionCategory: dir.question_category === 'Other' ? (dir.category_other || dir.question_category_other || 'Therapeutic Dosing') : (dir.question_category || dir.category_of_enquiry || 'Therapeutic Dosing'),
     timeframeNeeded: dir.timeframe_needed || dir.turnaround_time || 'Immediate (<1 hr)',
     detailsOfEnquiry: dir.details_of_enquiry || dir.query || 'N/A',
-    patientBackground: `Age: ${dir.age || demographics.age}, Sex: ${dir.sex || demographics.gender}, Weight: ${dir.weight_kg || demographics.weight}, Allergies: ${dir.allergies || demographics.allergyDrugs}, Diagnosis: ${dir.current_diagnosis || diagnosis.final}`,
+    patientBackground: `Age: ${dir.age || demographics.age}, Sex: ${dir.sex || demographics.gender}, Weight: ${dir.weight_kg || demographics.weight}, Allergies: ${dir.allergies || demographics.allergyDrugs}, Renal: ${dir.renal_status || 'Normal'}, Diagnosis: ${dir.current_diagnosis || diagnosis.final}, Meds: ${dir.current_medications || 'As prescribed'}`,
     informationProvided: dir.information_provided || dir.response || 'N/A',
+    responseMode: dir.response_mode || 'Written & Verbal',
     references: safeArray(dir.references)
   };
 
@@ -252,6 +262,7 @@ export const buildNormalizedApprovedCaseData = ({
     rechallengeInfo: adr.rechallenge_information || 'Not Done',
     dechallengeInfo: adr.dechallenge_information || 'Positive',
     naranjoCausality: adr.initial_causality_opinion || adr.naranjo_causality || 'Probable',
+    causalityScore: adr.causality_score || adr.naranjo_score || '',
     clinicalRemarks: adr.clinical_remarks || ''
   };
 
