@@ -29,7 +29,7 @@ const ALL_COUNSELLING_CHECKLIST_POINTS = [
 /**
  * High-Precision Vector PDF Generator for PharmDVerse Approved Clinical Cases.
  * 
- * STEP 13: PHARMACIST INTERVENTION DOCUMENTATION ONLY (Individual PDF)
+ * STEP 14: DRUG INFORMATION DOCUMENTATION ONLY (Individual PDF)
  */
 export const generateOfficialClinicalCasePDF = ({
   clinicalCase = {},
@@ -954,7 +954,7 @@ export const generateOfficialClinicalCasePDF = ({
     const actList = Array.isArray(intervention.action_taken) ? intervention.action_taken : (typeof intervention.action_taken === 'string' ? [intervention.action_taken] : []);
     const actStr = actList.join(', ') + (intervention.action_taken_other ? ` (${intervention.action_taken_other})` : '');
 
-    const recList = Array.isArray(intervention.recommendations) ? intervention.recommendations : (typeof intervention.recommendations === 'string' ? [intervention.recommendations] : []);
+    const recList = Array.isArray(intervention.recommendations) ? intervention.recommendations : (typeof intervention.recommendations === 'string' ? [intervention.recommendation_other] : []);
     const recStr = recList.join(', ') + (intervention.recommendation_other ? ` (${intervention.recommendation_other})` : '');
 
     drawSectionBox('6. Action Taken:', actStr || 'None specified.', 12);
@@ -1015,19 +1015,167 @@ export const generateOfficialClinicalCasePDF = ({
   }
 
   // =========================================================================
-  // 4. DRUG INFORMATION REQUEST DOCUMENTATION FORM ONLY
+  // 4. DRUG INFORMATION REQUEST DOCUMENTATION FORM ONLY (STEP 14)
   // =========================================================================
   if (selectedForm === 'dir') {
     doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(2, 132, 199);
     doc.text(`DRUG INFORMATION REQUEST DOCUMENTATION  (CASE ID: ${norm.caseId})`, marginX, y);
     y += 6;
 
-    drawSectionBox('Enquiry Date & Time:', `${dir.date || 'N/A'} ${dir.time || ''}`, 12);
-    drawSectionBox('Enquirer Details:', `${dir.enquirerName || 'Physician'} (${dir.professionalStatus || 'Doctor'})`, 12);
-    drawSectionBox('Category of Enquiry & Turnaround Time:', `${dir.questionCategory || 'Therapeutic Dosing'} (Needed: ${dir.timeframeNeeded || 'Immediate'})`, 12);
-    drawSectionBox('Patient Background:', dir.patientBackground || 'N/A', 14);
-    drawSectionBox('Details of Query:', dir.detailsOfEnquiry || 'N/A', 16);
-    drawSectionBox('Response Provided:', dir.informationProvided || 'N/A', 18);
+    // 1. SESSION & ENQUIRER OVERVIEW BOX
+    ensureSpace(28);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(bodyFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('1. Enquirer & Session Overview:', marginX, y);
+    y += 4;
+
+    const dirSessY = y;
+    doc.setDrawColor(15, 23, 42);
+    doc.setFillColor(248, 250, 252);
+    doc.rect(marginX, dirSessY, contentWidth, 22, 'FD');
+    doc.line(marginX, dirSessY + 7, marginX + contentWidth, dirSessY + 7);
+    doc.line(marginX, dirSessY + 14, marginX + contentWidth, dirSessY + 14);
+
+    doc.setFontSize(9.5);
+    // Row 1: Date, Time, Mode of Request, Answer Needed Timeframe
+    doc.setFont(fontFamily, 'normal'); doc.text('Date: ', marginX + 2, dirSessY + 5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.request_date || norm.dates.queryDate), marginX + 12, dirSessY + 5);
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Time: ', marginX + 48, dirSessY + 5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.request_time || norm.dates.queryTime || '11:00 AM'), marginX + 58, dirSessY + 5);
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Mode of Request: ', marginX + 94, dirSessY + 5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.mode_of_request || 'Direct'), marginX + 122, dirSessY + 5, { maxWidth: 20 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Turnaround: ', marginX + 144, dirSessY + 5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.timeframe_needed || dir.answer_needed || 'Immediately'), marginX + 162, dirSessY + 5, { maxWidth: 17 });
+
+    // Row 2: Enquirer Name, Designation, Phone No, Unit/Ward
+    doc.setFont(fontFamily, 'normal'); doc.text('Enquirer: ', marginX + 2, dirSessY + 12);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.enquirer_name || dir.enquirer_select || 'Resident Physician'), marginX + 16, dirSessY + 12, { maxWidth: 30 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Designation: ', marginX + 48, dirSessY + 12);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.designation || 'Doctor'), marginX + 66, dirSessY + 12, { maxWidth: 26 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Phone No: ', marginX + 94, dirSessY + 12);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.phone_no || '—'), marginX + 110, dirSessY + 12, { maxWidth: 32 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Ward/Unit: ', marginX + 144, dirSessY + 12);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.unit_ward || norm.demographics.wardBed), marginX + 160, dirSessY + 12, { maxWidth: 19 });
+
+    // Row 3: Professional Status & Question Category
+    doc.setFont(fontFamily, 'normal'); doc.text('Professional Status: ', marginX + 2, dirSessY + 19);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.professional_status || 'Physician'), marginX + 30, dirSessY + 19, { maxWidth: 45 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Question Category: ', marginX + 94, dirSessY + 19);
+    doc.setFont(fontFamily, 'bold'); doc.setTextColor(2, 132, 199);
+    doc.text(String(dir.question_category || 'Therapeutic Use'), marginX + 124, dirSessY + 19, { maxWidth: 55 });
+    doc.setTextColor(15, 23, 42);
+
+    y = dirSessY + 28;
+
+    // 2. DETAILS OF ENQUIRY (QUESTION) BOX
+    drawSectionBox('2. Details of Enquiry (Clinical Question):', dir.details_of_enquiry || 'N/A', 16);
+
+    // 3. PATIENT BACKGROUND INFORMATION BOX GRID
+    ensureSpace(30);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('3. Patient Background Information:', marginX, y);
+    y += 5;
+
+    const bgY = y;
+    const isPreg = Boolean(dir.is_pregnant_lactating);
+
+    doc.setDrawColor(15, 23, 42);
+    doc.setFillColor(248, 250, 252);
+    doc.rect(marginX, bgY, contentWidth, 26, 'FD');
+    doc.line(marginX, bgY + 6.5, marginX + contentWidth, bgY + 6.5);
+    doc.line(marginX, bgY + 13, marginX + contentWidth, bgY + 13);
+    doc.line(marginX, bgY + 19.5, marginX + contentWidth, bgY + 19.5);
+
+    doc.setFontSize(9.5);
+    // Row 1: Age/Sex, Weight, Known Allergies
+    doc.setFont(fontFamily, 'normal'); doc.text('Age/Sex: ', marginX + 2, bgY + 5);
+    doc.setFont(fontFamily, 'bold'); doc.text(`${dir.age || norm.demographics.age} Yrs / ${dir.sex || norm.demographics.gender}`, marginX + 16, bgY + 5, { maxWidth: 30 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Weight: ', marginX + 54, bgY + 5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.weight_kg ? `${dir.weight_kg} kg` : norm.demographics.weight), marginX + 67, bgY + 5, { maxWidth: 25 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Allergies: ', marginX + 94, bgY + 5);
+    doc.setFont(fontFamily, 'bold'); doc.setTextColor(190, 18, 60);
+    doc.text(String(dir.allergies || norm.demographics.allergyDrugs || 'None'), marginX + 109, bgY + 5, { maxWidth: 70 });
+    doc.setTextColor(15, 23, 42);
+
+    // Row 2: Current Medical Problem
+    doc.setFont(fontFamily, 'normal'); doc.text('Current Diagnosis/Problem: ', marginX + 2, bgY + 11.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.current_medical_problem || norm.diagnosis.final || 'N/A'), marginX + 42, bgY + 11.5, { maxWidth: 135 });
+
+    // Row 3: Pregnancy/Lactation & Other Investigations
+    doc.setFont(fontFamily, 'normal'); doc.text('Pregnancy/Lactation: ', marginX + 2, bgY + 18);
+    doc.setFont(fontFamily, 'bold'); doc.text(isPreg ? `YES ${dir.pregnancy_lactation_details ? `(${dir.pregnancy_lactation_details})` : ''}` : 'NO', marginX + 34, bgY + 18, { maxWidth: 55 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Other Investigations: ', marginX + 94, bgY + 18);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.other_investigations || 'N/A'), marginX + 124, bgY + 18, { maxWidth: 55 });
+
+    // Row 4: Drug Therapy
+    doc.setFont(fontFamily, 'normal'); doc.text('Current Drug Therapy: ', marginX + 2, bgY + 24.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.drug_therapy || 'N/A'), marginX + 36, bgY + 24.5, { maxWidth: 141 });
+
+    y = bgY + 32;
+
+    // 4. INFORMATION PROVIDED (RESPONSE) BOX
+    drawSectionBox('4. Information Provided (Clinical Response):', dir.information_provided || 'N/A', 22);
+
+    // 5. TIMELINE & MODE OF REPLY BOX
+    ensureSpace(16);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('5. Reply & Timeline Details:', marginX, y);
+    y += 5;
+
+    const repY = y;
+    const hasDelay = Boolean(dir.reason_for_delay);
+
+    doc.setDrawColor(15, 23, 42);
+    doc.setFillColor(248, 250, 252);
+    doc.rect(marginX, repY, contentWidth, hasDelay ? 16 : 10, 'FD');
+
+    doc.setFontSize(9.5);
+    doc.setFont(fontFamily, 'normal'); doc.text('Answer Given Timeframe: ', marginX + 3, repY + 6);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.answer_given_timeframe || dir.timeframe_needed || 'Immediately'), marginX + 42, repY + 6);
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Mode of Reply: ', marginX + 94, repY + 6);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.mode_of_reply || 'Written'), marginX + 118, repY + 6);
+
+    if (hasDelay) {
+      doc.line(marginX, repY + 8.5, marginX + contentWidth, repY + 8.5);
+      doc.setFont(fontFamily, 'normal'); doc.text('Reason for Delay: ', marginX + 3, repY + 13.5);
+      doc.setFont(fontFamily, 'italic'); doc.text(String(dir.reason_for_delay), marginX + 30, repY + 13.5, { maxWidth: 146 });
+    }
+
+    y = repY + (hasDelay ? 21 : 15);
+
+    // 6. REFERENCES CONSULTED BOX
+    ensureSpace(20);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('6. References Consulted:', marginX, y);
+    y += 5;
+
+    const refY = y;
+    const refList = Array.isArray(dir.references) && dir.references.length > 0
+      ? dir.references.map(r => `[${r.type || 'Ref'}]: ${r.source || 'N/A'}`)
+      : [dir.ref_textbooks, dir.ref_journals, dir.ref_micromedex, dir.ref_website].filter(Boolean);
+
+    const refStr = refList.length > 0 ? refList.join('\n') : '1. Micromedex Clinical Knowledge Database\n2. Lexicomp Drug Information Handbook';
+    const refLines = doc.splitTextToSize(refStr, contentWidth - 6);
+    const refBoxH = Math.max(refLines.length * 5 + 4, 14);
+
+    doc.setDrawColor(15, 23, 42);
+    doc.setFillColor(248, 250, 252);
+    doc.rect(marginX, refY, contentWidth, refBoxH, 'FD');
+    doc.setFontSize(9.5);
+    doc.setFont(fontFamily, 'normal');
+    doc.text(refLines, marginX + 3, refY + 5);
+
+    y = refY + refBoxH + 6;
   }
 
   // =========================================================================
