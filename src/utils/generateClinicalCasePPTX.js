@@ -7,7 +7,7 @@ import { buildNormalizedApprovedCaseData } from './buildNormalizedApprovedCaseDa
  * Precision 16:9 Widescreen layout math (10.0" x 5.625" canvas):
  *  - startX = 0.5", contentW = 9.0" (Right edge = 9.5", 0.5" left & right margins).
  *  - y = 0.85" to 4.8" (0.475" top & bottom margins). Max 4-5 rows per slide.
- * Exact field alignment matching Supabase & Student Clinical Documentation forms.
+ * Exact 3-column footer layout (Left text + Date, Center Bold text, Right Slide X of N + dividing line).
  */
 export const generateClinicalCasePPTX = async ({
   clinicalCase = {},
@@ -51,12 +51,19 @@ export const generateClinicalCasePPTX = async ({
   const preceptorName = norm.preceptorName;
   const preceptorDesig = norm.preceptorDesig;
   const finalDiagnosis = norm.diagnosis.final;
-  const footerText = pptSettings?.footer_text || pptSettings?.ppt_footer_text || `${collegeName} • Clinical Case Presentation`;
 
   const formatSpo2 = (val) => {
     if (!val) return '98%';
     const s = String(val).trim();
     return s.endsWith('%') ? s : `${s}%`;
+  };
+
+  const slidesList = [];
+  const createSlide = () => {
+    const slide = pptx.addSlide();
+    slide.background = { color: 'FFFFFF' };
+    slidesList.push(slide);
+    return slide;
   };
 
   // Watermark helper following EXACT format from Admin (Line 1, Line 2, Opacity, Position)
@@ -104,13 +111,47 @@ export const generateClinicalCasePPTX = async ({
     }
   };
 
-  const addFooter = (slide) => {
+  // Shared 3-column Footer Helper matching exact screenshot (Horizontal line, Left text + Date, Center Bold text, Right Slide X of N)
+  const isFooterEnabled = (pptSettings?.footer_enabled !== false) && (pptSettings?.repeat_footer !== false);
+  const showPageNum = pptSettings?.show_page_number !== false;
+  const showDateTime = pptSettings?.show_generated_datetime !== false;
+
+  const footerLeftText = pptSettings?.footer_left_text || college?.college_code || collegeName || 'PharmDVerse';
+  const footerCenterText = pptSettings?.footer_center_text || 'Confidential Clinical Documentation';
+  const todayStr = new Date().toLocaleDateString('en-GB');
+
+  const addFooterToSlide = (slide, slideNum, totalSlides) => {
+    if (!isFooterEnabled) return;
     try {
-      slide.addText(footerText, {
-        x: startX, y: 5.15, w: contentW, h: 0.3,
-        fontFace, fontSize: 9, color: '64748B', align: 'center'
+      // Subtle horizontal dividing line
+      slide.addShape(pptx.shapes.LINE, {
+        x: startX, y: 5.1, w: contentW, h: 0,
+        line: { color: 'E2E8F0', width: 0.75 }
       });
-    } catch (e) {}
+
+      // Left Footer: PharmDVerse • 17/08/2026
+      const leftStr = `${footerLeftText}${showDateTime ? ` • ${todayStr}` : ''}`;
+      slide.addText(leftStr, {
+        x: startX, y: 5.16, w: 3.2, h: 0.3,
+        fontFace, fontSize: 9, color: '64748B', align: 'left'
+      });
+
+      // Center Footer: Confidential Clinical Documentation (Bold)
+      slide.addText(footerCenterText, {
+        x: startX + 2.5, y: 5.16, w: 4.0, h: 0.3,
+        fontFace, fontSize: 9, bold: true, color: '1E293B', align: 'center'
+      });
+
+      // Right Footer: Slide 1 of 2
+      if (showPageNum) {
+        slide.addText(`Slide ${slideNum} of ${totalSlides}`, {
+          x: startX + 6.0, y: 5.16, w: 3.0, h: 0.3,
+          fontFace, fontSize: 9, color: '64748B', align: 'right'
+        });
+      }
+    } catch (e) {
+      console.warn('PPT Footer render warning:', e);
+    }
   };
 
   // Helper for adding tables with clean pagination (max 4-5 rows per slide)
@@ -120,8 +161,7 @@ export const generateClinicalCasePPTX = async ({
 
     for (let i = 0; i < rows.length; i += maxRowsPerSlide) {
       const chunk = rows.slice(i, i + maxRowsPerSlide);
-      const slide = pptx.addSlide();
-      slide.background = { color: 'FFFFFF' };
+      const slide = createSlide();
       addWatermark(slide);
 
       slide.addText(i === 0 ? slideTitle : `${slideTitle} (Continued)`, {
@@ -136,8 +176,6 @@ export const generateClinicalCasePPTX = async ({
         x: startX, y: startY, w: contentW, colW, rowH,
         border: { pt: 1, color: 'CBD5E1' }
       });
-
-      addFooter(slide);
     }
   };
 
@@ -151,8 +189,7 @@ export const generateClinicalCasePPTX = async ({
 
     for (let i = 0; i < rows.length; i += maxRowsPerSlide) {
       const chunk = rows.slice(i, i + maxRowsPerSlide);
-      const slide = pptx.addSlide();
-      slide.background = { color: 'FFFFFF' };
+      const slide = createSlide();
       addWatermark(slide);
 
       slide.addText(i === 0 ? slideTitle : `${slideTitle} (Continued)`, {
@@ -164,8 +201,6 @@ export const generateClinicalCasePPTX = async ({
         x: startX, y: 0.85, w: contentW, colW, rowH: 0.5,
         border: { pt: 1, color: 'CBD5E1' }
       });
-
-      addFooter(slide);
     }
   };
 
@@ -173,8 +208,7 @@ export const generateClinicalCasePPTX = async ({
   // SLIDE 1: FIRST SLIDE — COLLEGE ADMIN PPT CONFIGURATION & DETAILS
   // (Student and Preceptor details appear ONLY on this first slide)
   // ====================================================================
-  const slide1 = pptx.addSlide();
-  slide1.background = { color: 'FFFFFF' };
+  const slide1 = createSlide();
   addWatermark(slide1);
 
   // College Banner Header Box
@@ -276,13 +310,11 @@ export const generateClinicalCasePPTX = async ({
     }
   }
 
-  addFooter(slide1);
-
   // ====================================================================
   // FORM 1: PATIENT PROFILE DOCUMENTATION (ONLY IF APPROVED)
   // ====================================================================
   if (norm.isProfileCompleted) {
-    // Demographics & Identifiers (Split into max 5 rows per slide)
+    // Demographics & Identifiers
     const profileDemoRows = [
       [{ text: 'Patient Name', options: { fontFace, fontSize: 13, bold: true } }, { text: norm.demographics.patientName, options: { fontFace, fontSize: 13 } }],
       [{ text: 'Age / Gender', options: { fontFace, fontSize: 13, bold: true } }, { text: `${norm.demographics.age} Yrs / ${norm.demographics.gender}`, options: { fontFace, fontSize: 13 } }],
@@ -500,6 +532,12 @@ export const generateClinicalCasePPTX = async ({
 
     addKeyValueSlides('ADR Log: Causality Assessment & Outcome', adrCausalityRows);
   }
+
+  // Iterate all created slides and apply exact 3-column footer with dividing line
+  const totalSlides = slidesList.length;
+  slidesList.forEach((slide, idx) => {
+    addFooterToSlide(slide, idx + 1, totalSlides);
+  });
 
   // Save presentation file directly
   const fileName = `${norm.caseId}_Presentation.pptx`;
