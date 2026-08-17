@@ -143,10 +143,11 @@ export const buildNormalizedApprovedCaseData = ({
     return [];
   };
 
-  const vitals = safeArray(profile.vital_signs || profile.vitals);
-  const labs = safeArray(profile.lab_investigations || profile.labs);
+  const vitals = safeArray(caseModulesData?.vitals || profile.vital_signs || profile.vitals || clinicalCase?.vital_signs || clinicalCase?.vitals);
+  const labs = safeArray(caseModulesData?.labs || caseModulesData?.labInvestigations || profile.lab_investigations || profile.labs || clinicalCase?.lab_investigations || clinicalCase?.labs);
   const drugs = safeArray(
     caseModulesData?.drugs ||
+    caseModulesData?.prescribedDrugs ||
     profile.prescribed_drugs ||
     profile.medications ||
     profile.drugs ||

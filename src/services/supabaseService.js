@@ -2126,30 +2126,48 @@ export const fetchCaseModuleStatusesFromSupabase = async (clinicalCaseId) => {
     let drugs = [];
 
     const profileId = profileData.id;
-    if (profileId) {
-      const [labRes, drugRes] = await Promise.all([
-        supabase.from('patient_lab_investigations').select('*').eq('patient_profile_id', profileId).order('created_at', { ascending: true }),
-        supabase.from('patient_prescribed_drugs').select('*').eq('patient_profile_id', profileId).order('s_no', { ascending: true })
-      ]);
 
-      const seenLab = new Set();
-      (labRes.data || []).forEach(l => {
-        const key = `${l.category}_${l.parameter_name}_${l.test_value}`;
-        if (!seenLab.has(key)) {
-          seenLab.add(key);
-          labs.push(l);
-        }
-      });
+    // Fetch Lab Investigations with multi-table & multi-key fallbacks
+    const [labRes1, labRes2, drugRes1, drugRes2] = await Promise.all([
+      profileId ? supabase.from('patient_lab_investigations').select('*').eq('patient_profile_id', profileId).order('created_at', { ascending: true }) : Promise.resolve({ data: [] }),
+      supabase.from('patient_lab_investigations').select('*').eq('clinical_case_id', clinicalCaseId).order('created_at', { ascending: true }),
+      profileId ? supabase.from('patient_prescribed_drugs').select('*').eq('patient_profile_id', profileId).order('s_no', { ascending: true }) : Promise.resolve({ data: [] }),
+      supabase.from('patient_prescribed_drugs').select('*').eq('clinical_case_id', clinicalCaseId).order('s_no', { ascending: true })
+    ]);
 
-      const seenDrug = new Set();
-      (drugRes.data || []).forEach(d => {
-        const key = `${d.trade_name}_${d.generic_name}_${d.dose}`;
-        if (!seenDrug.has(key)) {
-          seenDrug.add(key);
-          drugs.push(d);
-        }
-      });
+    const rawLabs = [...(labRes1.data || []), ...(labRes2.data || [])];
+    if (rawLabs.length === 0 && profileData.lab_investigations) {
+      if (Array.isArray(profileData.lab_investigations)) rawLabs.push(...profileData.lab_investigations);
+      else if (typeof profileData.lab_investigations === 'string') {
+        try { rawLabs.push(...JSON.parse(profileData.lab_investigations)); } catch(e) {}
+      }
     }
+
+    const seenLab = new Set();
+    rawLabs.forEach(l => {
+      const key = `${l.category}_${l.parameter_name || l.test_name}_${l.test_value || l.observed_value}`;
+      if (!seenLab.has(key)) {
+        seenLab.add(key);
+        labs.push(l);
+      }
+    });
+
+    const rawDrugs = [...(drugRes1.data || []), ...(drugRes2.data || [])];
+    if (rawDrugs.length === 0 && profileData.prescribed_drugs) {
+      if (Array.isArray(profileData.prescribed_drugs)) rawDrugs.push(...profileData.prescribed_drugs);
+      else if (typeof profileData.prescribed_drugs === 'string') {
+        try { rawDrugs.push(...JSON.parse(profileData.prescribed_drugs)); } catch(e) {}
+      }
+    }
+
+    const seenDrug = new Set();
+    rawDrugs.forEach(d => {
+      const key = `${d.trade_name || d.brand_name}_${d.generic_name || d.drug_name}_${d.dose}`;
+      if (!seenDrug.has(key)) {
+        seenDrug.add(key);
+        drugs.push(d);
+      }
+    });
 
     return {
       success: true,
