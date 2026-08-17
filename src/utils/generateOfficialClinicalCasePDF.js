@@ -29,9 +29,7 @@ const ALL_COUNSELLING_CHECKLIST_POINTS = [
 /**
  * High-Precision Vector PDF Generator for PharmDVerse Approved Clinical Cases.
  * 
- * ADJUSTMENTS:
- * 1. 3-ROW PATIENT DETAILS GRID: 3 rows x 4 columns (45mm per cell) to comfortably fit all values on a single line with 0% wrapping/overflow.
- * 2. TABLE BORDER PADDING: Precision alignment for Laboratory & Prescribed Drugs rightmost headers/columns.
+ * STEP 13: PHARMACIST INTERVENTION DOCUMENTATION ONLY (Individual PDF)
  */
 export const generateOfficialClinicalCasePDF = ({
   clinicalCase = {},
@@ -830,20 +828,190 @@ export const generateOfficialClinicalCasePDF = ({
   }
 
   // =========================================================================
-  // 3. PHARMACIST INTERVENTION DOCUMENTATION FORM ONLY
+  // 3. PHARMACIST INTERVENTION DOCUMENTATION FORM ONLY (STEP 13)
   // =========================================================================
   if (selectedForm === 'intervention') {
     doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(2, 132, 199);
     doc.text(`PHARMACIST INTERVENTION DOCUMENTATION  (CASE ID: ${norm.caseId})`, marginX, y);
     y += 6;
 
-    drawSectionBox('Intervention & Reporting Date:', `${intervention.date || 'N/A'} (Reported: ${intervention.reportingDate || 'N/A'})`, 12);
-    drawSectionBox('Present Diagnosis:', intervention.presentDiagnosis || norm.diagnosis.final || 'N/A', 12);
-    drawSectionBox('Prescription Problem Identified:', intervention.prescriptionProblems || 'None', 14);
-    drawSectionBox('Action Taken & Clinical Recommendation:', `${intervention.actionsTaken || 'None'} — ${intervention.recommendations || ''}`, 16);
-    drawSectionBox('Significance Level:', intervention.significanceLevel || 'Moderate', 12);
-    drawSectionBox('Physician Acceptance Status:', intervention.physicianAcceptance || 'Accepted', 12);
-    drawSectionBox('References Consulted:', intervention.referencesText || 'Micromedex / Lexicomp', 12);
+    // 1. PATIENT INFORMATION BOX
+    ensureSpace(24);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(bodyFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('1. Patient Information:', marginX, y);
+    y += 4;
+
+    const iSessY = y;
+    doc.setDrawColor(15, 23, 42);
+    doc.setFillColor(248, 250, 252);
+    doc.rect(marginX, iSessY, contentWidth, 22, 'FD');
+    doc.line(marginX, iSessY + 7, marginX + contentWidth, iSessY + 7);
+    doc.line(marginX, iSessY + 14, marginX + contentWidth, iSessY + 14);
+
+    doc.setFontSize(9.5);
+    // Row 1: Patient Initials, Age/Sex, Date of Intervention, IP/OP No
+    doc.setFont(fontFamily, 'normal'); doc.text('Patient Initials: ', marginX + 2, iSessY + 5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(intervention.patient_name || norm.demographics.patientName || 'N/A'), marginX + 24, iSessY + 5, { maxWidth: 22 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Age/Sex: ', marginX + 48, iSessY + 5);
+    doc.setFont(fontFamily, 'bold'); doc.text(`${intervention.age || norm.demographics.age} Yrs / ${intervention.sex || norm.demographics.gender}`, marginX + 62, iSessY + 5, { maxWidth: 26 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Date: ', marginX + 94, iSessY + 5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(intervention.date_of_intervention || norm.dates.interventionDate), marginX + 104, iSessY + 5);
+
+    doc.setFont(fontFamily, 'normal'); doc.text('IP/OP No: ', marginX + 140, iSessY + 5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(intervention.ip_op_no || norm.demographics.ipOpNo), marginX + 154, iSessY + 5, { maxWidth: 24 });
+
+    // Row 2: Ward/Unit, Department, Physician
+    doc.setFont(fontFamily, 'normal'); doc.text('Ward/Unit: ', marginX + 2, iSessY + 12);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(intervention.ward || norm.demographics.wardBed), marginX + 18, iSessY + 12, { maxWidth: 28 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Dept: ', marginX + 48, iSessY + 12);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(intervention.department || norm.demographics.department), marginX + 57, iSessY + 12, { maxWidth: 35 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Physician: ', marginX + 94, iSessY + 12);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(intervention.physician || norm.demographics.physician), marginX + 110, iSessY + 12, { maxWidth: 68 });
+
+    // Row 3: Known Allergies
+    doc.setFont(fontFamily, 'normal'); doc.text('Known Allergies: ', marginX + 2, iSessY + 19);
+    doc.setFont(fontFamily, 'bold'); doc.setTextColor(190, 18, 60);
+    doc.text(String(intervention.allergies || norm.demographics.allergyDrugs || 'None'), marginX + 27, iSessY + 19, { maxWidth: 150 });
+    doc.setTextColor(15, 23, 42);
+
+    y = iSessY + 28;
+
+    // 2. PRESENT DIAGNOSIS BOX
+    drawSectionBox('2. Present Diagnosis:', intervention.present_diagnosis || norm.diagnosis.final || 'N/A', 12);
+
+    // 3. PRESCRIPTION DETAILS TABLE
+    ensureSpace(28);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('3. Prescription Details:', marginX, y);
+    y += 5;
+
+    const rxDetailsList = Array.isArray(intervention.prescription_details) && intervention.prescription_details.length > 0 ? intervention.prescription_details : [];
+
+    const drawRxTableHeader = (atY) => {
+      doc.setFillColor(241, 245, 249);
+      doc.setDrawColor(15, 23, 42);
+      doc.setLineWidth(0.3);
+      doc.rect(marginX, atY, contentWidth, 7, 'FD');
+
+      doc.setFont(fontFamily, 'bold'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
+      doc.text('S.No', marginX + 2, atY + 5);
+      doc.text('Name of the Drug', marginX + 16, atY + 5);
+      doc.text('Dose & Frequency', marginX + 112, atY + 5);
+    };
+
+    drawRxTableHeader(y);
+    y += 7;
+
+    if (rxDetailsList.length > 0) {
+      doc.setFont(fontFamily, 'normal'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
+      rxDetailsList.forEach((rx, idx) => {
+        const drugLines = doc.splitTextToSize(String(rx.drug_name || 'N/A'), 94);
+        const doseLines = doc.splitTextToSize(String(rx.dose_frequency || `${rx.dose || ''} ${rx.frequency || ''}`.trim() || 'N/A'), 66);
+        const maxLines = Math.max(drugLines.length, doseLines.length, 1);
+        const rowH = Math.max(maxLines * 5 + 2, 7);
+
+        if (ensureSpace(rowH)) {
+          if (repeatTableHeader) {
+            drawRxTableHeader(y);
+            y += 7;
+          }
+          doc.setFont(fontFamily, 'normal'); doc.setFontSize(10);
+        }
+
+        if (zebraStriping && idx % 2 === 1) {
+          doc.setFillColor(248, 250, 252);
+          doc.rect(marginX, y, contentWidth, rowH, 'FD');
+        } else {
+          doc.rect(marginX, y, contentWidth, rowH, 'D');
+        }
+
+        doc.text(String(rx.s_no || idx + 1), marginX + 3, y + 5);
+        doc.text(drugLines, marginX + 16, y + 5);
+        doc.text(doseLines, marginX + 112, y + 5);
+        y += rowH;
+      });
+    } else {
+      doc.rect(marginX, y, contentWidth, 7, 'D');
+      doc.setFont(fontFamily, 'italic'); doc.setFontSize(10); doc.setTextColor(100, 116, 139);
+      doc.text('No prescription details logged.', pageWidth / 2, y + 5, { align: 'center' });
+      y += 7;
+    }
+    y += 6;
+
+    // 4. IDENTIFIED PRESCRIPTION PROBLEMS
+    const rxProbList = Array.isArray(intervention.prescription_problems) ? intervention.prescription_problems : (typeof intervention.prescription_problems === 'string' ? [intervention.prescription_problems] : []);
+    const probStr = rxProbList.join(', ') + (intervention.prescription_problem_other ? ` (${intervention.prescription_problem_other})` : '');
+    drawSectionBox('4. Identified Prescription Problems:', probStr || 'None specified.', 12);
+
+    // 5. DESCRIPTION OF PROBLEM
+    drawSectionBox('5. Description of Problem:', intervention.description_of_problem || 'N/A', 14);
+
+    // 6. ACTION TAKEN & 7. RECOMMENDATIONS
+    const actList = Array.isArray(intervention.action_taken) ? intervention.action_taken : (typeof intervention.action_taken === 'string' ? [intervention.action_taken] : []);
+    const actStr = actList.join(', ') + (intervention.action_taken_other ? ` (${intervention.action_taken_other})` : '');
+
+    const recList = Array.isArray(intervention.recommendations) ? intervention.recommendations : (typeof intervention.recommendations === 'string' ? [intervention.recommendations] : []);
+    const recStr = recList.join(', ') + (intervention.recommendation_other ? ` (${intervention.recommendation_other})` : '');
+
+    drawSectionBox('6. Action Taken:', actStr || 'None specified.', 12);
+    drawSectionBox('7. Recommendations:', recStr || 'None specified.', 12);
+
+    // 8. ASSESSMENT & OUTCOME BOX
+    ensureSpace(28);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('8. Assessment & Outcome:', marginX, y);
+    y += 5;
+
+    const evalY = y;
+    const hasReasons = Boolean(intervention.reasons_if_no || intervention.outcome_comments);
+
+    doc.setDrawColor(15, 23, 42);
+    doc.setFillColor(248, 250, 252);
+    doc.rect(marginX, evalY, contentWidth, hasReasons ? 28 : 20, 'FD');
+    doc.line(marginX, evalY + 7, marginX + contentWidth, evalY + 7);
+    doc.line(marginX, evalY + 14, marginX + contentWidth, evalY + 14);
+
+    doc.setFontSize(9.5);
+    // Row 1: Discussed with Physician, Suggestions at Right Time
+    doc.setFont(fontFamily, 'normal'); doc.text('Discussed with Physician: ', marginX + 3, evalY + 5);
+    doc.setFont(fontFamily, 'bold'); doc.text(intervention.discussed_with_physician !== false ? 'YES' : 'NO', marginX + 42, evalY + 5);
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Suggestions at Right Time: ', marginX + 90, evalY + 5);
+    doc.setFont(fontFamily, 'bold'); doc.text(intervention.suggestions_appropriate_time !== false ? 'YES' : 'NO', marginX + 132, evalY + 5);
+
+    // Row 2: Accepted, Changed
+    doc.setFont(fontFamily, 'normal'); doc.text('Physician Accepted: ', marginX + 3, evalY + 12);
+    doc.setFont(fontFamily, 'bold'); doc.text(intervention.accepted !== false ? 'YES' : 'NO', marginX + 34, evalY + 12);
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Prescription Changed: ', marginX + 90, evalY + 12);
+    doc.setFont(fontFamily, 'bold'); doc.text(intervention.changed !== false ? 'YES' : 'NO', marginX + 126, evalY + 12);
+
+    // Row 3: Significance Level, Outcome
+    doc.setFont(fontFamily, 'normal'); doc.text('Significance Level: ', marginX + 3, evalY + 19);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(intervention.significance_of_intervention || intervention.significance_level || 'Moderate'), marginX + 32, evalY + 19);
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Intervention Outcome: ', marginX + 90, evalY + 19);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(intervention.outcome || intervention.intervention_outcome || 'Positive'), marginX + 126, evalY + 19);
+
+    if (hasReasons) {
+      doc.line(marginX, evalY + 21, marginX + contentWidth, evalY + 21);
+      doc.setFont(fontFamily, 'normal'); doc.text('Outcome Notes / Reasons: ', marginX + 3, evalY + 26);
+      doc.setFont(fontFamily, 'italic'); doc.text(String(intervention.reasons_if_no || intervention.outcome_comments), marginX + 42, evalY + 26, { maxWidth: 134 });
+    }
+
+    y = evalY + (hasReasons ? 33 : 25);
+
+    // 9. FOLLOW-UP NOTES & REFERENCES
+    if (intervention.follow_up) {
+      drawSectionBox('9. Follow-Up Notes:', intervention.follow_up, 14);
+    }
+    if (intervention.references_text) {
+      drawSectionBox('10. References Consulted:', intervention.references_text, 12);
+    }
   }
 
   // =========================================================================
