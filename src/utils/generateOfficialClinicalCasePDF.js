@@ -306,8 +306,10 @@ export const generateOfficialClinicalCasePDF = ({
   // 1. PATIENT PROFILE FORM ONLY
   // =========================================================================
   if (selectedForm === 'profile') {
-    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(2, 132, 199);
-    doc.text(`PATIENT PROFILE DOCUMENTATION  (CASE ID: ${norm.caseId})`, marginX, y);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(11.5); doc.setTextColor(15, 23, 42);
+    doc.text('PATIENT PROFILE DOCUMENTATION', marginX, y);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(10.5); doc.setTextColor(3, 105, 161);
+    doc.text(`(CASE ID: ${norm.caseId})`, pageWidth - marginX, y, { align: 'right' });
     y += 6;
 
     // PATIENT DETAILS GRID TABLE (3 Rows maintaining exact original field sequence with tuned cell widths)
@@ -667,8 +669,10 @@ export const generateOfficialClinicalCasePDF = ({
   // 2. PATIENT COUNSELLING DOCUMENTATION FORM ONLY (STEP 12)
   // =========================================================================
   if (selectedForm === 'counselling') {
-    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(2, 132, 199);
-    doc.text(`PATIENT COUNSELLING DOCUMENTATION  (CASE ID: ${norm.caseId})`, marginX, y);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(11.5); doc.setTextColor(15, 23, 42);
+    doc.text('PATIENT COUNSELLING DOCUMENTATION', marginX, y);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(10.5); doc.setTextColor(3, 105, 161);
+    doc.text(`(CASE ID: ${norm.caseId})`, pageWidth - marginX, y, { align: 'right' });
     y += 6;
 
     // 1. SESSION OVERVIEW BOX
@@ -831,8 +835,10 @@ export const generateOfficialClinicalCasePDF = ({
   // 3. PHARMACIST INTERVENTION DOCUMENTATION FORM ONLY (STEP 13)
   // =========================================================================
   if (selectedForm === 'intervention') {
-    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(2, 132, 199);
-    doc.text(`PHARMACIST INTERVENTION DOCUMENTATION  (CASE ID: ${norm.caseId})`, marginX, y);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(11.5); doc.setTextColor(15, 23, 42);
+    doc.text('PHARMACIST INTERVENTION DOCUMENTATION', marginX, y);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(10.5); doc.setTextColor(3, 105, 161);
+    doc.text(`(CASE ID: ${norm.caseId})`, pageWidth - marginX, y, { align: 'right' });
     y += 6;
 
     // 1. PATIENT INFORMATION BOX
@@ -1018,8 +1024,10 @@ export const generateOfficialClinicalCasePDF = ({
   // 4. DRUG INFORMATION REQUEST DOCUMENTATION FORM ONLY (STEP 14)
   // =========================================================================
   if (selectedForm === 'dir') {
-    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(2, 132, 199);
-    doc.text(`DRUG INFORMATION REQUEST DOCUMENTATION  (CASE ID: ${norm.caseId})`, marginX, y);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(11.5); doc.setTextColor(15, 23, 42);
+    doc.text('DRUG INFORMATION REQUEST DOCUMENTATION', marginX, y);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(10.5); doc.setTextColor(3, 105, 161);
+    doc.text(`(CASE ID: ${norm.caseId})`, pageWidth - marginX, y, { align: 'right' });
     y += 6;
 
     // 1. SESSION & ENQUIRER OVERVIEW BOX
@@ -1182,8 +1190,10 @@ export const generateOfficialClinicalCasePDF = ({
   // 5. ADR DOCUMENTATION LOG FORM ONLY (STEP 15)
   // =========================================================================
   if (selectedForm === 'adr') {
-    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(2, 132, 199);
-    doc.text(`ADR DOCUMENTATION LOG  (CASE ID: ${norm.caseId})`, marginX, y);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(11.5); doc.setTextColor(15, 23, 42);
+    doc.text('ADR DOCUMENTATION LOG', marginX, y);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(10.5); doc.setTextColor(3, 105, 161);
+    doc.text(`(CASE ID: ${norm.caseId})`, pageWidth - marginX, y, { align: 'right' });
     y += 6;
 
     // 1. GENERAL RECORD INFORMATION BOX
