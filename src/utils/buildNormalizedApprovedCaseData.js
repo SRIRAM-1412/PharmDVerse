@@ -18,35 +18,40 @@ export const buildNormalizedApprovedCaseData = ({
   const dir = caseModulesData?.dir || clinicalCase?.dir || {};
   const adr = caseModulesData?.adr || clinicalCase?.adr || {};
 
-  // Helper to determine if a form is actually completed/submitted and approved
-  const isFormCompleted = (formObj) => {
+  // Helper to determine if a form has reached APPROVED status
+  const isFormApproved = (formObj, isProfile = false) => {
     if (!formObj || typeof formObj !== 'object' || Object.keys(formObj).length === 0) return false;
-    const status = (formObj.status || formObj.form_status || formObj.approval_status || formObj.status_label || '').toLowerCase();
     
-    // Explicitly reject if status is Draft, Incomplete, Not Submitted, Not Started, or In Progress
-    if (status === 'draft' || status === 'incomplete' || status === 'not_submitted' || status === 'not started' || status === 'not added' || status === 'in progress') {
+    // Explicit rejection statuses
+    const status = String(formObj.status || formObj.form_status || formObj.approval_status || formObj.status_label || '').toLowerCase().trim();
+    if (status === 'draft' || status === 'incomplete' || status === 'not_submitted' || status === 'not started' || status === 'not added' || status === 'in progress' || status === 'submitted' || status === 'under_review' || status === 'returned' || status === 'rejected') {
       return false;
     }
-    if (status === 'completed' || status === 'submitted' || status === 'approved' || status === 'reviewed' || formObj.is_completed === true || formObj.is_submitted === true) {
+
+    if (status.includes('approved') || status.includes('reviewed')) {
       return true;
     }
-    
-    // If no explicit status field exists, return true ONLY if non-default user-entered content exists AND it's not marked as draft
-    if (formObj.is_draft === true || formObj.draft === true) {
-      return false;
+    if (formObj.is_approved === true || formObj.approved === true || formObj.preceptor_approved === true) {
+      return true;
     }
-    
-    return Boolean(formObj.is_completed || formObj.is_submitted || formObj.approved);
+
+    // If the overall clinicalCase is Approved, check if the form has actual content and is not a draft
+    const caseStatus = String(clinicalCase?.status || clinicalCase?.overall_case_status || clinicalCase?.approval_status || '').toLowerCase();
+    if (caseStatus === 'approved') {
+      if (formObj.is_draft === true || formObj.draft === true) return false;
+      if (isProfile) return Boolean(profile.patient_name || clinicalCase?.patient_name);
+      return Boolean(formObj.is_completed || formObj.is_submitted || formObj.is_approved || Object.keys(formObj).length > 2);
+    }
+
+    return false;
   };
 
-  // Profile is mandatory for all submitted cases
-  const isProfileCompleted = Boolean(profile.patient_name || clinicalCase?.patient_name);
-  
-  // Optional forms are included ONLY if actually submitted/completed
-  const isCounsellingCompleted = isFormCompleted(counselling);
-  const isInterventionCompleted = isFormCompleted(intervention);
-  const isDirCompleted = isFormCompleted(dir);
-  const isAdrCompleted = isFormCompleted(adr);
+  // Forms are included ONLY if actually APPROVED
+  const isProfileCompleted = isFormApproved(profile, true);
+  const isCounsellingCompleted = isFormApproved(counselling, false);
+  const isInterventionCompleted = isFormApproved(intervention, false);
+  const isDirCompleted = isFormApproved(dir, false);
+  const isAdrCompleted = isFormApproved(adr, false);
 
   // College & Student Identifiers
   const collegeName = college?.college_name || college?.name || clinicalCase?.college_name || 'PHARMDVERSE INSTITUTION OF PHARMACY';

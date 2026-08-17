@@ -29,11 +29,12 @@ const convertUrlToBase64 = async (url) => {
 
 /**
  * Official Clinical Case PDF & PPT Download Modal.
- * Provides live document status verification and handles high-precision vector PDF & PPT exports.
+ * Provides live document status verification and handles high-precision vector PDF & PPT exports per approved module.
  */
 export const OfficialClinicalCasePDFModal = ({ isOpen, onClose, clinicalCase, student, preceptor, college }) => {
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [activeFormDownloading, setActiveFormDownloading] = useState(null);
   const [exportingPPT, setExportingPPT] = useState(false);
   const [caseModulesData, setCaseModulesData] = useState({});
   const [branding, setBranding] = useState(null);
@@ -62,7 +63,7 @@ export const OfficialClinicalCasePDFModal = ({ isOpen, onClose, clinicalCase, st
         mergedModules = res.records;
       }
 
-      // Always merge embedded objects from clinicalCase as fallback or supplement
+      // Merge embedded objects from clinicalCase
       mergedModules = {
         profile: mergedModules.profile || clinicalCase?.profile || clinicalCase?.patient_profile || clinicalCase,
         counselling: mergedModules.counselling || clinicalCase?.counselling || clinicalCase?.patient_counselling || {},
@@ -124,8 +125,9 @@ export const OfficialClinicalCasePDFModal = ({ isOpen, onClose, clinicalCase, st
     ? new Date(clinicalCase.reviewed_at || clinicalCase.approved_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-  const handleDownloadPDF = async () => {
+  const handleDownloadPDF = async (formType = 'profile') => {
     setDownloading(true);
+    setActiveFormDownloading(formType);
     try {
       await generateOfficialClinicalCasePDF({
         clinicalCase,
@@ -133,13 +135,15 @@ export const OfficialClinicalCasePDFModal = ({ isOpen, onClose, clinicalCase, st
         preceptor: finalPreceptorObj,
         college: finalCollegeObj,
         caseModulesData,
-        branding
+        branding,
+        selectedForm: formType
       });
     } catch (err) {
       console.error('Failed to generate Official PDF:', err);
       alert('Could not download PDF. Error: ' + (err?.message || err));
     } finally {
       setDownloading(false);
+      setActiveFormDownloading(null);
     }
   };
 
@@ -163,6 +167,8 @@ export const OfficialClinicalCasePDFModal = ({ isOpen, onClose, clinicalCase, st
   };
 
   if (!isOpen) return null;
+
+  const hasAnyApprovedModule = norm.isProfileCompleted || norm.isCounsellingCompleted || norm.isInterventionCompleted || norm.isDirCompleted || norm.isAdrCompleted;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
@@ -191,7 +197,7 @@ export const OfficialClinicalCasePDFModal = ({ isOpen, onClose, clinicalCase, st
           {loading ? (
             <div className="py-12 flex flex-col items-center justify-center space-y-3">
               <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Verifying submitted module records...</p>
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Verifying approved module records...</p>
             </div>
           ) : (
             <>
@@ -201,7 +207,7 @@ export const OfficialClinicalCasePDFModal = ({ isOpen, onClose, clinicalCase, st
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">Verification Complete</h4>
                   <p className="text-xs text-emerald-700 dark:text-emerald-400">
-                    Official clinical case logbook data verified. Verified & approved by preceptor on {approvedDateStr}.
+                    Official clinical case logbook records evaluated. Showing ONLY forms that reached APPROVED status.
                   </p>
                 </div>
               </div>
@@ -217,41 +223,103 @@ export const OfficialClinicalCasePDFModal = ({ isOpen, onClose, clinicalCase, st
                 </div>
               </div>
 
-              {/* Submitted Form Modules Checklist */}
+              {/* Submitted Form Modules Checklist - EXCLUSIVELY APPROVED MODULES */}
               <div className="space-y-3">
                 <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Included Approved Modules</div>
-                <div className="grid grid-cols-1 gap-2 text-xs">
-                  {norm.isProfileCompleted && (
-                    <div className="p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
-                      <span className="font-semibold">1. Patient Profile Documentation</span>
-                      <CheckCircle className="w-4 h-4 text-emerald-600" />
-                    </div>
-                  )}
-                  {norm.isCounsellingCompleted && (
-                    <div className="p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
-                      <span className="font-semibold">2. Patient Counselling Documentation</span>
-                      <CheckCircle className="w-4 h-4 text-emerald-600" />
-                    </div>
-                  )}
-                  {norm.isInterventionCompleted && (
-                    <div className="p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
-                      <span className="font-semibold">3. Pharmacist Intervention Documentation</span>
-                      <CheckCircle className="w-4 h-4 text-emerald-600" />
-                    </div>
-                  )}
-                  {norm.isDirCompleted && (
-                    <div className="p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
-                      <span className="font-semibold">4. Drug Information Request Documentation</span>
-                      <CheckCircle className="w-4 h-4 text-emerald-600" />
-                    </div>
-                  )}
-                  {norm.isAdrCompleted && (
-                    <div className="p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
-                      <span className="font-semibold">5. ADR Documentation Log</span>
-                      <CheckCircle className="w-4 h-4 text-emerald-600" />
-                    </div>
-                  )}
-                </div>
+                
+                {hasAnyApprovedModule ? (
+                  <div className="grid grid-cols-1 gap-2.5 text-xs">
+                    {norm.isProfileCompleted && (
+                      <div className="p-3 rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-900 dark:text-emerald-200 flex items-center justify-between gap-2 shadow-2xs">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span className="font-bold">1. Patient Profile Documentation</span>
+                        </div>
+                        <button
+                          onClick={() => handleDownloadPDF('profile')}
+                          disabled={downloading}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-xs disabled:opacity-50"
+                        >
+                          {downloading && activeFormDownloading === 'profile' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                          <span>Download PDF</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {norm.isCounsellingCompleted && (
+                      <div className="p-3 rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-900 dark:text-emerald-200 flex items-center justify-between gap-2 shadow-2xs">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span className="font-bold">2. Patient Counselling Documentation</span>
+                        </div>
+                        <button
+                          onClick={() => handleDownloadPDF('counselling')}
+                          disabled={downloading}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-xs disabled:opacity-50"
+                        >
+                          {downloading && activeFormDownloading === 'counselling' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                          <span>Download PDF</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {norm.isInterventionCompleted && (
+                      <div className="p-3 rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-900 dark:text-emerald-200 flex items-center justify-between gap-2 shadow-2xs">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span className="font-bold">3. Pharmacist Intervention Documentation</span>
+                        </div>
+                        <button
+                          onClick={() => handleDownloadPDF('intervention')}
+                          disabled={downloading}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-xs disabled:opacity-50"
+                        >
+                          {downloading && activeFormDownloading === 'intervention' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                          <span>Download PDF</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {norm.isDirCompleted && (
+                      <div className="p-3 rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-900 dark:text-emerald-200 flex items-center justify-between gap-2 shadow-2xs">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span className="font-bold">4. Drug Information Request Documentation</span>
+                        </div>
+                        <button
+                          onClick={() => handleDownloadPDF('dir')}
+                          disabled={downloading}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-xs disabled:opacity-50"
+                        >
+                          {downloading && activeFormDownloading === 'dir' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                          <span>Download PDF</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {norm.isAdrCompleted && (
+                      <div className="p-3 rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-900 dark:text-emerald-200 flex items-center justify-between gap-2 shadow-2xs">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span className="font-bold">5. ADR Documentation Log</span>
+                        </div>
+                        <button
+                          onClick={() => handleDownloadPDF('adr')}
+                          disabled={downloading}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-xs disabled:opacity-50"
+                        >
+                          {downloading && activeFormDownloading === 'adr' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                          <span>Download PDF</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>No clinical documentation forms have reached APPROVED status yet.</span>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -268,20 +336,11 @@ export const OfficialClinicalCasePDFModal = ({ isOpen, onClose, clinicalCase, st
           
           <button
             onClick={handleDownloadPPT}
-            disabled={downloading || exportingPPT || loading}
+            disabled={downloading || exportingPPT || loading || !hasAnyApprovedModule}
             className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-xs font-bold shadow-md disabled:opacity-50 flex items-center gap-2 transition-all"
           >
             {exportingPPT ? <Loader2 className="w-4 h-4 animate-spin" /> : <Presentation className="w-4 h-4 text-amber-400" />}
             <span>{exportingPPT ? 'Generating PPT...' : 'Export PPT'}</span>
-          </button>
-
-          <button
-            onClick={handleDownloadPDF}
-            disabled={downloading || exportingPPT || loading}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 disabled:opacity-50 flex items-center gap-2 transition-all"
-          >
-            {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            <span>{downloading ? 'Generating PDF...' : 'Download PDF'}</span>
           </button>
         </div>
       </div>
