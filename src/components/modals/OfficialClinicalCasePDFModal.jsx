@@ -160,7 +160,7 @@ export const OfficialClinicalCasePDFModal = ({ isOpen, onClose, clinicalCase, st
       });
     } catch (err) {
       console.error('Failed to generate PPT presentation:', err);
-      alert('Could not export PPT presentation. Please try again.');
+      alert('Could not export PPT presentation: ' + (err?.message || err));
     } finally {
       setExportingPPT(false);
     }

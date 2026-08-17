@@ -124,7 +124,7 @@ export const generateClinicalCasePPTX = async ({
     if (!isFooterEnabled) return;
     try {
       // Subtle horizontal dividing line
-      slide.addShape(pptx.shapes.LINE, {
+      slide.addShape('line', {
         x: startX, y: 5.1, w: contentW, h: 0,
         line: { color: 'E2E8F0', width: 0.75 }
       });
@@ -197,6 +197,7 @@ export const generateClinicalCasePPTX = async ({
         fontFace, fontSize: titleFontSize, bold: true, color: primaryColor
       });
 
+      const startY = 0.85;
       slide.addTable([headerRow, ...chunk], {
         x: startX, y: startY, w: contentW, colW, rowH: 0.5,
         border: { pt: 1, color: 'CBD5E1' }
@@ -212,7 +213,7 @@ export const generateClinicalCasePPTX = async ({
   addWatermark(slide1);
 
   // College Banner Header Box
-  slide1.addShape(pptx.shapes.RECTANGLE, {
+  slide1.addShape('rect', {
     x: startX, y: 0.3, w: contentW, h: 0.9,
     fill: { color: 'F1F5F9' }, line: { color: '0F172A', width: 1.5 }
   });
@@ -256,7 +257,7 @@ export const generateClinicalCasePPTX = async ({
   }
 
   // Case ID Sub-bar
-  slide1.addShape(pptx.shapes.RECTANGLE, {
+  slide1.addShape('rect', {
     x: startX, y: 1.3, w: contentW, h: 0.35,
     fill: { color: '0F172A' }
   });
@@ -282,7 +283,7 @@ export const generateClinicalCasePPTX = async ({
   const showPreceptorSig = pptSettings?.show_preceptor_signature !== false;
 
   if (showStudentSig || showPreceptorSig) {
-    slide1.addShape(pptx.shapes.RECTANGLE, {
+    slide1.addShape('rect', {
       x: startX, y: 2.65, w: contentW, h: 1.6,
       fill: { color: darkBgColor }, line: { color: 'CBD5E1', width: 1 }
     });
