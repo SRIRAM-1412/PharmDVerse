@@ -17,13 +17,10 @@ const getImageFormat = (imgUrl) => {
 /**
  * High-Precision Vector PDF Generator for PharmDVerse Approved Clinical Cases.
  * 
- * INDIVIDUAL FORM PDF GENERATION RULE:
- * - Patient Profile PDF -> Patient Profile only
- * - Patient Counselling PDF -> Patient Counselling only
- * - Intervention PDF -> Intervention only
- * - Drug Information PDF -> DIR only
- * - ADR PDF -> ADR only
- * - Never mix content from different forms in an individual export.
+ * FIXES:
+ * 1. Patient Details Grid: Custom column widths + 9pt font to prevent cell text wrapping/overlap.
+ * 2. Watermark Alignment: Left-to-Right diagonal flow (-35°) vs Center flat flow (0°).
+ * 3. 0% Table Row Collision: Dynamic line wrapping row heights for all table sections.
  */
 export const generateOfficialClinicalCasePDF = ({
   clinicalCase = {},
@@ -210,7 +207,8 @@ export const generateOfficialClinicalCasePDF = ({
 
       const centerX = pageWidth / 2;
       const centerY = pageHeight / 2;
-      const angle = (watermarkPosition === 'Diagonal' || watermarkPosition === 'diagonal') ? 35 : 0;
+      // Angle -35 for Left-to-Right diagonal reading flow
+      const angle = (watermarkPosition === 'Diagonal' || watermarkPosition === 'diagonal') ? -35 : 0;
 
       if (watermarkTextLine2) {
         doc.text(watermarkTextLine1, centerX, centerY - 6, { align: 'center', angle, rotationDirection: 0 });
@@ -304,66 +302,90 @@ export const generateOfficialClinicalCasePDF = ({
     doc.text('PATIENT PROFILE DOCUMENTATION', marginX, y);
     y += 6;
 
-    // PATIENT DETAILS GRID TABLE
+    // PATIENT DETAILS GRID TABLE (Custom Column Widths for zero text overlap)
     ensureSpace(22);
     doc.setFont(fontFamily, 'bold'); doc.setFontSize(bodyFontSize); doc.setTextColor(15, 23, 42);
     doc.text('Patient details:', marginX, y);
     y += 4;
 
     const gridY = y;
-    const colW = contentWidth / 6;
+    
+    // Row 1 Column Offsets: Name (34mm), Age/Sex (34mm), IP No (34mm), Height (26mm), Weight (26mm), BMI (26mm) = 180mm
+    const r1X = [
+      marginX,
+      marginX + 34,
+      marginX + 68,
+      marginX + 102,
+      marginX + 128,
+      marginX + 154,
+      marginX + 180
+    ];
+
+    // Row 2 Column Offsets: Ward (38mm), Dept (36mm), DOA (26mm), DOC (26mm), DOD (26mm), Physician (28mm) = 180mm
+    const r2X = [
+      marginX,
+      marginX + 38,
+      marginX + 74,
+      marginX + 100,
+      marginX + 126,
+      marginX + 152,
+      marginX + 180
+    ];
 
     doc.setDrawColor(15, 23, 42);
     doc.setLineWidth(0.4);
 
-    doc.rect(marginX, gridY, contentWidth, 9);
+    // Outer boxes for Row 1 and Row 2 (8mm height each)
+    doc.rect(marginX, gridY, contentWidth, 8);
     for (let c = 1; c < 6; c++) {
-      doc.line(marginX + c * colW, gridY, marginX + c * colW, gridY + 9);
+      doc.line(r1X[c], gridY, r1X[c], gridY + 8);
     }
 
-    doc.rect(marginX, gridY + 9, contentWidth, 9);
+    doc.rect(marginX, gridY + 8, contentWidth, 8);
     for (let c = 1; c < 6; c++) {
-      doc.line(marginX + c * colW, gridY + 9, marginX + c * colW, gridY + 18);
+      doc.line(r2X[c], gridY + 8, r2X[c], gridY + 16);
     }
 
-    doc.setFontSize(10);
-    doc.setFont(fontFamily, 'normal'); doc.text('Name: ', marginX + 1, gridY + 6);
-    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.demographics.patientName), marginX + 13, gridY + 6, { maxWidth: colW - 14 });
+    doc.setFontSize(9);
+    // Row 1 Values
+    doc.setFont(fontFamily, 'normal'); doc.text('Name: ', r1X[0] + 1, gridY + 5.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.demographics.patientName), r1X[0] + 11, gridY + 5.5, { maxWidth: 22 });
 
-    doc.setFont(fontFamily, 'normal'); doc.text('Age/Sex: ', marginX + colW + 1, gridY + 6);
-    doc.setFont(fontFamily, 'bold'); doc.text(`${norm.demographics.age}/${norm.demographics.gender}`, marginX + colW + 16, gridY + 6, { maxWidth: colW - 17 });
+    doc.setFont(fontFamily, 'normal'); doc.text('Age/Sex: ', r1X[1] + 1, gridY + 5.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(`${norm.demographics.age}/${norm.demographics.gender}`, r1X[1] + 14, gridY + 5.5, { maxWidth: 19 });
 
-    doc.setFont(fontFamily, 'normal'); doc.text('I.P No: ', marginX + 2 * colW + 1, gridY + 6);
-    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.demographics.ipOpNo), marginX + 2 * colW + 13, gridY + 6, { maxWidth: colW - 14 });
+    doc.setFont(fontFamily, 'normal'); doc.text('I.P No: ', r1X[2] + 1, gridY + 5.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.demographics.ipOpNo), r1X[2] + 12, gridY + 5.5, { maxWidth: 21 });
 
-    doc.setFont(fontFamily, 'normal'); doc.text('Height: ', marginX + 3 * colW + 1, gridY + 6);
-    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.demographics.height), marginX + 3 * colW + 13, gridY + 6, { maxWidth: colW - 14 });
+    doc.setFont(fontFamily, 'normal'); doc.text('Height: ', r1X[3] + 1, gridY + 5.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.demographics.height), r1X[3] + 12, gridY + 5.5, { maxWidth: 13 });
 
-    doc.setFont(fontFamily, 'normal'); doc.text('Weight: ', marginX + 4 * colW + 1, gridY + 6);
-    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.demographics.weight), marginX + 4 * colW + 14, gridY + 6, { maxWidth: colW - 15 });
+    doc.setFont(fontFamily, 'normal'); doc.text('Weight: ', r1X[4] + 1, gridY + 5.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.demographics.weight), r1X[4] + 13, gridY + 5.5, { maxWidth: 12 });
 
-    doc.setFont(fontFamily, 'normal'); doc.text('BMI: ', marginX + 5 * colW + 1, gridY + 6);
-    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.demographics.bmi), marginX + 5 * colW + 10, gridY + 6, { maxWidth: colW - 11 });
+    doc.setFont(fontFamily, 'normal'); doc.text('BMI: ', r1X[5] + 1, gridY + 5.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.demographics.bmi), r1X[5] + 9, gridY + 5.5, { maxWidth: 16 });
 
-    doc.setFont(fontFamily, 'normal'); doc.text('Ward: ', marginX + 1, gridY + 15);
-    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.demographics.wardBed), marginX + 12, gridY + 15, { maxWidth: colW - 13 });
+    // Row 2 Values
+    doc.setFont(fontFamily, 'normal'); doc.text('Ward: ', r2X[0] + 1, gridY + 13.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.demographics.wardBed), r2X[0] + 11, gridY + 13.5, { maxWidth: 26 });
 
-    doc.setFont(fontFamily, 'normal'); doc.text('Dept: ', marginX + colW + 1, gridY + 15);
-    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.demographics.department), marginX + colW + 11, gridY + 15, { maxWidth: colW - 12 });
+    doc.setFont(fontFamily, 'normal'); doc.text('Dept: ', r2X[1] + 1, gridY + 13.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.demographics.department), r2X[1] + 10, gridY + 13.5, { maxWidth: 25 });
 
-    doc.setFont(fontFamily, 'normal'); doc.text('DOA: ', marginX + 2 * colW + 1, gridY + 15);
-    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.dates.doa), marginX + 2 * colW + 11, gridY + 15, { maxWidth: colW - 12 });
+    doc.setFont(fontFamily, 'normal'); doc.text('DOA: ', r2X[2] + 1, gridY + 13.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.dates.doa), r2X[2] + 10, gridY + 13.5, { maxWidth: 15 });
 
-    doc.setFont(fontFamily, 'normal'); doc.text('DOC: ', marginX + 3 * colW + 1, gridY + 15);
-    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.dates.doc), marginX + 3 * colW + 11, gridY + 15, { maxWidth: colW - 12 });
+    doc.setFont(fontFamily, 'normal'); doc.text('DOC: ', r2X[3] + 1, gridY + 13.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.dates.doc), r2X[3] + 10, gridY + 13.5, { maxWidth: 15 });
 
-    doc.setFont(fontFamily, 'normal'); doc.text('DOD: ', marginX + 4 * colW + 1, gridY + 15);
-    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.dates.dod), marginX + 4 * colW + 11, gridY + 15, { maxWidth: colW - 12 });
+    doc.setFont(fontFamily, 'normal'); doc.text('DOD: ', r2X[4] + 1, gridY + 13.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.dates.dod), r2X[4] + 10, gridY + 13.5, { maxWidth: 15 });
 
-    doc.setFont(fontFamily, 'normal'); doc.text('Physician: ', marginX + 5 * colW + 1, gridY + 15);
-    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.demographics.physician), marginX + 5 * colW + 17, gridY + 15, { maxWidth: colW - 18 });
+    doc.setFont(fontFamily, 'normal'); doc.text('Physician: ', r2X[5] + 1, gridY + 13.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(norm.demographics.physician), r2X[5] + 15, gridY + 13.5, { maxWidth: 12 });
 
-    y = gridY + 23;
+    y = gridY + 22;
 
     drawSectionBox('Chief Complaints:', profile?.chief_complaints || 'N/A', 14);
     drawSectionBox('Past Medical History:', profile?.past_medical_history || profile?.history_of_present_illness || 'N/A', 14);
