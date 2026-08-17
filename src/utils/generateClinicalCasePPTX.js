@@ -25,15 +25,13 @@ export const generateClinicalCasePPTX = async ({
 
   const pptx = new pptxgen();
 
-  // Page setup & configuration (16:9 Widescreen default vs 4:3 Standard)
-  const isWidescreen = (pptSettings?.aspect_ratio || pptSettings?.ppt_aspect_ratio) !== '4:3 (Standard)';
-  pptx.layout = isWidescreen ? 'LAYOUT_16x9' : 'LAYOUT_4x3';
+  // Application-Level Fixed PPT Generation Settings (Section 6)
+  pptx.layout = 'LAYOUT_16x9'; // 16:9 Widescreen
 
-  // Fonts & Styling Tokens
-  const fontFace = pptSettings?.font_family || pptSettings?.ppt_font_family || 'Times New Roman';
-  const titleFontSize = parseInt(pptSettings?.ppt_title_font_size || pptSettings?.title_font_size || '20', 10);
-  const subHeadingFontSize = parseInt(pptSettings?.ppt_subheading_font_size || pptSettings?.subheading_font_size || '16', 10);
-  const bodyFontSize = parseInt(pptSettings?.ppt_body_font_size || pptSettings?.body_font_size || '13', 10);
+  const fontFace = 'Times New Roman'; // Fixed Times New Roman font family
+  const titleFontSize = 22; // Fixed 22 pt
+  const headingFontSize = 20; // Fixed 20 pt
+  const bodyFontSize = 18; // Fixed 18 pt
 
   const primaryColor = '0F172A'; // Slate-900
   const emeraldColor = '059669'; // Emerald-600
@@ -172,7 +170,7 @@ export const generateClinicalCasePPTX = async ({
   if (subTextParts.length > 0) {
     slide1.addText(subTextParts.join(' • '), {
       x: startX + 1.0, y: 0.75, w: contentW - 2.0, h: 0.3,
-      fontFace, fontSize: Math.max(subHeadingFontSize - 4, 11), italic: true, color: '475569', align: 'center'
+      fontFace, fontSize: 14, italic: true, color: '475569', align: 'center'
     });
   }
 
@@ -184,18 +182,18 @@ export const generateClinicalCasePPTX = async ({
 
   slide1.addText(`CASE ID : ${caseId}`, {
     x: startX + 0.1, y: 1.32, w: contentW - 0.2, h: 0.3,
-    fontFace: 'Courier New', fontSize: bodyFontSize - 1, bold: true, color: 'FFFFFF', align: 'center'
+    fontFace: 'Courier New', fontSize: 16, bold: true, color: 'FFFFFF', align: 'center'
   });
 
   // Main Presentation Title & Diagnosis
   slide1.addText('CLINICAL CASE PRESENTATION', {
     x: startX + 0.1, y: 1.75, w: contentW - 0.2, h: 0.4,
-    fontFace, fontSize: titleFontSize + 2, bold: true, color: emeraldColor, align: 'center'
+    fontFace, fontSize: titleFontSize, bold: true, color: emeraldColor, align: 'center'
   });
 
   slide1.addText(`Final Diagnosis: ${finalDiagnosis}`, {
     x: startX + 0.1, y: 2.15, w: contentW - 0.2, h: 0.4,
-    fontFace, fontSize: subHeadingFontSize + 1, bold: true, color: primaryColor, align: 'center'
+    fontFace, fontSize: headingFontSize, bold: true, color: primaryColor, align: 'center'
   });
 
   // Student & Preceptor Metadata Card (FIRST SLIDE ONLY)
