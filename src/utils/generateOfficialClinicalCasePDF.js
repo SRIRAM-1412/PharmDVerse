@@ -2,15 +2,28 @@ import jsPDF from 'jspdf';
 import { buildNormalizedApprovedCaseData } from './buildNormalizedApprovedCaseData';
 
 /**
+ * Image format detection helper for jsPDF addImage
+ */
+const getImageFormat = (imgUrl) => {
+  if (!imgUrl) return 'PNG';
+  if (typeof imgUrl === 'string') {
+    if (imgUrl.startsWith('data:image/jpeg') || imgUrl.startsWith('data:image/jpg') || imgUrl.toLowerCase().endsWith('.jpg') || imgUrl.toLowerCase().endsWith('.jpeg')) return 'JPEG';
+    if (imgUrl.startsWith('data:image/png') || imgUrl.toLowerCase().endsWith('.png')) return 'PNG';
+    if (imgUrl.startsWith('data:image/webp') || imgUrl.toLowerCase().endsWith('.webp')) return 'WEBP';
+  }
+  return 'PNG';
+};
+
+/**
  * Clean & High-Precision PDF Generator for PharmDVerse Approved Clinical Cases.
  * 
- * FIXED MEASUREMENTS (Step 3 & Step 9):
+ * FIXED MEASUREMENTS:
  * - Paper size: A4 (210mm x 297mm)
  * - Font: Times New Roman ('times' in jsPDF)
  * - Font sizes: 14pt (Titles / Main Headers) and 12pt (Subheadings / Body Content / Table Cells)
  * - Margins: Normal (15mm top, 15mm bottom, 15mm left, 15mm right — content width 180mm)
  * 
- * FORMAT CONTROLS FROM COLLEGE ADMIN (Step 1, Step 5, Step 9):
+ * FORMAT CONTROLS FROM COLLEGE ADMIN ONLY:
  * - Header switches: show_college_logo, show_college_name, show_autonomous, show_hospital_logo, show_hospital_name
  * - Watermark settings: watermark_enabled, watermark_text_line1, watermark_text_line2, watermark_opacity, watermark_position
  * - Footer settings: footer_left_text, footer_center_text, show_page_number, show_generated_datetime
@@ -52,9 +65,7 @@ export const generateOfficialClinicalCasePDF = ({
   const currentDateStr = new Date().toLocaleDateString('en-GB', {
     day: '2-digit',
     month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+    year: 'numeric'
   });
 
   // FIXED FONT: Times New Roman ('times' in jsPDF)
@@ -63,7 +74,7 @@ export const generateOfficialClinicalCasePDF = ({
   const bodyFontSize = 12;
 
   // FORMAT CONTROLS FROM COLLEGE ADMIN ONLY
-  const showCollegeLogo = branding?.show_college_logo ?? true;
+  const showCollegeLogo = branding?.show_college_logo ?? branding?.show_logo ?? true;
   const showCollegeName = branding?.show_college_name ?? true;
   const showAutonomous = branding?.show_autonomous ?? true;
   const showHospitalLogo = branding?.show_hospital_logo ?? true;
@@ -80,8 +91,8 @@ export const generateOfficialClinicalCasePDF = ({
   const showPageNumber = branding?.show_page_number !== false;
   const showGeneratedDatetime = branding?.show_generated_datetime !== false;
 
-  const repeatHeader = branding?.repeat_header !== false;
-  const repeatFooter = branding?.repeat_footer !== false;
+  const repeatHeader = (branding?.repeat_header ?? branding?.header_enabled) !== false;
+  const repeatFooter = (branding?.repeat_footer ?? branding?.footer_enabled) !== false;
   const showStudentSignature = branding?.show_student_signature !== false;
   const showPreceptorSignature = branding?.show_preceptor_signature !== false;
   const zebraStriping = branding?.zebra_striping === true;
@@ -90,47 +101,61 @@ export const generateOfficialClinicalCasePDF = ({
   // --- HEADER DRAWING ---
   const drawPageHeader = () => {
     doc.saveGraphicsState();
-    doc.setDrawColor(15, 23, 42);
-    doc.setLineWidth(0.4);
-    doc.rect(marginX, 10, contentWidth, 20);
+    doc.setDrawColor(15, 23, 42); // slate-900
+    doc.setLineWidth(0.5);
+    doc.rect(marginX, 10, contentWidth, 20); // Header outer box matching preview
 
     const collegeLogo = college?.college_logo_url || college?.logo_url || branding?.college_logo_url || '';
-    const hospitalLogo = college?.hospital_logo_url || branding?.hospital_logo_url || '';
+    const hospitalLogo = college?.hospital_logo_url || college?.hospitalLogoUrl || branding?.hospital_logo_url || '';
 
+    // Left Logo: College Logo
     if (showCollegeLogo && collegeLogo) {
-      try { doc.addImage(collegeLogo, 'PNG', marginX + 2, 11, 18, 18); } catch (e) {}
-    }
-    if (showHospitalLogo && hospitalLogo) {
-      try { doc.addImage(hospitalLogo, 'PNG', pageWidth - marginX - 20, 11, 18, 18); } catch (e) {}
+      try {
+        const fmt = getImageFormat(collegeLogo);
+        doc.addImage(collegeLogo, fmt, marginX + 2, 11, 18, 18);
+      } catch (e) {
+        console.warn('College Logo image render error:', e);
+      }
     }
 
-    let headerTextY = 15;
+    // Right Logo: Hospital Logo
+    if (showHospitalLogo && hospitalLogo) {
+      try {
+        const fmt = getImageFormat(hospitalLogo);
+        doc.addImage(hospitalLogo, fmt, pageWidth - marginX - 20, 11, 18, 18);
+      } catch (e) {
+        console.warn('Hospital Logo image render error:', e);
+      }
+    }
+
+    // Center Text: College Name, (Autonomous), Hospital Name
+    let textY = 15;
     if (showCollegeName) {
       doc.setFont(fontFamily, 'bold');
       doc.setFontSize(titleFontSize); // 14pt
       doc.setTextColor(15, 23, 42);
-      doc.text(norm.collegeName.toUpperCase(), pageWidth / 2, headerTextY, { align: 'center', maxWidth: 130 });
-      headerTextY += 5;
+      doc.text(norm.collegeName.toUpperCase(), pageWidth / 2, textY, { align: 'center', maxWidth: 135 });
+      textY += 4.5;
     }
 
     if (showAutonomous && norm.isAutonomous) {
       doc.setFont(fontFamily, 'bold');
       doc.setFontSize(bodyFontSize); // 12pt
       doc.setTextColor(2, 132, 199);
-      doc.text('(Autonomous)', pageWidth / 2, headerTextY, { align: 'center' });
-      headerTextY += 4.5;
+      doc.text('(Autonomous)', pageWidth / 2, textY, { align: 'center' });
+      textY += 4;
     }
 
     if (showHospitalName) {
       doc.setFont(fontFamily, 'bold');
       doc.setFontSize(bodyFontSize); // 12pt
       doc.setTextColor(15, 23, 42);
-      doc.text(norm.hospitalName.toUpperCase(), pageWidth / 2, headerTextY, { align: 'center', maxWidth: 130 });
+      doc.text(norm.hospitalName.toUpperCase(), pageWidth / 2, textY, { align: 'center', maxWidth: 135 });
     }
 
-    // Case ID Banner Bar
+    // Sub-header Banner Bar
     doc.setFillColor(15, 23, 42);
-    doc.rect(marginX, 31, contentWidth, 6, 'F');
+    doc.rect(marginX, 30.5, contentWidth, 6.5, 'F');
     doc.setFont('courier', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(255, 255, 255);
@@ -148,20 +173,18 @@ export const generateOfficialClinicalCasePDF = ({
 
     doc.setFont(fontFamily, 'normal');
     doc.setFontSize(bodyFontSize); // 12pt
-    doc.setTextColor(100, 116, 139);
+    doc.setTextColor(2, 132, 199); // Blue text matching preview
 
-    doc.text(footerLeftText, marginX, textY, { maxWidth: 60 });
+    let leftStr = footerLeftText;
+    if (showGeneratedDatetime) {
+      leftStr += ` • ${currentDateStr}`;
+    }
+    doc.text(leftStr, marginX, textY, { maxWidth: 65 });
+
     doc.text(footerCenterText, pageWidth / 2, textY, { align: 'center', maxWidth: 70 });
 
-    let rightFooterStr = '';
-    if (showGeneratedDatetime) {
-      rightFooterStr += `${currentDateStr}  `;
-    }
     if (showPageNumber) {
-      rightFooterStr += `Page ${pageNum} of ${totalPages}`;
-    }
-    if (rightFooterStr) {
-      doc.text(rightFooterStr, pageWidth - marginX, textY, { align: 'right' });
+      doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - marginX, textY, { align: 'right' });
     }
     doc.restoreGraphicsState();
   };
@@ -182,7 +205,7 @@ export const generateOfficialClinicalCasePDF = ({
 
       const centerX = pageWidth / 2;
       const centerY = pageHeight / 2;
-      const angle = watermarkPosition === 'Diagonal' ? 45 : 30;
+      const angle = watermarkPosition === 'Diagonal' ? 35 : 0;
 
       if (watermarkTextLine2) {
         doc.text(watermarkTextLine1, centerX, centerY - 6, { align: 'center', angle, rotationDirection: 0 });
@@ -208,30 +231,34 @@ export const generateOfficialClinicalCasePDF = ({
     doc.line(marginX, sigY, pageWidth - marginX, sigY);
 
     const sigLeftX = marginX + 15;
-    const sigRightX = pageWidth - marginX - 60;
+    const sigRightX = pageWidth - marginX - 65;
 
     // Student Signature Box (Left)
     if (showStudentSignature) {
       doc.line(sigLeftX, sigY + 12, sigLeftX + 50, sigY + 12);
       doc.setFont(fontFamily, 'bold'); doc.setFontSize(bodyFontSize); doc.setTextColor(15, 23, 42);
-      doc.text('Student Signature', sigLeftX + 25, sigY + 17, { align: 'center' });
+      doc.text('Student Signature', sigLeftX + 25, sigY + 16, { align: 'center' });
       doc.setFont(fontFamily, 'normal'); doc.setFontSize(bodyFontSize); doc.setTextColor(2, 132, 199);
-      doc.text(`${norm.studentName} (${norm.studentRoll})`, sigLeftX + 25, sigY + 22, { align: 'center' });
+      doc.text(`${norm.studentName} (${norm.studentRoll})`, sigLeftX + 25, sigY + 21, { align: 'center' });
+      doc.setFontSize(10); doc.setTextColor(100, 116, 139);
+      doc.text(`Date: ${currentDateStr}`, sigLeftX + 25, sigY + 25, { align: 'center' });
     }
 
     // Preceptor Signature Box (Right)
     if (showPreceptorSignature) {
       doc.line(sigRightX, sigY + 12, sigRightX + 50, sigY + 12);
       doc.setFont(fontFamily, 'bold'); doc.setFontSize(bodyFontSize); doc.setTextColor(15, 23, 42);
-      doc.text('Preceptor Signature', sigRightX + 25, sigY + 17, { align: 'center' });
+      doc.text('Preceptor Signature', sigRightX + 25, sigY + 16, { align: 'center' });
       doc.setFont(fontFamily, 'normal'); doc.setFontSize(bodyFontSize); doc.setTextColor(2, 132, 199);
-      doc.text(norm.preceptorName, sigRightX + 25, sigY + 22, { align: 'center' });
+      doc.text(norm.preceptorName, sigRightX + 25, sigY + 21, { align: 'center' });
       doc.setFontSize(10); doc.setTextColor(100, 116, 139);
-      doc.text(norm.preceptorDesig.toUpperCase(), sigRightX + 25, sigY + 26, { align: 'center' });
+      doc.text(norm.preceptorDesig.toUpperCase(), sigRightX + 25, sigY + 25, { align: 'center' });
+      doc.setFontSize(10); doc.setTextColor(100, 116, 139);
+      doc.text(`Date: ${currentDateStr}`, sigRightX + 25, sigY + 29, { align: 'center' });
     }
 
     doc.restoreGraphicsState();
-    return sigY + 30;
+    return sigY + 32;
   };
 
   let y = 42;
@@ -694,7 +721,7 @@ export const generateOfficialClinicalCasePDF = ({
     if (repeatHeader || i === 1) {
       drawPageHeader();
     }
-    if (repeatFooter || i === 1) {
+    if (repeatFooter || i === totalPages) {
       drawPageFooter(i, totalPages);
     }
   }

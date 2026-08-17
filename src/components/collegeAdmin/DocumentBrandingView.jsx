@@ -1083,9 +1083,9 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
           onClose={() => setIsPreviewModalOpen(false)}
           title={`Full ${settings.paper_size} (${settings.orientation}) PDF Format Preview`}
           subtitle={`Exact rendering across all PharmDVerse clinical documentation modules (${settings.paper_size} - ${settings.orientation})`}
-          maxWidth={settings.orientation === 'Landscape' ? 'max-w-6xl' : 'max-w-4xl'}
+          maxWidth="max-w-7xl w-full"
         >
-          <div className="p-4 bg-slate-100 dark:bg-slate-950 max-h-[82vh] overflow-y-auto">
+          <div className="p-6 bg-slate-100 dark:bg-slate-950 max-h-[85vh] overflow-y-auto">
             <AdminFormatPDFPreview college={college} settings={settings} />
           </div>
         </ModalWrapper>
