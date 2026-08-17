@@ -29,7 +29,7 @@ const ALL_COUNSELLING_CHECKLIST_POINTS = [
 /**
  * High-Precision Vector PDF Generator for PharmDVerse Approved Clinical Cases.
  * 
- * STEP 14: DRUG INFORMATION DOCUMENTATION ONLY (Individual PDF)
+ * STEP 15: ADR DOCUMENTATION LOG ONLY (Individual PDF)
  */
 export const generateOfficialClinicalCasePDF = ({
   clinicalCase = {},
@@ -1179,20 +1179,315 @@ export const generateOfficialClinicalCasePDF = ({
   }
 
   // =========================================================================
-  // 5. ADR DOCUMENTATION LOG FORM ONLY
+  // 5. ADR DOCUMENTATION LOG FORM ONLY (STEP 15)
   // =========================================================================
   if (selectedForm === 'adr') {
     doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(2, 132, 199);
     doc.text(`ADR DOCUMENTATION LOG  (CASE ID: ${norm.caseId})`, marginX, y);
     y += 6;
 
-    drawSectionBox('ADR Log Number & Dates:', `Log #: ${adr.adrNumber || 'ADR-LOG-001'} | Reported: ${adr.reportingDate || 'N/A'} | Onset: ${adr.onsetDate || 'N/A'}`, 12);
-    drawSectionBox('Suspected Drug:', adr.suspectedMeds ? (Array.isArray(adr.suspectedMeds) ? adr.suspectedMeds.map(m => `${m.medicine_name || m.generic_name} (${m.dose || ''})`).join(', ') : adr.suspectedMeds) : 'N/A', 14);
-    drawSectionBox('Reaction Category & Description:', `${adr.reactionCategory || 'Dermatological'} — ${adr.reactionTitle || 'N/A'}`, 14);
-    drawSectionBox('Naranjo Causality Assessment:', adr.naranjoCausality || 'Probable', 12);
-    drawSectionBox('Severity & Seriousness:', `${adr.reactionSeverity || 'Moderate'} (${adr.reactionSeriousness || 'Hospitalization'})`, 12);
-    drawSectionBox('Dechallenge & Rechallenge:', `Dechallenge: ${adr.dechallengeInfo || 'Positive'} | Rechallenge: ${adr.rechallengeInfo || 'Not Done'}`, 12);
-    drawSectionBox('Clinical Management & Outcome:', adr.clinicalManagement || adr.patientOutcome || 'Recovering', 14);
+    // 1. GENERAL RECORD INFORMATION BOX
+    ensureSpace(24);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(bodyFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('1. General Record Information:', marginX, y);
+    y += 4;
+
+    const adrGenY = y;
+    doc.setDrawColor(15, 23, 42);
+    doc.setFillColor(248, 250, 252);
+    doc.rect(marginX, adrGenY, contentWidth, 16, 'FD');
+    doc.line(marginX, adrGenY + 8, marginX + contentWidth, adrGenY + 8);
+
+    doc.setFontSize(9.5);
+    // Row 1: ADR Record No, Reporting Date, Reported By
+    doc.setFont(fontFamily, 'normal'); doc.text('ADR Record No: ', marginX + 2, adrGenY + 5.5);
+    doc.setFont(fontFamily, 'bold'); doc.setTextColor(180, 83, 9);
+    doc.text(String(adr.adr_number || adr.adrNumber || 'ADR-2026-000001'), marginX + 26, adrGenY + 5.5, { maxWidth: 35 });
+    doc.setTextColor(15, 23, 42);
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Reporting Date: ', marginX + 68, adrGenY + 5.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.reporting_date || adr.reportingDate || norm.dates.adrReportingDate), marginX + 91, adrGenY + 5.5);
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Status: ', marginX + 140, adrGenY + 5.5);
+    doc.setFont(fontFamily, 'bold'); doc.setTextColor(5, 150, 105);
+    doc.text(String(adr.approval_status || 'Approved').toUpperCase(), marginX + 152, adrGenY + 5.5);
+    doc.setTextColor(15, 23, 42);
+
+    // Row 2: Preceptor Name, Student Name
+    doc.setFont(fontFamily, 'normal'); doc.text('Assigned Preceptor: ', marginX + 2, adrGenY + 13.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.assigned_preceptor_name || norm.preceptorName), marginX + 32, adrGenY + 13.5, { maxWidth: 50 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Student Pharmacist: ', marginX + 94, adrGenY + 13.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(`${norm.studentName} (${norm.studentRoll})`, marginX + 124, adrGenY + 13.5, { maxWidth: 50 });
+
+    y = adrGenY + 22;
+
+    // 2. PATIENT OVERVIEW BOX
+    ensureSpace(24);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(bodyFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('2. Patient Overview:', marginX, y);
+    y += 4;
+
+    const adrPatY = y;
+    doc.setDrawColor(15, 23, 42);
+    doc.setFillColor(248, 250, 252);
+    doc.rect(marginX, adrPatY, contentWidth, 16, 'FD');
+    doc.line(marginX, adrPatY + 8, marginX + contentWidth, adrPatY + 8);
+
+    doc.setFontSize(9.5);
+    // Row 1: Initials, Reg No, Age/Sex, Weight
+    doc.setFont(fontFamily, 'normal'); doc.text('Initials: ', marginX + 2, adrPatY + 5.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.patient_initials || norm.demographics.patientName), marginX + 14, adrPatY + 5.5, { maxWidth: 25 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Reg No: ', marginX + 44, adrPatY + 5.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.hospital_reg_number || norm.demographics.ipOpNo), marginX + 57, adrPatY + 5.5, { maxWidth: 30 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Age/Sex: ', marginX + 94, adrPatY + 5.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(`${adr.age || norm.demographics.age} Yrs / ${adr.gender || norm.demographics.gender}`, marginX + 108, adrPatY + 5.5, { maxWidth: 28 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Weight: ', marginX + 144, adrPatY + 5.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.weight ? `${adr.weight} kg` : norm.demographics.weight), marginX + 157, adrPatY + 5.5, { maxWidth: 20 });
+
+    // Row 2: Department, Ward/Unit, Primary Diagnosis
+    doc.setFont(fontFamily, 'normal'); doc.text('Department: ', marginX + 2, adrPatY + 13.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.department || norm.demographics.department), marginX + 22, adrPatY + 13.5, { maxWidth: 30 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Ward/Unit: ', marginX + 56, adrPatY + 13.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.ward || norm.demographics.wardBed), marginX + 72, adrPatY + 13.5, { maxWidth: 28 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Primary Diagnosis: ', marginX + 104, adrPatY + 13.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.primary_diagnosis || norm.diagnosis.final || 'N/A'), marginX + 133, adrPatY + 13.5, { maxWidth: 44 });
+
+    y = adrPatY + 22;
+
+    // 3. ADVERSE REACTION OVERVIEW BOX
+    ensureSpace(32);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(bodyFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('3. Adverse Reaction Overview:', marginX, y);
+    y += 4;
+
+    const reactY = y;
+    doc.setDrawColor(15, 23, 42);
+    doc.setFillColor(248, 250, 252);
+    doc.rect(marginX, reactY, contentWidth, 22, 'FD');
+    doc.line(marginX, reactY + 7, marginX + contentWidth, reactY + 7);
+    doc.line(marginX, reactY + 14, marginX + contentWidth, reactY + 14);
+
+    doc.setFontSize(9.5);
+    // Row 1: Reaction Title, Category
+    doc.setFont(fontFamily, 'normal'); doc.text('Reaction Title: ', marginX + 2, reactY + 5);
+    doc.setFont(fontFamily, 'bold'); doc.setTextColor(225, 29, 72);
+    doc.text(String(adr.reaction_title || adr.reactionTitle || 'N/A'), marginX + 25, reactY + 5, { maxWidth: 75 });
+    doc.setTextColor(15, 23, 42);
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Category: ', marginX + 106, reactY + 5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.reaction_category || adr.reactionCategory || 'General'), marginX + 122, reactY + 5, { maxWidth: 55 });
+
+    // Row 2: Started At, Ended At, Duration
+    doc.setFont(fontFamily, 'normal'); doc.text('Started At: ', marginX + 2, reactY + 12);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.reaction_started_at || norm.dates.adrOnsetDate), marginX + 19, reactY + 12);
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Ended At: ', marginX + 64, reactY + 12);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.reaction_ended_at || norm.dates.adrEndedAt), marginX + 80, reactY + 12);
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Duration: ', marginX + 124, reactY + 12);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.reaction_duration || 'N/A'), marginX + 139, reactY + 12, { maxWidth: 38 });
+
+    // Row 3: Current Patient Condition
+    doc.setFont(fontFamily, 'normal'); doc.text('Patient Condition: ', marginX + 2, reactY + 19);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.current_patient_condition || adr.reaction_outcome || 'Recovering'), marginX + 30, reactY + 19, { maxWidth: 145 });
+
+    y = reactY + 28;
+
+    drawSectionBox('Clinical Description of Reaction:', adr.reaction_description || adr.reactionTitle || 'N/A', 14);
+    if (adr.clinical_management_provided || adr.clinicalManagement) {
+      drawSectionBox('Clinical Management Provided:', adr.clinical_management_provided || adr.clinicalManagement, 12);
+    }
+
+    // 4. SUSPECTED MEDICATION(S) TABLE
+    ensureSpace(28);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(180, 83, 9);
+    doc.text('4. Suspected Medication(s)', marginX, y);
+    y += 5;
+
+    const suspectedMedsList = Array.isArray(adr.suspected_drugs) && adr.suspected_drugs.length > 0 ? adr.suspected_drugs : (Array.isArray(adr.suspectedMeds) ? adr.suspectedMeds : []);
+
+    const drawSuspectedTableHeader = (atY) => {
+      doc.setFillColor(241, 245, 249);
+      doc.setDrawColor(15, 23, 42);
+      doc.setLineWidth(0.3);
+      doc.rect(marginX, atY, contentWidth, 7, 'FD');
+
+      doc.setFont(fontFamily, 'bold'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
+      doc.text('Brand Name', marginX + 2, atY + 5);
+      doc.text('Generic Name', marginX + 36, atY + 5);
+      doc.text('Dose & Route', marginX + 74, atY + 5);
+      doc.text('Therapy Dates', marginX + 112, atY + 5);
+      doc.text('Indication', marginX + 148, atY + 5);
+    };
+
+    drawSuspectedTableHeader(y);
+    y += 7;
+
+    if (suspectedMedsList.length > 0) {
+      doc.setFont(fontFamily, 'normal'); doc.setFontSize(9.5); doc.setTextColor(15, 23, 42);
+      suspectedMedsList.forEach((m, idx) => {
+        const brandLines = doc.splitTextToSize(String(m.medicine_name || m.brand_name || 'N/A'), 32);
+        const genericLines = doc.splitTextToSize(String(m.generic_name || 'N/A'), 36);
+        const doseLines = doc.splitTextToSize(`${m.dose || ''} (${m.route || 'Oral'} / ${m.frequency || ''})`.trim(), 36);
+        const dateLines = doc.splitTextToSize(`${m.start_date || '—'} to ${m.stop_date || 'Ongoing'}`, 34);
+        const indLines = doc.splitTextToSize(String(m.clinical_indication || 'N/A'), 30);
+
+        const maxLines = Math.max(brandLines.length, genericLines.length, doseLines.length, dateLines.length, indLines.length, 1);
+        const rowH = Math.max(maxLines * 4.5 + 2, 7);
+
+        if (ensureSpace(rowH)) {
+          if (repeatTableHeader) {
+            drawSuspectedTableHeader(y);
+            y += 7;
+          }
+          doc.setFont(fontFamily, 'normal'); doc.setFontSize(9.5);
+        }
+
+        if (zebraStriping && idx % 2 === 1) {
+          doc.setFillColor(248, 250, 252);
+          doc.rect(marginX, y, contentWidth, rowH, 'FD');
+        } else {
+          doc.rect(marginX, y, contentWidth, rowH, 'D');
+        }
+
+        doc.text(brandLines, marginX + 2, y + 4.5);
+        doc.text(genericLines, marginX + 36, y + 4.5);
+        doc.text(doseLines, marginX + 74, y + 4.5);
+        doc.text(dateLines, marginX + 112, y + 4.5);
+        doc.text(indLines, marginX + 148, y + 4.5);
+        y += rowH;
+      });
+    } else {
+      doc.rect(marginX, y, contentWidth, 7, 'D');
+      doc.setFont(fontFamily, 'italic'); doc.setFontSize(10); doc.setTextColor(100, 116, 139);
+      doc.text('No suspected medications recorded.', pageWidth / 2, y + 5, { align: 'center' });
+      y += 7;
+    }
+    y += 6;
+
+    // 5. OTHER CONCURRENT (CONCOMITANT) MEDICATIONS TABLE
+    const concomitantMedsList = Array.isArray(adr.concomitant_drugs) && adr.concomitant_drugs.length > 0 ? adr.concomitant_drugs : (Array.isArray(adr.concomitantMeds) ? adr.concomitantMeds : []);
+    if (concomitantMedsList.length > 0) {
+      ensureSpace(28);
+      doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+      doc.text('5. Other Concurrent Medications', marginX, y);
+      y += 5;
+
+      const drawConcomitantTableHeader = (atY) => {
+        doc.setFillColor(241, 245, 249);
+        doc.setDrawColor(15, 23, 42);
+        doc.setLineWidth(0.3);
+        doc.rect(marginX, atY, contentWidth, 7, 'FD');
+
+        doc.setFont(fontFamily, 'bold'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
+        doc.text('Medicine Name', marginX + 2, atY + 5);
+        doc.text('Dose & Freq', marginX + 48, atY + 5);
+        doc.text('Purpose', marginX + 92, atY + 5);
+        doc.text('Therapy Dates', marginX + 136, atY + 5);
+      };
+
+      drawConcomitantTableHeader(y);
+      y += 7;
+
+      doc.setFont(fontFamily, 'normal'); doc.setFontSize(9.5); doc.setTextColor(15, 23, 42);
+      concomitantMedsList.forEach((m, idx) => {
+        const nameLines = doc.splitTextToSize(String(m.medicine_name || 'N/A'), 44);
+        const doseLines = doc.splitTextToSize(`${m.dose || ''} (${m.frequency || ''})`.trim(), 42);
+        const purpLines = doc.splitTextToSize(String(m.purpose || 'N/A'), 42);
+        const dateLines = doc.splitTextToSize(`${m.start_date || '—'} to ${m.stop_date || 'Ongoing'}`, 42);
+
+        const maxLines = Math.max(nameLines.length, doseLines.length, purpLines.length, dateLines.length, 1);
+        const rowH = Math.max(maxLines * 4.5 + 2, 7);
+
+        if (ensureSpace(rowH)) {
+          if (repeatTableHeader) {
+            drawConcomitantTableHeader(y);
+            y += 7;
+          }
+          doc.setFont(fontFamily, 'normal'); doc.setFontSize(9.5);
+        }
+
+        if (zebraStriping && idx % 2 === 1) {
+          doc.setFillColor(248, 250, 252);
+          doc.rect(marginX, y, contentWidth, rowH, 'FD');
+        } else {
+          doc.rect(marginX, y, contentWidth, rowH, 'D');
+        }
+
+        doc.text(nameLines, marginX + 2, y + 4.5);
+        doc.text(doseLines, marginX + 48, y + 4.5);
+        doc.text(purpLines, marginX + 92, y + 4.5);
+        doc.text(dateLines, marginX + 136, y + 4.5);
+        y += rowH;
+      });
+      y += 6;
+    }
+
+    // 6. CLINICAL BACKGROUND & 7. REACTION ASSESSMENT
+    ensureSpace(34);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('6. Clinical Background & 7. Reaction Assessment:', marginX, y);
+    y += 5;
+
+    const adrEvalY = y;
+    doc.setDrawColor(15, 23, 42);
+    doc.setFillColor(248, 250, 252);
+    doc.rect(marginX, adrEvalY, contentWidth, 32, 'FD');
+    doc.line(marginX, adrEvalY + 8, marginX + contentWidth, adrEvalY + 8);
+    doc.line(marginX, adrEvalY + 16, marginX + contentWidth, adrEvalY + 16);
+    doc.line(marginX, adrEvalY + 24, marginX + contentWidth, adrEvalY + 24);
+
+    doc.setFontSize(9.5);
+    // Row 1: Drug Allergy History, Previous ADR History
+    doc.setFont(fontFamily, 'normal'); doc.text('Allergy History: ', marginX + 2, adrEvalY + 5.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.drug_allergy_history || norm.demographics.allergyDrugs), marginX + 27, adrEvalY + 5.5, { maxWidth: 60 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Previous ADR: ', marginX + 94, adrEvalY + 5.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.previous_adr_history || 'None'), marginX + 118, adrEvalY + 5.5, { maxWidth: 60 });
+
+    // Row 2: Severity, Seriousness, Outcome
+    doc.setFont(fontFamily, 'normal'); doc.text('Severity Level: ', marginX + 2, adrEvalY + 13.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.reaction_severity || adr.reactionSeverity || 'Moderate'), marginX + 24, adrEvalY + 13.5, { maxWidth: 25 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Seriousness: ', marginX + 54, adrEvalY + 13.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.reaction_seriousness || adr.reactionSeriousness || 'Hospitalization'), marginX + 74, adrEvalY + 13.5, { maxWidth: 35 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Patient Outcome: ', marginX + 114, adrEvalY + 13.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.patient_outcome || adr.patientOutcome || 'Recovered'), marginX + 142, adrEvalY + 13.5, { maxWidth: 36 });
+
+    // Row 3: Action Taken, Dechallenge, Rechallenge
+    doc.setFont(fontFamily, 'normal'); doc.text('Action Taken: ', marginX + 2, adrEvalY + 21.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.action_taken_on_suspected_drug || 'Drug Withdrawn'), marginX + 24, adrEvalY + 21.5, { maxWidth: 45 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Dechallenge: ', marginX + 74, adrEvalY + 21.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.dechallenge_information || adr.dechallengeInfo || 'Positive'), marginX + 94, adrEvalY + 21.5, { maxWidth: 25 });
+
+    doc.setFont(fontFamily, 'normal'); doc.text('Rechallenge: ', marginX + 124, adrEvalY + 21.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(adr.rechallenge_information || adr.rechallengeInfo || 'Not Done'), marginX + 144, adrEvalY + 21.5, { maxWidth: 34 });
+
+    // Row 4: Causality Assessment (Naranjo / WHO)
+    doc.setFont(fontFamily, 'normal'); doc.text('Causality Assessment (Naranjo/WHO): ', marginX + 2, adrEvalY + 29.5);
+    doc.setFont(fontFamily, 'bold'); doc.setTextColor(2, 132, 199);
+    doc.text(String(adr.initial_causality_opinion || adr.naranjoCausality || 'Probable'), marginX + 65, adrEvalY + 29.5, { maxWidth: 110 });
+    doc.setTextColor(15, 23, 42);
+
+    y = adrEvalY + 38;
+
+    // 8. REVIEW INFORMATION & REMARKS
+    if (adr.student_remarks || adr.preceptor_review || adr.faculty_comments) {
+      const remarksStr = [
+        adr.student_remarks ? `Student Remarks: ${adr.student_remarks}` : null,
+        adr.preceptor_review ? `Preceptor Review: ${adr.preceptor_review}` : null,
+        adr.faculty_comments ? `Faculty Comments: ${adr.faculty_comments}` : null
+      ].filter(Boolean).join('\n');
+      drawSectionBox('8. Review Remarks & Observations:', remarksStr, 14);
+    }
   }
 
   // Dual Signatures on final page of selected form
