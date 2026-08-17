@@ -151,7 +151,24 @@ export const buildNormalizedApprovedCaseData = ({
   };
 
   const vitals = safeArray(caseModulesData?.vitals || profile.vital_signs || profile.vitals || clinicalCase?.vital_signs || clinicalCase?.vitals);
-  const labs = safeArray(caseModulesData?.labs || caseModulesData?.labInvestigations || profile.lab_investigations || profile.labs || clinicalCase?.lab_investigations || clinicalCase?.labs);
+  
+  // Lab Investigations Field Normalization (handles parameter_name, test_name, test_value, observed_value, etc.)
+  const labs = safeArray(
+    caseModulesData?.labs ||
+    caseModulesData?.labInvestigations ||
+    profile.lab_investigations ||
+    profile.labs ||
+    clinicalCase?.lab_investigations ||
+    clinicalCase?.labs
+  ).map(l => ({
+    parameter_name: l.parameter_name || l.test_name || l.name || l.lab_test || '—',
+    test_value: l.test_value || l.observed_value || l.patient_result || l.result || '—',
+    normal_range: l.normal_range || l.reference_range || '—',
+    unit: l.unit || '',
+    remarks: l.remarks || l.impression || ''
+  }));
+
+  // Prescribed Drugs Field Normalization (separates brand_name and generic_name cleanly)
   const drugs = safeArray(
     caseModulesData?.drugs ||
     caseModulesData?.prescribedDrugs ||
@@ -160,7 +177,15 @@ export const buildNormalizedApprovedCaseData = ({
     profile.drugs ||
     clinicalCase?.prescribed_drugs ||
     clinicalCase?.medications
-  );
+  ).map(d => ({
+    s_no: d.s_no,
+    trade_name: d.trade_name || d.brand_name || '—',
+    generic_name: d.generic_name || d.drug_name || '',
+    dose: d.dose || '—',
+    route_of_admin: d.route_of_admin || d.route || 'Oral',
+    frequency: d.frequency || 'OD',
+    indication: d.indication || '—'
+  }));
 
   // Diagnosis
   const diagnosis = {

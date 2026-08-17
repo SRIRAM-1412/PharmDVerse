@@ -7,8 +7,7 @@ import { buildNormalizedApprovedCaseData } from './buildNormalizedApprovedCaseDa
  * Precision 16:9 Widescreen layout math (10.0" x 5.625" canvas):
  *  - startX = 0.5", contentW = 9.0" (Right edge = 9.5", 0.5" left & right margins).
  *  - y = 0.85" to 4.8" (0.475" top & bottom margins). Max 4-5 rows per slide.
- * Respects strict form boundaries, renders 100% of approved fields across all Supabase sources.
- * Renders Student/Preceptor details ONLY ON THE FIRST SLIDE.
+ * Exact field alignment matching Supabase & Student Clinical Documentation forms.
  */
 export const generateClinicalCasePPTX = async ({
   clinicalCase = {},
@@ -347,20 +346,21 @@ export const generateClinicalCasePPTX = async ({
 
       const labsRows = norm.labs.map((l, idx) => [
         { text: `${idx + 1}`, options: { fontFace, fontSize: 12, align: 'center' } },
-        { text: l.test_name || l.name || l.lab_test || '—', options: { fontFace, fontSize: 12, bold: true } },
-        { text: l.result || l.patient_result || '—', options: { fontFace, fontSize: 12, bold: true, color: emeraldColor } },
-        { text: l.normal_range || l.reference_range || '—', options: { fontFace, fontSize: 12 } },
-        { text: `${l.unit || ''} ${l.remarks ? `(${l.remarks})` : ''}`, options: { fontFace, fontSize: 12 } }
+        { text: l.parameter_name, options: { fontFace, fontSize: 12, bold: true } },
+        { text: l.test_value, options: { fontFace, fontSize: 12, bold: true, color: emeraldColor } },
+        { text: l.normal_range, options: { fontFace, fontSize: 12 } },
+        { text: `${l.unit} ${l.remarks ? `(${l.remarks})` : ''}`.trim() || '—', options: { fontFace, fontSize: 12 } }
       ]);
 
       addTableWithPagination('Patient Profile: Laboratory Investigations', labsHeader, labsRows, [0.6, 3.2, 1.8, 1.8, 1.6]);
     }
 
-    // Prescribed Medications Profile
+    // Prescribed Medications Profile Table (Matches PDF 6-Column Format)
     if (norm.drugs.length > 0) {
       const drugHeader = [
         { text: 'S.No', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 13 } },
-        { text: 'Brand & Generic Name', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 13 } },
+        { text: 'Brand Name', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 13 } },
+        { text: 'Generic Name', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 13 } },
         { text: 'Dose & Route', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 13 } },
         { text: 'Frequency', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 13 } },
         { text: 'Indication / Reason', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 13 } }
@@ -368,13 +368,14 @@ export const generateClinicalCasePPTX = async ({
 
       const drugRows = norm.drugs.map((d, idx) => [
         { text: `${d.s_no || idx + 1}`, options: { fontFace, fontSize: 12, align: 'center' } },
-        { text: `${d.trade_name || d.brand_name || ''} ${d.generic_name || d.drug_name ? `(${d.generic_name || d.drug_name})` : ''}`, options: { fontFace, fontSize: 12, bold: true } },
-        { text: `${d.dose || '—'} (${d.route_of_admin || d.route || 'Oral'})`, options: { fontFace, fontSize: 12 } },
-        { text: d.frequency || 'OD', options: { fontFace, fontSize: 12, bold: true } },
-        { text: d.indication || '—', options: { fontFace, fontSize: 12 } }
+        { text: d.trade_name, options: { fontFace, fontSize: 12, bold: true } },
+        { text: d.generic_name || '—', options: { fontFace, fontSize: 12 } },
+        { text: `${d.dose} (${d.route_of_admin})`, options: { fontFace, fontSize: 12 } },
+        { text: d.frequency, options: { fontFace, fontSize: 12, bold: true } },
+        { text: d.indication, options: { fontFace, fontSize: 12 } }
       ]);
 
-      addTableWithPagination('Patient Profile: Prescribed Medication Profile', drugHeader, drugRows, [0.6, 3.2, 1.8, 1.4, 2.0]);
+      addTableWithPagination('Patient Profile: Prescribed Medication Profile', drugHeader, drugRows, [0.6, 2.2, 2.2, 1.6, 1.0, 1.4]);
     }
 
     // Diagnosis & Discharge Summary
