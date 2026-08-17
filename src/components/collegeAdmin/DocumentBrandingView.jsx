@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Save, RefreshCw, Eye, CheckCircle2, AlertTriangle, Loader2, Sparkles, Sliders, Layout, Building, Presentation, Info } from 'lucide-react';
+import { FileText, Save, RefreshCw, Eye, CheckCircle2, AlertTriangle, Loader2, Sparkles, Sliders, Layout, Building, Presentation, Info, ShieldCheck } from 'lucide-react';
 import { 
   fetchDocumentBrandingSettingsFromSupabase, 
   savePdfBrandingSettingsInSupabase, 
@@ -118,6 +118,8 @@ const SamplePptSlidePreview = ({ college, settings }) => {
   const showHospitalName = settings?.show_hospital_name !== false;
   const showCollegeLogo = settings?.show_college_logo !== false;
   const showHospitalLogo = settings?.show_hospital_logo !== false;
+  const showStudentSig = settings?.show_student_signature !== false;
+  const showPreceptorSig = settings?.show_preceptor_signature !== false;
 
   const collegeName = college?.college_name || college?.name || 'College Name';
   const hospitalName = college?.hospital_name || college?.hospitalName || college?.primary_hospital_name || 'Primary Hospital Name';
@@ -166,7 +168,7 @@ const SamplePptSlidePreview = ({ college, settings }) => {
         )}
 
         {slideNum === 1 && (
-          <div className="space-y-5 relative z-10">
+          <div className="space-y-4 relative z-10">
             <div className="p-4 bg-slate-100 rounded-2xl border-2 border-slate-900 flex items-center justify-between gap-4">
               <div className="w-14 h-14 flex items-center justify-center shrink-0">
                 {showCollegeLogo && (college?.college_logo_url || college?.logo_url) ? (
@@ -203,7 +205,7 @@ const SamplePptSlidePreview = ({ college, settings }) => {
               CASE ID : [ CASE ID PLACEHOLDER ]
             </div>
 
-            <div className="text-center space-y-2 py-2">
+            <div className="text-center space-y-2 py-1">
               <h1 className="font-black text-emerald-700 uppercase tracking-tight text-xl">
                 CLINICAL CASE PRESENTATION TITLE
               </h1>
@@ -211,6 +213,26 @@ const SamplePptSlidePreview = ({ college, settings }) => {
                 Final Diagnosis: [ Final Diagnosis Placeholder ]
               </p>
             </div>
+
+            {(showStudentSig || showPreceptorSig) && (
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-300 grid grid-cols-2 gap-4 text-xs font-sans">
+                {showStudentSig ? (
+                  <div className="text-left space-y-1 border-r border-slate-200 pr-3">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Submitted / Presented By:</span>
+                    <strong className="text-slate-900 font-extrabold text-sm block">Student Name: [Student Name]</strong>
+                    <span className="text-[11px] text-slate-600 block font-mono">Roll Number: [Roll Number]</span>
+                  </div>
+                ) : <div />}
+
+                {showPreceptorSig ? (
+                  <div className="text-right space-y-1 pl-3">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Evaluated & Approved By:</span>
+                    <strong className="text-emerald-700 font-extrabold text-sm block">Faculty Preceptor: [Faculty Preceptor Name]</strong>
+                    <span className="text-[11px] text-slate-600 block font-mono">Designation: [Faculty Designation]</span>
+                  </div>
+                ) : <div />}
+              </div>
+            )}
           </div>
         )}
 
@@ -366,7 +388,7 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
             <span>PDF & PPT Format Configuration</span>
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Centralized Header, Watermark & Footer settings configured once and shared across BOTH PDF documents and PPT slides for <strong className="text-slate-800 dark:text-slate-200">{college?.college_name || college?.name}</strong>.
+            Centralized Header, Watermark, Footer & Details settings configured once and shared across BOTH PDF documents and PPT slides for <strong className="text-slate-800 dark:text-slate-200">{college?.college_name || college?.name}</strong>.
           </p>
         </div>
 
@@ -427,7 +449,7 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
         </div>
       )}
 
-      {/* FOUR CONSOLIDATED SHARED SECTIONS */}
+      {/* CONSOLIDATED SHARED SECTIONS */}
       <div className="space-y-6 max-w-5xl mx-auto">
         
         {/* SECTION 1: COLLEGE & HOSPITAL IDENTITY (READ ONLY WITH MANDATORY MESSAGE) */}
@@ -442,7 +464,6 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
             </span>
           </div>
 
-          {/* MANDATORY PROMINENT MESSAGE */}
           <div className="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold text-indigo-900 dark:text-indigo-200 flex items-center gap-2.5 shadow-xs">
             <Info className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
             <span>These details are managed from My College Profile.</span>
@@ -615,6 +636,57 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
           </div>
         </div>
 
+        {/* SECTION 5: STUDENT AND PRECEPTOR DETAILS */}
+        <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              Section 5: Show Student and Preceptor Details
+            </h3>
+            <span className="text-[10px] font-mono text-slate-400 font-medium">Shared by PDF & PPT</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div
+              onClick={() => handleToggle('show_student_signature')}
+              className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                settings.show_student_signature
+                  ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-400 dark:border-indigo-800 font-bold text-slate-900 dark:text-white'
+                  : 'bg-slate-50/50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-500'
+              }`}
+            >
+              <div>
+                <span className="block font-bold">Student Details & Signature</span>
+                <span className="text-[10px] text-slate-400 font-normal">Display Student Name, Roll Number & Signature line</span>
+              </div>
+              <span className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase ${
+                settings.show_student_signature ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600'
+              }`}>
+                {settings.show_student_signature ? 'SHOW' : 'HIDE'}
+              </span>
+            </div>
+
+            <div
+              onClick={() => handleToggle('show_preceptor_signature')}
+              className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                settings.show_preceptor_signature
+                  ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-400 dark:border-indigo-800 font-bold text-slate-900 dark:text-white'
+                  : 'bg-slate-50/50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-500'
+              }`}
+            >
+              <div>
+                <span className="block font-bold">Preceptor Details & Signature</span>
+                <span className="text-[10px] text-slate-400 font-normal">Display Preceptor Name, Designation & Signature line</span>
+              </div>
+              <span className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase ${
+                settings.show_preceptor_signature ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600'
+              }`}>
+                {settings.show_preceptor_signature ? 'SHOW' : 'HIDE'}
+              </span>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       {/* PREVIEW FULL A4 PDF MODAL */}
@@ -623,7 +695,7 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
           isOpen={isPreviewModalOpen}
           onClose={() => setIsPreviewModalOpen(false)}
           title="Shared PDF Document Format Preview (A4 Portrait)"
-          subtitle={`Previewing shared Header, Watermark & Footer configuration for ${college?.college_name || college?.name}`}
+          subtitle={`Previewing shared Header, Watermark, Footer & Student/Preceptor Signatures for ${college?.college_name || college?.name}`}
           maxWidth="max-w-7xl w-full"
         >
           <div className="p-6 bg-slate-100 dark:bg-slate-950 max-h-[85vh] overflow-y-auto">
@@ -638,7 +710,7 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
           isOpen={isPptPreviewModalOpen}
           onClose={() => setIsPptPreviewModalOpen(false)}
           title="Shared PowerPoint Slide Format Preview (16:9 Widescreen)"
-          subtitle={`Previewing shared Header, Watermark & Footer configuration for ${college?.college_name || college?.name}`}
+          subtitle={`Previewing shared Header, Watermark, Footer & Student/Preceptor Details for ${college?.college_name || college?.name}`}
           maxWidth="max-w-6xl w-full"
         >
           <div className="p-6 bg-slate-100 dark:bg-slate-950 max-h-[85vh] overflow-y-auto">
