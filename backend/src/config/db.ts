@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:5ZBKRN823doZtzcx@db.ioyupwrvosjdbqppumws.supabase.co:5432/postgres';
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:xaSPYQPLysXv2rbo@db.ngfgwgwofnuwqrbmvtuo.supabase.co:5432/postgres';
 
 export const pool = new pg.Pool({
   connectionString,
