@@ -156,7 +156,7 @@ export const OfficialClinicalCasePDFModal = ({ isOpen, onClose, clinicalCase, st
         preceptor: finalPreceptorObj,
         college: finalCollegeObj,
         caseModulesData,
-        pptSettings: pptSettingsState || branding
+        pptSettings: { ...branding, ...pptSettingsState }
       });
     } catch (err) {
       console.error('Failed to generate PPT presentation:', err);

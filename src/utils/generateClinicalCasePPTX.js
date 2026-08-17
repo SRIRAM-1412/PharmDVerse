@@ -52,18 +52,48 @@ export const generateClinicalCasePPTX = async ({
   const finalDiagnosis = norm.diagnosis.final;
   const footerText = pptSettings?.footer_text || pptSettings?.ppt_footer_text || `${collegeName} • Clinical Case Presentation`;
 
-  // Watermark helper with high visibility styling across all slides
+  // Watermark helper following EXACT format from Admin (Line 1, Line 2, Opacity, Position)
   const addWatermark = (slide) => {
     const isWatermarkEnabled = (pptSettings?.watermark_enabled !== false) && (pptSettings?.show_watermark !== false);
-    if (isWatermarkEnabled) {
-      try {
-        const text1 = (pptSettings?.watermark_text_line1 || college?.college_code || 'PHARMDVERSE').toUpperCase();
-        slide.addText(text1, {
-          x: startX, y: 2.2, w: contentW, h: 1.2,
-          fontFace, fontSize: 26, bold: true, color: 'CBD5E1',
-          align: 'center', rotate: 330
+    if (!isWatermarkEnabled) return;
+
+    try {
+      const line1 = (pptSettings?.watermark_text_line1 || pptSettings?.watermark_text || college?.college_code || 'PHARMDVERSE').toUpperCase();
+      const line2 = (pptSettings?.watermark_text_line2 || pptSettings?.watermark_line_2 || collegeName || 'Clinical Documentation System').toUpperCase();
+      
+      const position = pptSettings?.watermark_position || 'Center';
+      const isDiagonal = String(position).toLowerCase().trim() === 'diagonal';
+      const rotate = isDiagonal ? 330 : 0;
+
+      const opacityNum = parseInt(pptSettings?.watermark_opacity ?? 10, 10);
+      let watermarkColor = 'CBD5E1'; // Default ~10%
+      if (opacityNum <= 8) watermarkColor = 'E2E8F0';
+      else if (opacityNum <= 15) watermarkColor = 'CBD5E1';
+      else if (opacityNum <= 22) watermarkColor = '94A3B8';
+      else watermarkColor = '64748B';
+
+      if (line2 && line2.trim().length > 0) {
+        // Line 1
+        slide.addText(line1, {
+          x: startX, y: isDiagonal ? 2.0 : 2.1, w: contentW, h: 0.6,
+          fontFace, fontSize: 24, bold: true, color: watermarkColor,
+          align: 'center', rotate
         });
-      } catch (e) {}
+        // Line 2
+        slide.addText(line2, {
+          x: startX, y: isDiagonal ? 2.6 : 2.7, w: contentW, h: 0.5,
+          fontFace, fontSize: 14, bold: true, color: watermarkColor,
+          align: 'center', rotate
+        });
+      } else {
+        slide.addText(line1, {
+          x: startX, y: 2.3, w: contentW, h: 0.8,
+          fontFace, fontSize: 26, bold: true, color: watermarkColor,
+          align: 'center', rotate
+        });
+      }
+    } catch (e) {
+      console.warn('PPT Watermark render warning:', e);
     }
   };
 
