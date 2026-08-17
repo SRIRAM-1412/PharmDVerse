@@ -248,9 +248,12 @@ export const buildNormalizedApprovedCaseData = ({
     clinicalRemarks: adr.clinical_remarks || ''
   };
 
+  const isAutonomous = Boolean(college?.is_autonomous ?? college?.isAutonomous ?? true);
+
   return {
     collegeName,
     hospitalName,
+    isAutonomous,
     caseId,
     studentName,
     studentRoll,
