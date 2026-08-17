@@ -18,35 +18,34 @@ export const buildNormalizedApprovedCaseData = ({
   const dir = caseModulesData?.dir || clinicalCase?.dir || {};
   const adr = caseModulesData?.adr || clinicalCase?.adr || {};
 
-  // Helper to determine if a form has reached APPROVED status
+  // Helper to determine if a form has reached APPROVED or COMPLETED status
   const isFormApproved = (formObj, isProfile = false) => {
     if (!formObj || typeof formObj !== 'object' || Object.keys(formObj).length === 0) return false;
     
     // Explicit rejection statuses
     const status = String(formObj.status || formObj.form_status || formObj.approval_status || formObj.status_label || '').toLowerCase().trim();
-    if (status === 'draft' || status === 'incomplete' || status === 'not_submitted' || status === 'not started' || status === 'not added' || status === 'in progress' || status === 'submitted' || status === 'under_review' || status === 'returned' || status === 'rejected') {
+    if (status === 'draft' || status === 'incomplete' || status === 'not_submitted' || status === 'not started' || status === 'not added' || status === 'in progress' || status === 'returned' || status === 'rejected') {
+      return false;
+    }
+    if (formObj.is_draft === true || formObj.draft === true) {
       return false;
     }
 
-    if (status.includes('approved') || status.includes('reviewed')) {
+    if (status.includes('approved') || status.includes('reviewed') || status.includes('completed') || status.includes('submitted')) {
       return true;
     }
-    if (formObj.is_approved === true || formObj.approved === true || formObj.preceptor_approved === true) {
+    if (formObj.is_approved === true || formObj.approved === true || formObj.preceptor_approved === true || formObj.is_completed === true || formObj.is_submitted === true) {
       return true;
     }
 
-    // If the overall clinicalCase is Approved, check if the form has actual content and is not a draft
-    const caseStatus = String(clinicalCase?.status || clinicalCase?.overall_case_status || clinicalCase?.approval_status || '').toLowerCase();
-    if (caseStatus === 'approved') {
-      if (formObj.is_draft === true || formObj.draft === true) return false;
-      if (isProfile) return Boolean(profile.patient_name || clinicalCase?.patient_name);
-      return Boolean(formObj.is_completed || formObj.is_submitted || formObj.is_approved || Object.keys(formObj).length > 2);
+    if (isProfile) {
+      return Boolean(profile.patient_name || clinicalCase?.patient_name || Object.keys(profile).length > 2);
     }
 
-    return false;
+    return Object.keys(formObj).length > 2;
   };
 
-  // Forms are included ONLY if actually APPROVED
+  // Forms are included ONLY if actually APPROVED / COMPLETED
   const isProfileCompleted = isFormApproved(profile, true);
   const isCounsellingCompleted = isFormApproved(counselling, false);
   const isInterventionCompleted = isFormApproved(intervention, false);
@@ -64,13 +63,15 @@ export const buildNormalizedApprovedCaseData = ({
   const preceptorDesig = preceptor?.designation || 'FACULTY PRECEPTOR & CLINICAL EVALUATOR';
 
   // Real Case ID Extraction Hierarchy
-  const caseId = clinicalCase?.case_number ||
-                 clinicalCase?.case_id ||
+  const collegeCode = college?.college_code || 'AMRMCP';
+  const rawIdStr = String(clinicalCase?.id || 1).padStart(4, '0');
+
+  const caseId = clinicalCase?.case_id ||
+                 clinicalCase?.case_number ||
                  clinicalCase?.case_code ||
-                 profile.case_number ||
                  profile.case_id ||
-                 (clinicalCase?.id && typeof clinicalCase.id === 'string' && !clinicalCase.id.includes('-') ? clinicalCase.id : null) ||
-                 `AMRMCP-2026-${studentRoll}-0001`;
+                 profile.case_number ||
+                 `${collegeCode}-2026-${studentRoll}-${rawIdStr}`;
 
   // Dates
   const dates = {
