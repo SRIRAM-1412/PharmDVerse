@@ -676,67 +676,11 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
             </div>
           </div>
 
-          {/* PDF TYPOGRAPHY & FONT SIZES CARD */}
-          <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-1.5 pb-1.5 border-b border-slate-100 dark:border-slate-800">
-              <Type className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-              <span>PDF Typography & Font Sizes</span>
-            </h4>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
-              <div className="md:col-span-2 space-y-1">
-                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400">Font Family (Font Type)</label>
-                <select value={settings.font_family} onChange={(e) => handleChange('font_family', e.target.value)} className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 font-bold text-slate-900 dark:text-white">
-                  <option value="Times New Roman">Times New Roman (Serif)</option>
-                  <option value="Calibri">Calibri (Sans-serif)</option>
-                  <option value="Arial">Arial (Sans-serif)</option>
-                  <option value="Georgia">Georgia (Serif)</option>
-                  <option value="Inter">Inter (Clean Modern)</option>
-                  <option value="Roboto">Roboto (Technical)</option>
-                </select>
-              </div>
-
-              <div className="md:col-span-2 grid grid-cols-3 gap-2 text-[10px]">
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400">Title Pt</label>
-                  <select value={settings.title_font_size} onChange={(e) => handleChange('title_font_size', e.target.value)} className="w-full h-10 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 font-bold text-slate-900 dark:text-white text-center">
-                    <option value="10pt">10pt</option>
-                    <option value="11pt">11pt</option>
-                    <option value="12pt">12pt</option>
-                    <option value="14pt">14pt</option>
-                    <option value="16pt">16pt</option>
-                    <option value="18pt">18pt</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400">Heading Pt</label>
-                  <select value={settings.heading_font_size} onChange={(e) => handleChange('heading_font_size', e.target.value)} className="w-full h-10 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 font-bold text-slate-900 dark:text-white text-center">
-                    <option value="10pt">10pt</option>
-                    <option value="11pt">11pt</option>
-                    <option value="12pt">12pt</option>
-                    <option value="14pt">14pt</option>
-                    <option value="16pt">16pt</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400">Body Pt</label>
-                  <select value={settings.body_font_size} onChange={(e) => handleChange('body_font_size', e.target.value)} className="w-full h-10 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 font-bold text-slate-900 dark:text-white text-center">
-                    <option value="10pt">10pt</option>
-                    <option value="11pt">11pt</option>
-                    <option value="12pt">12pt</option>
-                    <option value="14pt">14pt</option>
-                    <option value="16pt">16pt</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* SECTION 7: PDF MULTI-PAGE CONTROLS & SIGNATURES */}
+          {/* SECTION 5: PDF MULTI-PAGE CONTROLS & SIGNATURES */}
           <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
               <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              Section 7: PDF Multi-Page Controls & Signatures
+              Section 5: PDF Multi-page Controls & Signatures
             </h3>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
