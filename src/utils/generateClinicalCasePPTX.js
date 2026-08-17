@@ -198,7 +198,7 @@ export const generateClinicalCasePPTX = async ({
       });
 
       slide.addTable([headerRow, ...chunk], {
-        x: startX, y: 0.85, w: contentW, colW, rowH: 0.5,
+        x: startX, y: startY, w: contentW, colW, rowH: 0.5,
         border: { pt: 1, color: 'CBD5E1' }
       });
     }
@@ -373,7 +373,7 @@ export const generateClinicalCasePPTX = async ({
         { text: 'Investigation Test Name', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 13 } },
         { text: 'Patient Result', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 13 } },
         { text: 'Normal Range', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 13 } },
-        { text: 'Unit / Impression', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 13 } }
+        { text: 'Impression / Status', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 13 } }
       ];
 
       const labsRows = norm.labs.map((l, idx) => [
@@ -381,7 +381,7 @@ export const generateClinicalCasePPTX = async ({
         { text: l.parameter_name, options: { fontFace, fontSize: 12, bold: true } },
         { text: l.test_value, options: { fontFace, fontSize: 12, bold: true, color: emeraldColor } },
         { text: l.normal_range, options: { fontFace, fontSize: 12 } },
-        { text: `${l.unit} ${l.remarks ? `(${l.remarks})` : ''}`.trim() || '—', options: { fontFace, fontSize: 12 } }
+        { text: l.impression, options: { fontFace, fontSize: 12, bold: true, color: l.impression.includes('Abnormal') || l.impression.includes('High') || l.impression.includes('Low') ? 'DC2626' : emeraldColor } }
       ]);
 
       addTableWithPagination('Patient Profile: Laboratory Investigations', labsHeader, labsRows, [0.6, 3.2, 1.8, 1.8, 1.6]);
@@ -395,7 +395,7 @@ export const generateClinicalCasePPTX = async ({
         { text: 'Generic Name', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 13 } },
         { text: 'Dose & Route', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 13 } },
         { text: 'Frequency', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 13 } },
-        { text: 'Indication / Reason', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 13 } }
+        { text: 'Indication / Duration', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 13 } }
       ];
 
       const drugRows = norm.drugs.map((d, idx) => [

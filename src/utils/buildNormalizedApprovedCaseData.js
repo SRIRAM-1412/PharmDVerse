@@ -152,6 +152,26 @@ export const buildNormalizedApprovedCaseData = ({
 
   const vitals = safeArray(caseModulesData?.vitals || profile.vital_signs || profile.vitals || clinicalCase?.vital_signs || clinicalCase?.vitals);
   
+  // Clinical Test Value Evaluator helper
+  const evaluateLabImpression = (testVal, rangeStr, explicitImpression) => {
+    if (explicitImpression && explicitImpression !== '—') return explicitImpression;
+    if (!testVal || testVal === '—') return 'Normal';
+    const val = parseFloat(String(testVal).replace(/[^0-9.]/g, ''));
+    if (isNaN(val)) return 'Normal';
+
+    if (rangeStr) {
+      const numbers = String(rangeStr).match(/([0-9]+(?:\.[0-9]+)?)/g);
+      if (numbers && numbers.length >= 2) {
+        const min = parseFloat(numbers[0]);
+        const max = parseFloat(numbers[1]);
+        if (val < min) return 'Low';
+        if (val > max) return 'High (Abnormal)';
+        return 'Normal';
+      }
+    }
+    return 'Normal';
+  };
+
   // Lab Investigations Field Normalization (handles parameter_name, test_name, test_value, observed_value, etc.)
   const labs = safeArray(
     caseModulesData?.labs ||
@@ -160,15 +180,21 @@ export const buildNormalizedApprovedCaseData = ({
     profile.labs ||
     clinicalCase?.lab_investigations ||
     clinicalCase?.labs
-  ).map(l => ({
-    parameter_name: l.parameter_name || l.test_name || l.name || l.lab_test || '—',
-    test_value: l.test_value || l.observed_value || l.patient_result || l.result || '—',
-    normal_range: l.normal_range || l.reference_range || '—',
-    unit: l.unit || '',
-    remarks: l.remarks || l.impression || ''
-  }));
+  ).map(l => {
+    const testName = l.parameter_name || l.test_name || l.name || l.lab_test || '—';
+    const testValue = l.test_value || l.observed_value || l.patient_result || l.result || '—';
+    const rangeStr = l.normal_range || l.reference_range || '—';
+    const impression = evaluateLabImpression(testValue, rangeStr, l.remarks || l.impression || l.status);
+    return {
+      parameter_name: testName,
+      test_value: testValue,
+      normal_range: rangeStr,
+      unit: l.unit || '',
+      impression
+    };
+  });
 
-  // Prescribed Drugs Field Normalization (separates brand_name and generic_name cleanly)
+  // Prescribed Drugs Field Normalization (separates brand_name and generic_name cleanly & extracts start/stop dates)
   const drugs = safeArray(
     caseModulesData?.drugs ||
     caseModulesData?.prescribedDrugs ||
@@ -177,15 +203,23 @@ export const buildNormalizedApprovedCaseData = ({
     profile.drugs ||
     clinicalCase?.prescribed_drugs ||
     clinicalCase?.medications
-  ).map(d => ({
-    s_no: d.s_no,
-    trade_name: d.trade_name || d.brand_name || '—',
-    generic_name: d.generic_name || d.drug_name || '',
-    dose: d.dose || '—',
-    route_of_admin: d.route_of_admin || d.route || 'Oral',
-    frequency: d.frequency || 'OD',
-    indication: d.indication || '—'
-  }));
+  ).map(d => {
+    const startDate = d.start_date || '';
+    const stopDate = d.stop_date || '';
+    const durationText = startDate || stopDate ? 
+      `${startDate ? `From: ${startDate}` : ''} ${stopDate ? `To: ${stopDate}` : ''}`.trim() : 
+      'Active Regimen';
+
+    return {
+      s_no: d.s_no,
+      trade_name: d.trade_name || d.brand_name || '—',
+      generic_name: d.generic_name || d.drug_name || '—',
+      dose: d.dose || '—',
+      route_of_admin: d.route_of_admin || d.route || 'Oral',
+      frequency: d.frequency || 'OD',
+      indication: d.indication || d.reason || durationText
+    };
+  });
 
   // Diagnosis
   const diagnosis = {
