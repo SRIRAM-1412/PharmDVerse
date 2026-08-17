@@ -4,6 +4,7 @@ import { buildNormalizedApprovedCaseData } from './buildNormalizedApprovedCaseDa
 /**
  * Generate and download an editable PowerPoint (.pptx) presentation for a COMPLETE APPROVED CASE.
  * Consumes the central normalized data model from buildNormalizedApprovedCaseData.
+ * Fully formatted for 16:9 Widescreen with 22pt title, 20pt heading, 18pt body text, and dynamic layout.
  * Respects strict form boundaries, renders 100% of approved fields, ensures watermark visibility,
  * and renders Student/Preceptor details ONLY ON THE FIRST SLIDE.
  */
@@ -26,19 +27,21 @@ export const generateClinicalCasePPTX = async ({
   const pptx = new pptxgen();
 
   // Application-Level Fixed PPT Generation Settings (Section 6)
-  pptx.layout = 'LAYOUT_16x9'; // 16:9 Widescreen
+  pptx.layout = 'LAYOUT_16x9'; // 16:9 Widescreen (13.33" x 7.5")
 
   const fontFace = 'Times New Roman'; // Fixed Times New Roman font family
-  const titleFontSize = 22; // Fixed 22 pt
+  const titleFontSize = 22;   // Fixed 22 pt
   const headingFontSize = 20; // Fixed 20 pt
-  const bodyFontSize = 18; // Fixed 18 pt
+  const bodyFontSize = 18;    // Fixed 18 pt
+  const cellFontSize = 16;    // 16 pt for multi-column tables
 
   const primaryColor = '0F172A'; // Slate-900
   const emeraldColor = '059669'; // Emerald-600
   const darkBgColor = 'F8FAFC'; // Slate-50
 
-  const contentW = 9.0;
-  const startX = 0.5;
+  // 16:9 Widescreen Layout Dimensions
+  const startX = 0.8;
+  const contentW = 11.73;
 
   const collegeName = norm.collegeName;
   const hospitalName = norm.hospitalName;
@@ -49,6 +52,12 @@ export const generateClinicalCasePPTX = async ({
   const preceptorDesig = norm.preceptorDesig;
   const finalDiagnosis = norm.diagnosis.final;
   const footerText = pptSettings?.footer_text || pptSettings?.ppt_footer_text || `${collegeName} • Clinical Case Presentation`;
+
+  const formatSpo2 = (val) => {
+    if (!val) return '98%';
+    const s = String(val).trim();
+    return s.endsWith('%') ? s : `${s}%`;
+  };
 
   // Watermark helper following EXACT format from Admin (Line 1, Line 2, Opacity, Position)
   const addWatermark = (slide) => {
@@ -73,20 +82,20 @@ export const generateClinicalCasePPTX = async ({
       if (line2 && line2.trim().length > 0) {
         // Line 1
         slide.addText(line1, {
-          x: startX, y: isDiagonal ? 2.0 : 2.1, w: contentW, h: 0.6,
-          fontFace, fontSize: 24, bold: true, color: watermarkColor,
+          x: startX, y: isDiagonal ? 2.5 : 2.8, w: contentW, h: 0.8,
+          fontFace, fontSize: 32, bold: true, color: watermarkColor,
           align: 'center', rotate
         });
         // Line 2
         slide.addText(line2, {
-          x: startX, y: isDiagonal ? 2.6 : 2.7, w: contentW, h: 0.5,
-          fontFace, fontSize: 14, bold: true, color: watermarkColor,
+          x: startX, y: isDiagonal ? 3.4 : 3.6, w: contentW, h: 0.6,
+          fontFace, fontSize: 18, bold: true, color: watermarkColor,
           align: 'center', rotate
         });
       } else {
         slide.addText(line1, {
-          x: startX, y: 2.3, w: contentW, h: 0.8,
-          fontFace, fontSize: 26, bold: true, color: watermarkColor,
+          x: startX, y: 3.0, w: contentW, h: 1.0,
+          fontFace, fontSize: 36, bold: true, color: watermarkColor,
           align: 'center', rotate
         });
       }
@@ -95,30 +104,41 @@ export const generateClinicalCasePPTX = async ({
     }
   };
 
-  // Helper for adding tables with clean pagination across multiple slides
+  const addFooter = (slide) => {
+    try {
+      slide.addText(footerText, {
+        x: startX, y: 6.8, w: contentW, h: 0.35,
+        fontFace, fontSize: 11, color: '64748B', align: 'center'
+      });
+    } catch (e) {}
+  };
+
+  // Helper for adding tables with clean pagination and dynamic row height across 16:9 slides
   const addTableWithPagination = (slideTitle, headers, rows, colW) => {
-    const maxRowsPerSlide = 6;
+    const maxRowsPerSlide = 5;
     if (!rows || rows.length === 0) return;
 
     for (let i = 0; i < rows.length; i += maxRowsPerSlide) {
       const chunk = rows.slice(i, i + maxRowsPerSlide);
       const slide = pptx.addSlide();
+      slide.background = { color: 'FFFFFF' };
       addWatermark(slide);
 
       slide.addText(i === 0 ? slideTitle : `${slideTitle} (Continued)`, {
-        x: startX, y: 0.3, w: contentW, h: 0.4,
+        x: startX, y: 0.5, w: contentW, h: 0.5,
         fontFace, fontSize: titleFontSize, bold: true, color: primaryColor
       });
 
+      // Calculate vertical position and padding based on row count
+      const startY = chunk.length <= 2 ? 1.8 : 1.3;
+      const rowH = chunk.length <= 2 ? 0.7 : 0.55;
+
       slide.addTable([headers, ...chunk], {
-        x: startX, y: 0.8, w: contentW, colW,
+        x: startX, y: startY, w: contentW, colW, rowH,
         border: { pt: 1, color: 'CBD5E1' }
       });
 
-      slide.addText(footerText, {
-        x: startX, y: 4.8, w: contentW, h: 0.3,
-        fontFace, fontSize: 9, color: '64748B', align: 'center'
-      });
+      addFooter(slide);
     }
   };
 
@@ -132,7 +152,7 @@ export const generateClinicalCasePPTX = async ({
 
   // College Banner Header Box
   slide1.addShape(pptx.shapes.RECTANGLE, {
-    x: startX, y: 0.3, w: contentW, h: 0.9,
+    x: startX, y: 0.4, w: contentW, h: 1.2,
     fill: { color: 'F1F5F9' }, line: { color: '0F172A', width: 1.5 }
   });
 
@@ -146,20 +166,20 @@ export const generateClinicalCasePPTX = async ({
 
   if (showCollegeLogo && collegeLogo) {
     try {
-      slide1.addImage({ path: collegeLogo, x: startX + 0.1, y: 0.35, w: 0.8, h: 0.8 });
+      slide1.addImage({ path: collegeLogo, x: startX + 0.2, y: 0.45, w: 1.1, h: 1.1 });
     } catch (e) {}
   }
 
   if (showHospitalLogo && hospitalLogo) {
     try {
-      slide1.addImage({ path: hospitalLogo, x: startX + contentW - 0.9, y: 0.35, w: 0.8, h: 0.8 });
+      slide1.addImage({ path: hospitalLogo, x: startX + contentW - 1.3, y: 0.45, w: 1.1, h: 1.1 });
     } catch (e) {}
   }
 
   if (showCollegeName) {
     slide1.addText(collegeName.toUpperCase(), {
-      x: startX + 1.0, y: 0.35, w: contentW - 2.0, h: 0.4,
-      fontFace, fontSize: titleFontSize - 3, bold: true, color: primaryColor, align: 'center'
+      x: startX + 1.4, y: 0.45, w: contentW - 2.8, h: 0.5,
+      fontFace, fontSize: titleFontSize, bold: true, color: primaryColor, align: 'center'
     });
   }
 
@@ -169,31 +189,31 @@ export const generateClinicalCasePPTX = async ({
 
   if (subTextParts.length > 0) {
     slide1.addText(subTextParts.join(' • '), {
-      x: startX + 1.0, y: 0.75, w: contentW - 2.0, h: 0.3,
-      fontFace, fontSize: 14, italic: true, color: '475569', align: 'center'
+      x: startX + 1.4, y: 0.95, w: contentW - 2.8, h: 0.4,
+      fontFace, fontSize: 16, italic: true, color: '475569', align: 'center'
     });
   }
 
   // Case ID Sub-bar
   slide1.addShape(pptx.shapes.RECTANGLE, {
-    x: startX, y: 1.3, w: contentW, h: 0.35,
+    x: startX, y: 1.8, w: contentW, h: 0.5,
     fill: { color: '0F172A' }
   });
 
   slide1.addText(`CASE ID : ${caseId}`, {
-    x: startX + 0.1, y: 1.32, w: contentW - 0.2, h: 0.3,
-    fontFace: 'Courier New', fontSize: 16, bold: true, color: 'FFFFFF', align: 'center'
+    x: startX + 0.1, y: 1.85, w: contentW - 0.2, h: 0.4,
+    fontFace: 'Courier New', fontSize: bodyFontSize, bold: true, color: 'FFFFFF', align: 'center'
   });
 
   // Main Presentation Title & Diagnosis
   slide1.addText('CLINICAL CASE PRESENTATION', {
-    x: startX + 0.1, y: 1.75, w: contentW - 0.2, h: 0.4,
-    fontFace, fontSize: titleFontSize, bold: true, color: emeraldColor, align: 'center'
+    x: startX + 0.1, y: 2.5, w: contentW - 0.2, h: 0.6,
+    fontFace, fontSize: titleFontSize + 4, bold: true, color: emeraldColor, align: 'center'
   });
 
   slide1.addText(`Final Diagnosis: ${finalDiagnosis}`, {
-    x: startX + 0.1, y: 2.15, w: contentW - 0.2, h: 0.4,
-    fontFace, fontSize: headingFontSize, bold: true, color: primaryColor, align: 'center'
+    x: startX + 0.1, y: 3.1, w: contentW - 0.2, h: 0.5,
+    fontFace, fontSize: headingFontSize + 1, bold: true, color: primaryColor, align: 'center'
   });
 
   // Student & Preceptor Metadata Card (FIRST SLIDE ONLY)
@@ -202,17 +222,17 @@ export const generateClinicalCasePPTX = async ({
 
   if (showStudentSig || showPreceptorSig) {
     slide1.addShape(pptx.shapes.RECTANGLE, {
-      x: startX, y: 2.65, w: contentW, h: 1.6,
-      fill: { color: darkBgColor }, line: { color: 'CBD5E1', width: 1 }
+      x: startX, y: 3.8, w: contentW, h: 2.4,
+      fill: { color: darkBgColor }, line: { color: 'CBD5E1', width: 1.5 }
     });
 
     if (showStudentSig) {
       slide1.addText([
         { text: 'Submitted / Presented By:\n', options: { bold: true, fontSize: bodyFontSize - 2, color: '64748B' } },
-        { text: `${studentName}\n`, options: { bold: true, fontSize: bodyFontSize + 1, color: primaryColor } },
-        { text: `Roll No: ${rollNumber}`, options: { fontSize: bodyFontSize - 2, color: '475569' } }
+        { text: `${studentName}\n`, options: { bold: true, fontSize: bodyFontSize + 2, color: primaryColor } },
+        { text: `Roll No: ${rollNumber}`, options: { fontSize: bodyFontSize, color: '475569' } }
       ], {
-        x: startX + 0.3, y: 2.75, w: 4.0, h: 1.4,
+        x: startX + 0.5, y: 4.0, w: 5.2, h: 2.0,
         fontFace, align: 'left'
       });
     }
@@ -220,19 +240,16 @@ export const generateClinicalCasePPTX = async ({
     if (showPreceptorSig) {
       slide1.addText([
         { text: 'Evaluated & Approved By:\n', options: { bold: true, fontSize: bodyFontSize - 2, color: '64748B' } },
-        { text: `${preceptorName}\n`, options: { bold: true, fontSize: bodyFontSize + 1, color: emeraldColor } },
-        { text: preceptorDesig, options: { fontSize: bodyFontSize - 2, color: '475569' } }
+        { text: `${preceptorName}\n`, options: { bold: true, fontSize: bodyFontSize + 2, color: emeraldColor } },
+        { text: preceptorDesig, options: { fontSize: bodyFontSize, color: '475569' } }
       ], {
-        x: startX + 4.7, y: 2.75, w: 4.0, h: 1.4,
+        x: startX + 6.0, y: 4.0, w: 5.2, h: 2.0,
         fontFace, align: 'right'
       });
     }
   }
 
-  slide1.addText(footerText, {
-    x: startX, y: 4.8, w: contentW, h: 0.3,
-    fontFace, fontSize: 9, color: '64748B', align: 'center'
-  });
+  addFooter(slide1);
 
   // ====================================================================
   // FORM 1: PATIENT PROFILE DOCUMENTATION (ONLY IF APPROVED)
@@ -240,140 +257,143 @@ export const generateClinicalCasePPTX = async ({
   if (norm.isProfileCompleted) {
     // SLIDE 2: Patient Demographics & Profile Identifiers
     const slideProfile1 = pptx.addSlide();
+    slideProfile1.background = { color: 'FFFFFF' };
     addWatermark(slideProfile1);
     slideProfile1.addText('1. PATIENT PROFILE DOCUMENTATION', {
-      x: startX, y: 0.3, w: contentW, h: 0.4,
+      x: startX, y: 0.5, w: contentW, h: 0.5,
       fontFace, fontSize: titleFontSize, bold: true, color: primaryColor
     });
 
     const profileDemoRows = [
-      [{ text: 'Clinical Field', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 11 } }, { text: 'Submitted Approved Value', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 11 } }],
-      [{ text: 'Patient Name', options: { fontFace, fontSize: 10, bold: true } }, { text: norm.demographics.patientName, options: { fontFace, fontSize: 10 } }],
-      [{ text: 'Age / Gender', options: { fontFace, fontSize: 10, bold: true } }, { text: `${norm.demographics.age} Yrs / ${norm.demographics.gender}`, options: { fontFace, fontSize: 10 } }],
-      [{ text: 'IP / OP Registration No', options: { fontFace, fontSize: 10, bold: true } }, { text: norm.demographics.ipOpNo, options: { fontFace, fontSize: 10, bold: true } }],
-      [{ text: 'Department & Ward / Bed', options: { fontFace, fontSize: 10, bold: true } }, { text: `${norm.demographics.department} (${norm.demographics.wardBed})`, options: { fontFace, fontSize: 10 } }],
-      [{ text: 'Date of Admission / Discharge', options: { fontFace, fontSize: 10, bold: true } }, { text: `DOA: ${norm.dates.doa} | DOD: ${norm.dates.dod}`, options: { fontFace, fontSize: 10 } }],
-      [{ text: 'Attending Physician', options: { fontFace, fontSize: 10, bold: true } }, { text: norm.demographics.physician, options: { fontFace, fontSize: 10 } }],
-      [{ text: 'Measurements (Ht / Wt / BMI)', options: { fontFace, fontSize: 10, bold: true } }, { text: `Ht: ${norm.demographics.height} | Wt: ${norm.demographics.weight} | BMI: ${norm.demographics.bmi}`, options: { fontFace, fontSize: 10 } }],
-      [{ text: 'Allergies (Drug & Food)', options: { fontFace, fontSize: 10, bold: true } }, { text: `Drug: ${norm.demographics.allergyDrugs} | Food: ${norm.demographics.allergyFood}`, options: { fontFace, fontSize: 10, color: 'DC2626', bold: true } }],
-      [{ text: 'Social History & Diet', options: { fontFace, fontSize: 10, bold: true } }, { text: `${norm.demographics.socialHistory} | Diet: ${norm.demographics.diet}`, options: { fontFace, fontSize: 10 } }]
+      [{ text: 'Clinical Field', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } }, { text: 'Submitted Approved Value', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } }],
+      [{ text: 'Patient Name', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.demographics.patientName, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Age / Gender', options: { fontFace, fontSize: 16, bold: true } }, { text: `${norm.demographics.age} Yrs / ${norm.demographics.gender}`, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'IP / OP Registration No', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.demographics.ipOpNo, options: { fontFace, fontSize: 16, bold: true } }],
+      [{ text: 'Department & Ward / Bed', options: { fontFace, fontSize: 16, bold: true } }, { text: `${norm.demographics.department} (${norm.demographics.wardBed})`, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Date of Admission / Discharge', options: { fontFace, fontSize: 16, bold: true } }, { text: `DOA: ${norm.dates.doa} | DOD: ${norm.dates.dod}`, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Attending Physician', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.demographics.physician, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Measurements (Ht / Wt / BMI)', options: { fontFace, fontSize: 16, bold: true } }, { text: `Ht: ${norm.demographics.height} | Wt: ${norm.demographics.weight} | BMI: ${norm.demographics.bmi}`, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Allergies (Drug & Food)', options: { fontFace, fontSize: 16, bold: true } }, { text: `Drug: ${norm.demographics.allergyDrugs} | Food: ${norm.demographics.allergyFood}`, options: { fontFace, fontSize: 16, color: 'DC2626', bold: true } }],
+      [{ text: 'Social History & Diet', options: { fontFace, fontSize: 16, bold: true } }, { text: `${norm.demographics.socialHistory} | Diet: ${norm.demographics.diet}`, options: { fontFace, fontSize: 16 } }]
     ];
 
     slideProfile1.addTable(profileDemoRows, {
-      x: startX, y: 0.8, w: contentW, colW: [2.8, 6.2],
+      x: startX, y: 1.1, w: contentW, colW: [4.2, 7.53], rowH: 0.5,
       border: { pt: 1, color: 'CBD5E1' }
     });
-    slideProfile1.addText(footerText, { x: startX, y: 4.8, w: contentW, h: 0.3, fontFace, fontSize: 9, color: '64748B', align: 'center' });
+    addFooter(slideProfile1);
 
     // SLIDE 3: Clinical History & Complaints
     const slideProfile2 = pptx.addSlide();
+    slideProfile2.background = { color: 'FFFFFF' };
     addWatermark(slideProfile2);
     slideProfile2.addText('Patient Profile: Clinical History & Complaints', {
-      x: startX, y: 0.3, w: contentW, h: 0.4,
+      x: startX, y: 0.5, w: contentW, h: 0.5,
       fontFace, fontSize: titleFontSize, bold: true, color: primaryColor
     });
 
     const historyRows = [
-      [{ text: 'History Category', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 11 } }, { text: 'Detailed Clinical Record', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 11 } }],
-      [{ text: 'Chief Complaints', options: { fontFace, fontSize: 10, bold: true } }, { text: norm.history.chiefComplaints, options: { fontFace, fontSize: 10 } }],
-      [{ text: 'Past Medical History', options: { fontFace, fontSize: 10, bold: true } }, { text: norm.history.pastMedicalHistory, options: { fontFace, fontSize: 10 } }],
-      [{ text: 'Past Medication History', options: { fontFace, fontSize: 10, bold: true } }, { text: norm.history.pastMedicationHistory || 'None Reported', options: { fontFace, fontSize: 10 } }],
-      [{ text: 'Family History', options: { fontFace, fontSize: 10, bold: true } }, { text: norm.history.familyHistory || 'None Reported', options: { fontFace, fontSize: 10 } }],
-      [{ text: 'General Physical Examination', options: { fontFace, fontSize: 10, bold: true } }, { text: norm.history.generalExam, options: { fontFace, fontSize: 10 } }],
-      [{ text: 'Systemic Examination', options: { fontFace, fontSize: 10, bold: true } }, { text: norm.history.systemicExam, options: { fontFace, fontSize: 10 } }]
+      [{ text: 'History Category', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } }, { text: 'Detailed Clinical Record', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } }],
+      [{ text: 'Chief Complaints', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.history.chiefComplaints, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Past Medical History', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.history.pastMedicalHistory, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Past Medication History', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.history.pastMedicationHistory || 'None Reported', options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Family History', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.history.familyHistory || 'None Reported', options: { fontFace, fontSize: 16 } }],
+      [{ text: 'General Physical Examination', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.history.generalExam, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Systemic Examination', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.history.systemicExam, options: { fontFace, fontSize: 16 } }]
     ];
 
     slideProfile2.addTable(historyRows, {
-      x: startX, y: 0.8, w: contentW, colW: [2.8, 6.2],
+      x: startX, y: 1.2, w: contentW, colW: [4.2, 7.53], rowH: 0.65,
       border: { pt: 1, color: 'CBD5E1' }
     });
-    slideProfile2.addText(footerText, { x: startX, y: 4.8, w: contentW, h: 0.3, fontFace, fontSize: 9, color: '64748B', align: 'center' });
+    addFooter(slideProfile2);
 
     // SLIDE 4: Vital Signs Table
     if (norm.vitals.length > 0) {
       const vitalsHeader = [
-        { text: 'Date / Time', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } },
-        { text: 'Temp (°F)', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } },
-        { text: 'BP (mmHg)', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } },
-        { text: 'Pulse (bpm)', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } },
-        { text: 'Resp Rate', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } },
-        { text: 'SpO2 (%)', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } }
+        { text: 'Date / Time', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } },
+        { text: 'Temp (°F)', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } },
+        { text: 'BP (mmHg)', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } },
+        { text: 'Pulse (bpm)', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } },
+        { text: 'Resp Rate', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } },
+        { text: 'SpO2 (%)', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } }
       ];
 
       const vitalsRows = norm.vitals.map(v => [
-        { text: v.date || v.created_at || norm.dates.doa, options: { fontFace, fontSize: 9 } },
-        { text: v.temp || v.temperature || '98.6', options: { fontFace, fontSize: 9 } },
-        { text: v.bp || v.blood_pressure || '120/80', options: { fontFace, fontSize: 9, bold: true } },
-        { text: v.pr || v.pulse_rate || v.pulse || '72', options: { fontFace, fontSize: 9 } },
-        { text: v.rr || v.respiratory_rate || '18', options: { fontFace, fontSize: 9 } },
-        { text: v.spo2 ? `${v.spo2}%` : '98%', options: { fontFace, fontSize: 9, bold: true } }
+        { text: v.date || v.created_at || norm.dates.doa, options: { fontFace, fontSize: 16 } },
+        { text: v.temp || v.temperature || '98.4', options: { fontFace, fontSize: 16 } },
+        { text: v.bp || v.blood_pressure || '120/80', options: { fontFace, fontSize: 16, bold: true } },
+        { text: v.pr || v.pulse_rate || v.pulse || '72', options: { fontFace, fontSize: 16 } },
+        { text: v.rr || v.respiratory_rate || '18', options: { fontFace, fontSize: 16 } },
+        { text: formatSpo2(v.spo2), options: { fontFace, fontSize: 16, bold: true } }
       ]);
 
-      addTableWithPagination('Patient Profile: Vital Signs Monitoring Log', vitalsHeader, vitalsRows, [1.8, 1.4, 1.6, 1.4, 1.4, 1.4]);
+      addTableWithPagination('Patient Profile: Vital Signs Monitoring Log', vitalsHeader, vitalsRows, [2.5, 1.8, 2.0, 1.8, 1.8, 1.83]);
     }
 
     // SLIDE 5: Lab Investigations Table
     if (norm.labs.length > 0) {
       const labsHeader = [
-        { text: 'S.No', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } },
-        { text: 'Investigation Test Name', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } },
-        { text: 'Patient Result', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } },
-        { text: 'Normal Range', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } },
-        { text: 'Unit / Impression', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } }
+        { text: 'S.No', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } },
+        { text: 'Investigation Test Name', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } },
+        { text: 'Patient Result', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } },
+        { text: 'Normal Range', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } },
+        { text: 'Unit / Impression', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } }
       ];
 
       const labsRows = norm.labs.map((l, idx) => [
-        { text: `${idx + 1}`, options: { fontFace, fontSize: 9, align: 'center' } },
-        { text: l.test_name || l.name || l.lab_test || '—', options: { fontFace, fontSize: 9, bold: true } },
-        { text: l.result || l.patient_result || '—', options: { fontFace, fontSize: 9, bold: true, color: emeraldColor } },
-        { text: l.normal_range || l.reference_range || '—', options: { fontFace, fontSize: 9 } },
-        { text: `${l.unit || ''} ${l.remarks ? `(${l.remarks})` : ''}`, options: { fontFace, fontSize: 9 } }
+        { text: `${idx + 1}`, options: { fontFace, fontSize: 16, align: 'center' } },
+        { text: l.test_name || l.name || l.lab_test || '—', options: { fontFace, fontSize: 16, bold: true } },
+        { text: l.result || l.patient_result || '—', options: { fontFace, fontSize: 16, bold: true, color: emeraldColor } },
+        { text: l.normal_range || l.reference_range || '—', options: { fontFace, fontSize: 16 } },
+        { text: `${l.unit || ''} ${l.remarks ? `(${l.remarks})` : ''}`, options: { fontFace, fontSize: 16 } }
       ]);
 
-      addTableWithPagination('Patient Profile: Laboratory Investigations', labsHeader, labsRows, [0.6, 3.2, 1.8, 1.8, 1.6]);
+      addTableWithPagination('Patient Profile: Laboratory Investigations', labsHeader, labsRows, [0.8, 4.2, 2.2, 2.3, 2.23]);
     }
 
     // SLIDE 6: Prescribed Medications Profile
     if (norm.drugs.length > 0) {
       const drugHeader = [
-        { text: 'S.No', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } },
-        { text: 'Brand & Generic Name', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } },
-        { text: 'Dose & Route', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } },
-        { text: 'Frequency', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } },
-        { text: 'Indication / Reason', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } }
+        { text: 'S.No', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } },
+        { text: 'Brand & Generic Name', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } },
+        { text: 'Dose & Route', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } },
+        { text: 'Frequency', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } },
+        { text: 'Indication / Reason', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } }
       ];
 
       const drugRows = norm.drugs.map((d, idx) => [
-        { text: `${d.s_no || idx + 1}`, options: { fontFace, fontSize: 9, align: 'center' } },
-        { text: `${d.trade_name || d.brand_name || ''} ${d.generic_name || d.drug_name ? `(${d.generic_name || d.drug_name})` : ''}`, options: { fontFace, fontSize: 9, bold: true } },
-        { text: `${d.dose || '—'} (${d.route_of_admin || d.route || 'Oral'})`, options: { fontFace, fontSize: 9 } },
-        { text: d.frequency || 'OD', options: { fontFace, fontSize: 9, bold: true } },
-        { text: d.indication || '—', options: { fontFace, fontSize: 9 } }
+        { text: `${d.s_no || idx + 1}`, options: { fontFace, fontSize: 16, align: 'center' } },
+        { text: `${d.trade_name || d.brand_name || ''} ${d.generic_name || d.drug_name ? `(${d.generic_name || d.drug_name})` : ''}`, options: { fontFace, fontSize: 16, bold: true } },
+        { text: `${d.dose || '—'} (${d.route_of_admin || d.route || 'Oral'})`, options: { fontFace, fontSize: 16 } },
+        { text: d.frequency || 'OD', options: { fontFace, fontSize: 16, bold: true } },
+        { text: d.indication || '—', options: { fontFace, fontSize: 16 } }
       ]);
 
-      addTableWithPagination('Patient Profile: Prescribed Medication Profile', drugHeader, drugRows, [0.6, 3.2, 1.8, 1.4, 2.0]);
+      addTableWithPagination('Patient Profile: Prescribed Medication Profile', drugHeader, drugRows, [0.8, 4.0, 2.3, 1.8, 2.83]);
     }
 
     // SLIDE 7: Diagnosis & Discharge Summary
     const slideProfileEnd = pptx.addSlide();
+    slideProfileEnd.background = { color: 'FFFFFF' };
     addWatermark(slideProfileEnd);
     slideProfileEnd.addText('Patient Profile: Diagnosis & Discharge Summary', {
-      x: startX, y: 0.3, w: contentW, h: 0.4,
+      x: startX, y: 0.5, w: contentW, h: 0.5,
       fontFace, fontSize: titleFontSize, bold: true, color: primaryColor
     });
 
     const diagRows = [
-      [{ text: 'Diagnostic & Discharge Category', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 11 } }, { text: 'Approved Clinical Summary', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 11 } }],
-      [{ text: 'Provisional Diagnosis', options: { fontFace, fontSize: 10, bold: true } }, { text: norm.diagnosis.provisional || 'None Specified', options: { fontFace, fontSize: 10 } }],
-      [{ text: 'Final Diagnosis', options: { fontFace, fontSize: 10, bold: true } }, { text: norm.diagnosis.final, options: { fontFace, fontSize: 10, bold: true, color: emeraldColor } }],
-      [{ text: 'Discharge Summary & Instructions', options: { fontFace, fontSize: 10, bold: true } }, { text: norm.diagnosis.dischargeSummary || 'Patient discharged in stable condition with prescribed medication regimen and follow-up advice.', options: { fontFace, fontSize: 10 } }]
+      [{ text: 'Diagnostic & Discharge Category', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } }, { text: 'Approved Clinical Summary', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } }],
+      [{ text: 'Provisional Diagnosis', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.diagnosis.provisional || 'None Specified', options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Final Diagnosis', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.diagnosis.final, options: { fontFace, fontSize: 16, bold: true, color: emeraldColor } }],
+      [{ text: 'Discharge Summary & Instructions', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.diagnosis.dischargeSummary || 'Patient discharged in stable condition with prescribed medication regimen and follow-up advice.', options: { fontFace, fontSize: 16 } }]
     ];
 
     slideProfileEnd.addTable(diagRows, {
-      x: startX, y: 0.8, w: contentW, colW: [2.8, 6.2],
+      x: startX, y: 1.4, w: contentW, colW: [4.2, 7.53], rowH: 1.0,
       border: { pt: 1, color: 'CBD5E1' }
     });
-    slideProfileEnd.addText(footerText, { x: startX, y: 4.8, w: contentW, h: 0.3, fontFace, fontSize: 9, color: '64748B', align: 'center' });
+    addFooter(slideProfileEnd);
   }
 
   // ====================================================================
@@ -381,31 +401,32 @@ export const generateClinicalCasePPTX = async ({
   // ====================================================================
   if (norm.isCounsellingCompleted) {
     const slideCounselling1 = pptx.addSlide();
+    slideCounselling1.background = { color: 'FFFFFF' };
     addWatermark(slideCounselling1);
     slideCounselling1.addText('2. PATIENT COUNSELLING DOCUMENTATION', {
-      x: startX, y: 0.3, w: contentW, h: 0.4,
+      x: startX, y: 0.5, w: contentW, h: 0.5,
       fontFace, fontSize: titleFontSize, bold: true, color: primaryColor
     });
 
     const counsellingRows1 = [
-      [{ text: 'Counselling Aspect', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 11 } }, { text: 'Submitted Approved Details', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 11 } }],
-      [{ text: 'Counselling Date & Time', options: { fontFace, fontSize: 9, bold: true } }, { text: `${norm.counselling.date} ${norm.counselling.time}`, options: { fontFace, fontSize: 9 } }],
-      [{ text: 'Provided To / Patient Type', options: { fontFace, fontSize: 9, bold: true } }, { text: `${norm.counselling.providedTo} (${norm.counselling.patientType})`, options: { fontFace, fontSize: 9 } }],
-      [{ text: 'Duration / Representative Reason', options: { fontFace, fontSize: 9, bold: true } }, { text: `${norm.counselling.timeTaken} ${norm.counselling.representativeReasons ? `(${norm.counselling.representativeReasons})` : ''}`, options: { fontFace, fontSize: 9 } }],
-      [{ text: 'Disease Counselled', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.counselling.diseaseCounselled, options: { fontFace, fontSize: 9, bold: true } }],
-      [{ text: 'Medications Counselled', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.counselling.medicationsCounselled || 'All prescribed maintenance & acute medications', options: { fontFace, fontSize: 9 } }],
-      [{ text: 'Key Focus Points Covered', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.counselling.pointsCovered, options: { fontFace, fontSize: 9 } }],
-      [{ text: 'Major Barriers Identified', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.counselling.majorBarriers || 'None Reported', options: { fontFace, fontSize: 9 } }],
-      [{ text: 'Barrier Action & Overcome', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.counselling.barrierOvercome || 'Counselled patient on strategies to overcome barriers.', options: { fontFace, fontSize: 9 } }],
-      [{ text: 'Aids Used & Materials Provided', options: { fontFace, fontSize: 9, bold: true } }, { text: `Aids: ${norm.counselling.aidsUsed || 'Pill box, visual charts'} | Material: ${norm.counselling.materialProvided || 'Patient Information Leaflet (PIL)'}`, options: { fontFace, fontSize: 9 } }],
-      [{ text: 'Understanding Ascertained', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.counselling.understandingAscertained, options: { fontFace, fontSize: 9, bold: true, color: emeraldColor } }]
+      [{ text: 'Counselling Aspect', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } }, { text: 'Submitted Approved Details', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } }],
+      [{ text: 'Counselling Date & Time', options: { fontFace, fontSize: 16, bold: true } }, { text: `${norm.counselling.date} ${norm.counselling.time}`, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Provided To / Patient Type', options: { fontFace, fontSize: 16, bold: true } }, { text: `${norm.counselling.providedTo} (${norm.counselling.patientType})`, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Duration / Representative Reason', options: { fontFace, fontSize: 16, bold: true } }, { text: `${norm.counselling.timeTaken} ${norm.counselling.representativeReasons ? `(${norm.counselling.representativeReasons})` : ''}`, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Disease Counselled', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.counselling.diseaseCounselled, options: { fontFace, fontSize: 16, bold: true } }],
+      [{ text: 'Medications Counselled', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.counselling.medicationsCounselled || 'All prescribed maintenance & acute medications', options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Key Focus Points Covered', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.counselling.pointsCovered, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Major Barriers Identified', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.counselling.majorBarriers || 'None Reported', options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Barrier Action & Overcome', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.counselling.barrierOvercome || 'Counselled patient on strategies to overcome barriers.', options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Aids Used & Materials Provided', options: { fontFace, fontSize: 16, bold: true } }, { text: `Aids: ${norm.counselling.aidsUsed || 'Pill box, visual charts'} | Material: ${norm.counselling.materialProvided || 'Patient Information Leaflet (PIL)'}`, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Understanding Ascertained', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.counselling.understandingAscertained, options: { fontFace, fontSize: 16, bold: true, color: emeraldColor } }]
     ];
 
     slideCounselling1.addTable(counsellingRows1, {
-      x: startX, y: 0.8, w: contentW, colW: [2.8, 6.2],
+      x: startX, y: 1.1, w: contentW, colW: [4.2, 7.53], rowH: 0.5,
       border: { pt: 1, color: 'CBD5E1' }
     });
-    slideCounselling1.addText(footerText, { x: startX, y: 4.8, w: contentW, h: 0.3, fontFace, fontSize: 9, color: '64748B', align: 'center' });
+    addFooter(slideCounselling1);
   }
 
   // ====================================================================
@@ -413,29 +434,30 @@ export const generateClinicalCasePPTX = async ({
   // ====================================================================
   if (norm.isInterventionCompleted) {
     const slideIntervention1 = pptx.addSlide();
+    slideIntervention1.background = { color: 'FFFFFF' };
     addWatermark(slideIntervention1);
     slideIntervention1.addText('3. PHARMACIST INTERVENTION DOCUMENTATION', {
-      x: startX, y: 0.3, w: contentW, h: 0.4,
+      x: startX, y: 0.5, w: contentW, h: 0.5,
       fontFace, fontSize: titleFontSize, bold: true, color: primaryColor
     });
 
     const interventionRows1 = [
-      [{ text: 'Intervention Aspect', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 11 } }, { text: 'Submitted Approved Clinical Action & Recommendations', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 11 } }],
-      [{ text: 'Intervention Date', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.intervention.date, options: { fontFace, fontSize: 9 } }],
-      [{ text: 'Present Diagnosis', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.intervention.presentDiagnosis, options: { fontFace, fontSize: 9 } }],
-      [{ text: 'Problem Identified (DRP)', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.intervention.prescriptionProblems, options: { fontFace, fontSize: 9, bold: true, color: 'DC2626' } }],
-      [{ text: 'Detailed Action & Recommendations', options: { fontFace, fontSize: 9, bold: true } }, { text: `${norm.intervention.actionsTaken} — ${norm.intervention.recommendations}`, options: { fontFace, fontSize: 9 } }],
-      [{ text: 'Significance Level', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.intervention.significanceLevel, options: { fontFace, fontSize: 9, bold: true } }],
-      [{ text: 'Physician Acceptance Status', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.intervention.physicianAcceptance, options: { fontFace, fontSize: 9, color: emeraldColor, bold: true } }],
-      [{ text: 'Outcome & Impact Comments', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.intervention.outcomeComments || 'Physician accepted recommendation; therapy modified accordingly.', options: { fontFace, fontSize: 9 } }],
-      [{ text: 'References Consulted', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.intervention.referencesText || 'Clinical Guidelines & Lexicomp', options: { fontFace, fontSize: 9 } }]
+      [{ text: 'Intervention Aspect', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } }, { text: 'Submitted Approved Clinical Action & Recommendations', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } }],
+      [{ text: 'Intervention Date', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.intervention.date, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Present Diagnosis', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.intervention.presentDiagnosis, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Problem Identified (DRP)', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.intervention.prescriptionProblems, options: { fontFace, fontSize: 16, bold: true, color: 'DC2626' } }],
+      [{ text: 'Detailed Action & Recommendations', options: { fontFace, fontSize: 16, bold: true } }, { text: `${norm.intervention.actionsTaken} — ${norm.intervention.recommendations}`, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Significance Level', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.intervention.significanceLevel, options: { fontFace, fontSize: 16, bold: true } }],
+      [{ text: 'Physician Acceptance Status', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.intervention.physicianAcceptance, options: { fontFace, fontSize: 16, color: emeraldColor, bold: true } }],
+      [{ text: 'Outcome & Impact Comments', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.intervention.outcomeComments || 'Physician accepted recommendation; therapy modified accordingly.', options: { fontFace, fontSize: 16 } }],
+      [{ text: 'References Consulted', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.intervention.referencesText || 'Clinical Guidelines & Lexicomp', options: { fontFace, fontSize: 16 } }]
     ];
 
     slideIntervention1.addTable(interventionRows1, {
-      x: startX, y: 0.8, w: contentW, colW: [2.8, 6.2],
+      x: startX, y: 1.2, w: contentW, colW: [4.2, 7.53], rowH: 0.58,
       border: { pt: 1, color: 'CBD5E1' }
     });
-    slideIntervention1.addText(footerText, { x: startX, y: 4.8, w: contentW, h: 0.3, fontFace, fontSize: 9, color: '64748B', align: 'center' });
+    addFooter(slideIntervention1);
   }
 
   // ====================================================================
@@ -443,29 +465,30 @@ export const generateClinicalCasePPTX = async ({
   // ====================================================================
   if (norm.isDirCompleted) {
     const slideDir1 = pptx.addSlide();
+    slideDir1.background = { color: 'FFFFFF' };
     addWatermark(slideDir1);
     slideDir1.addText('4. DRUG INFORMATION REQUEST DOCUMENTATION', {
-      x: startX, y: 0.3, w: contentW, h: 0.4,
+      x: startX, y: 0.5, w: contentW, h: 0.5,
       fontFace, fontSize: titleFontSize, bold: true, color: primaryColor
     });
 
     const dirRows1 = [
-      [{ text: 'Enquiry Aspect', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 11 } }, { text: 'Submitted Approved Request & Response Details', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 11 } }],
-      [{ text: 'Query Date & Time', options: { fontFace, fontSize: 9, bold: true } }, { text: `${norm.dir.date} ${norm.dir.time}`, options: { fontFace, fontSize: 9 } }],
-      [{ text: 'Enquirer Name & Category', options: { fontFace, fontSize: 9, bold: true } }, { text: `${norm.dir.enquirerName} (${norm.dir.professionalStatus})`, options: { fontFace, fontSize: 9 } }],
-      [{ text: 'Category of Enquiry', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.dir.questionCategory, options: { fontFace, fontSize: 9, bold: true } }],
-      [{ text: 'Turnaround Time Needed', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.dir.timeframeNeeded, options: { fontFace, fontSize: 9 } }],
-      [{ text: 'Patient Background Details', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.dir.patientBackground, options: { fontFace, fontSize: 9 } }],
-      [{ text: 'Details of Enquiry (Question)', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.dir.detailsOfEnquiry, options: { fontFace, fontSize: 9 } }],
-      [{ text: 'Information Provided (Response)', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.dir.informationProvided, options: { fontFace, fontSize: 9, bold: true, color: primaryColor } }],
-      [{ text: 'References Consulted', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.dir.references.length > 0 ? norm.dir.references.join(', ') : 'Micromedex, AHFS Drug Information, Micromedex Solutions', options: { fontFace, fontSize: 9 } }]
+      [{ text: 'Enquiry Aspect', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } }, { text: 'Submitted Approved Request & Response Details', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } }],
+      [{ text: 'Query Date & Time', options: { fontFace, fontSize: 16, bold: true } }, { text: `${norm.dir.date} ${norm.dir.time}`, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Enquirer Name & Category', options: { fontFace, fontSize: 16, bold: true } }, { text: `${norm.dir.enquirerName} (${norm.dir.professionalStatus})`, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Category of Enquiry', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.dir.questionCategory, options: { fontFace, fontSize: 16, bold: true } }],
+      [{ text: 'Turnaround Time Needed', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.dir.timeframeNeeded, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Patient Background Details', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.dir.patientBackground, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Details of Enquiry (Question)', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.dir.detailsOfEnquiry, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Information Provided (Response)', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.dir.informationProvided, options: { fontFace, fontSize: 16, bold: true, color: primaryColor } }],
+      [{ text: 'References Consulted', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.dir.references.length > 0 ? norm.dir.references.join(', ') : 'Micromedex, AHFS Drug Information, Micromedex Solutions', options: { fontFace, fontSize: 16 } }]
     ];
 
     slideDir1.addTable(dirRows1, {
-      x: startX, y: 0.8, w: contentW, colW: [2.8, 6.2],
+      x: startX, y: 1.2, w: contentW, colW: [4.2, 7.53], rowH: 0.58,
       border: { pt: 1, color: 'CBD5E1' }
     });
-    slideDir1.addText(footerText, { x: startX, y: 4.8, w: contentW, h: 0.3, fontFace, fontSize: 9, color: '64748B', align: 'center' });
+    addFooter(slideDir1);
   }
 
   // ====================================================================
@@ -474,72 +497,74 @@ export const generateClinicalCasePPTX = async ({
   if (norm.isAdrCompleted) {
     // SLIDE ADR 1: Adverse Event & Record Overview
     const slideAdr1 = pptx.addSlide();
+    slideAdr1.background = { color: 'FFFFFF' };
     addWatermark(slideAdr1);
     slideAdr1.addText('5. ADR DOCUMENTATION LOG', {
-      x: startX, y: 0.3, w: contentW, h: 0.4,
+      x: startX, y: 0.5, w: contentW, h: 0.5,
       fontFace, fontSize: titleFontSize, bold: true, color: primaryColor
     });
 
     const adrRows1 = [
-      [{ text: 'ADR Record Field', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 11 } }, { text: 'Submitted Approved Details', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 11 } }],
-      [{ text: 'ADR Log No & Onset Date', options: { fontFace, fontSize: 9, bold: true } }, { text: `Log No: ${norm.adr.adrNumber} | Onset: ${norm.adr.onsetDate}`, options: { fontFace, fontSize: 9 } }],
-      [{ text: 'Reaction Title & Category', options: { fontFace, fontSize: 9, bold: true } }, { text: `${norm.adr.reactionCategory} — ${norm.adr.reactionTitle}`, options: { fontFace, fontSize: 9, bold: true, color: 'DC2626' } }],
-      [{ text: 'Detailed Reaction Description', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.adr.reactionDescription, options: { fontFace, fontSize: 9 } }],
-      [{ text: 'Reaction Duration & Management', options: { fontFace, fontSize: 9, bold: true } }, { text: `Duration: ${norm.adr.reactionDuration || '3 days'} | Management: ${norm.adr.clinicalManagement || 'Drug stopped & symptomatic care'}`, options: { fontFace, fontSize: 9 } }],
-      [{ text: 'Current Patient Condition', options: { fontFace, fontSize: 9, bold: true } }, { text: norm.adr.currentCondition, options: { fontFace, fontSize: 9 } }]
+      [{ text: 'ADR Record Field', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } }, { text: 'Submitted Approved Details', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } }],
+      [{ text: 'ADR Log No & Onset Date', options: { fontFace, fontSize: 16, bold: true } }, { text: `Log No: ${norm.adr.adrNumber} | Onset: ${norm.adr.onsetDate}`, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Reaction Title & Category', options: { fontFace, fontSize: 16, bold: true } }, { text: `${norm.adr.reactionCategory} — ${norm.adr.reactionTitle}`, options: { fontFace, fontSize: 16, bold: true, color: 'DC2626' } }],
+      [{ text: 'Detailed Reaction Description', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.adr.reactionDescription, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Reaction Duration & Management', options: { fontFace, fontSize: 16, bold: true } }, { text: `Duration: ${norm.adr.reactionDuration || '3 days'} | Management: ${norm.adr.clinicalManagement || 'Drug stopped & symptomatic care'}`, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Current Patient Condition', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.adr.currentCondition, options: { fontFace, fontSize: 16 } }]
     ];
 
     slideAdr1.addTable(adrRows1, {
-      x: startX, y: 0.8, w: contentW, colW: [2.8, 6.2],
+      x: startX, y: 1.4, w: contentW, colW: [4.2, 7.53], rowH: 0.8,
       border: { pt: 1, color: 'CBD5E1' }
     });
-    slideAdr1.addText(footerText, { x: startX, y: 4.8, w: contentW, h: 0.3, fontFace, fontSize: 9, color: '64748B', align: 'center' });
+    addFooter(slideAdr1);
 
     // SLIDE ADR 2: Suspected Medications Table
     if (norm.adr.suspectedMeds && norm.adr.suspectedMeds.length > 0) {
       const suspHeader = [
-        { text: 'Brand / Generic Name', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } },
-        { text: 'Dose & Route', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } },
-        { text: 'Start Date', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } },
-        { text: 'Stop Date', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } },
-        { text: 'Indication', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 10 } }
+        { text: 'Brand / Generic Name', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } },
+        { text: 'Dose & Route', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } },
+        { text: 'Start Date', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } },
+        { text: 'Stop Date', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } },
+        { text: 'Indication', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } }
       ];
 
       const suspRows = norm.adr.suspectedMeds.map(m => [
-        { text: m.brand_name || m.generic_name || m.drug_name || 'Suspected Drug', options: { fontFace, fontSize: 9, bold: true } },
-        { text: `${m.dose || '—'} (${m.route || 'Oral'})`, options: { fontFace, fontSize: 9 } },
-        { text: m.start_date || norm.dates.doa, options: { fontFace, fontSize: 9 } },
-        { text: m.stop_date || 'Withdrawn', options: { fontFace, fontSize: 9 } },
-        { text: m.indication || '—', options: { fontFace, fontSize: 9 } }
+        { text: m.brand_name || m.generic_name || m.drug_name || 'Suspected Drug', options: { fontFace, fontSize: 16, bold: true } },
+        { text: `${m.dose || '—'} (${m.route || 'Oral'})`, options: { fontFace, fontSize: 16 } },
+        { text: m.start_date || norm.dates.doa, options: { fontFace, fontSize: 16 } },
+        { text: m.stop_date || 'Withdrawn', options: { fontFace, fontSize: 16 } },
+        { text: m.indication || '—', options: { fontFace, fontSize: 16 } }
       ]);
 
-      addTableWithPagination('ADR Log: Suspected Medication(s)', suspHeader, suspRows, [2.8, 1.8, 1.4, 1.4, 1.6]);
+      addTableWithPagination('ADR Log: Suspected Medication(s)', suspHeader, suspRows, [3.5, 2.3, 1.8, 1.8, 2.33]);
     }
 
     // SLIDE ADR 3: Causality Assessment & Severity
     const slideAdrEnd = pptx.addSlide();
+    slideAdrEnd.background = { color: 'FFFFFF' };
     addWatermark(slideAdrEnd);
     slideAdrEnd.addText('ADR Log: Causality Assessment & Outcome', {
-      x: startX, y: 0.3, w: contentW, h: 0.4,
+      x: startX, y: 0.5, w: contentW, h: 0.5,
       fontFace, fontSize: titleFontSize, bold: true, color: primaryColor
     });
 
     const adrCausalityRows = [
-      [{ text: 'Assessment Metric', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 11 } }, { text: 'Approved Evaluated Output', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 11 } }],
-      [{ text: 'Naranjo Causality Assessment', options: { fontFace, fontSize: 10, bold: true } }, { text: norm.adr.naranjoCausality, options: { fontFace, fontSize: 10, bold: true, color: emeraldColor } }],
-      [{ text: 'Reaction Severity & Seriousness', options: { fontFace, fontSize: 10, bold: true } }, { text: `Severity: ${norm.adr.reactionSeverity} | Seriousness: ${norm.adr.reactionSeriousness}`, options: { fontFace, fontSize: 10 } }],
-      [{ text: 'Action Taken on Suspected Drug', options: { fontFace, fontSize: 10, bold: true } }, { text: norm.adr.actionTakenOnDrug, options: { fontFace, fontSize: 10 } }],
-      [{ text: 'Dechallenge & Rechallenge Info', options: { fontFace, fontSize: 10, bold: true } }, { text: `Dechallenge: ${norm.adr.dechallengeInfo} | Rechallenge: ${norm.adr.rechallengeInfo}`, options: { fontFace, fontSize: 10 } }],
-      [{ text: 'Patient Outcome', options: { fontFace, fontSize: 10, bold: true } }, { text: norm.adr.patientOutcome, options: { fontFace, fontSize: 10, bold: true } }],
-      [{ text: 'Renal / Hepatic Status & History', options: { fontFace, fontSize: 10, bold: true } }, { text: `Renal: ${norm.adr.renalStatus} | Hepatic: ${norm.adr.hepaticStatus} | Prev ADR: ${norm.adr.previousAdrHistory}`, options: { fontFace, fontSize: 10 } }],
-      [{ text: 'Clinical Review Remarks', options: { fontFace, fontSize: 10, bold: true } }, { text: norm.adr.clinicalRemarks || 'ADR monitored and documented in hospital pharmacovigilance registry.', options: { fontFace, fontSize: 10 } }]
+      [{ text: 'Assessment Metric', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } }, { text: 'Approved Evaluated Output', options: { bold: true, fill: { color: 'F1F5F9' }, fontFace, fontSize: 16 } }],
+      [{ text: 'Naranjo Causality Assessment', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.adr.naranjoCausality, options: { fontFace, fontSize: 16, bold: true, color: emeraldColor } }],
+      [{ text: 'Reaction Severity & Seriousness', options: { fontFace, fontSize: 16, bold: true } }, { text: `Severity: ${norm.adr.reactionSeverity} | Seriousness: ${norm.adr.reactionSeriousness}`, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Action Taken on Suspected Drug', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.adr.actionTakenOnDrug, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Dechallenge & Rechallenge Info', options: { fontFace, fontSize: 16, bold: true } }, { text: `Dechallenge: ${norm.adr.dechallengeInfo} | Rechallenge: ${norm.adr.rechallengeInfo}`, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Patient Outcome', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.adr.patientOutcome, options: { fontFace, fontSize: 16, bold: true } }],
+      [{ text: 'Renal / Hepatic Status & History', options: { fontFace, fontSize: 16, bold: true } }, { text: `Renal: ${norm.adr.renalStatus} | Hepatic: ${norm.adr.hepaticStatus} | Prev ADR: ${norm.adr.previousAdrHistory}`, options: { fontFace, fontSize: 16 } }],
+      [{ text: 'Clinical Review Remarks', options: { fontFace, fontSize: 16, bold: true } }, { text: norm.adr.clinicalRemarks || 'ADR monitored and documented in hospital pharmacovigilance registry.', options: { fontFace, fontSize: 16 } }]
     ];
 
     slideAdrEnd.addTable(adrCausalityRows, {
-      x: startX, y: 0.8, w: contentW, colW: [2.8, 6.2],
+      x: startX, y: 1.2, w: contentW, colW: [4.2, 7.53], rowH: 0.6,
       border: { pt: 1, color: 'CBD5E1' }
     });
-    slideAdrEnd.addText(footerText, { x: startX, y: 4.8, w: contentW, h: 0.3, fontFace, fontSize: 9, color: '64748B', align: 'center' });
+    addFooter(slideAdrEnd);
   }
 
   // Save presentation file directly
