@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Save, RefreshCw, Eye, CheckCircle2, AlertTriangle, Loader2, Sparkles, Sliders, Type, Layout, ShieldCheck, Printer, Building, MonitorPlay, Info, Presentation } from 'lucide-react';
+import { FileText, Save, RefreshCw, Eye, CheckCircle2, AlertTriangle, Loader2, Sparkles, Sliders, Layout, Building, Presentation, Info } from 'lucide-react';
 import { 
   fetchDocumentBrandingSettingsFromSupabase, 
   savePdfBrandingSettingsInSupabase, 
-  savePptBrandingSettingsInSupabase, 
   fetchCollegeByIdFromSupabase 
 } from '../../services/supabaseService';
 import { InlineActionNotification } from '../common/InlineActionNotification';
 import { useInlineNotification } from '../../hooks/useInlineNotification';
 import { ModalWrapper } from '../modals/ModalWrapper';
 import { PharmDVerseBrandedDocumentContainer } from '../branding/PharmDVerseBrandedDocumentContainer';
-import { ClinicalCaseDocumentRenderer } from '../branding/ClinicalCaseDocumentRenderer';
-import { SAMPLE_CLINICAL_CASE_DATA } from '../../utils/sampleClinicalCaseDATA';
 
-const DEFAULT_SETTINGS = {
+const DEFAULT_SHARED_SETTINGS = {
   show_college_logo: true,
   show_college_name: true,
   show_autonomous: true,
@@ -24,6 +21,7 @@ const DEFAULT_SETTINGS = {
   watermark_text_line2: 'Clinical Documentation System',
   watermark_opacity: 10,
   watermark_position: 'Center',
+  footer_enabled: true,
   footer_left_text: 'PharmDVerse',
   footer_center_text: 'Confidential Clinical Documentation',
   show_page_number: true,
@@ -56,8 +54,8 @@ const AdminFormatPDFPreview = ({ college, settings }) => {
     <PharmDVerseBrandedDocumentContainer
       college={college}
       branding={settings}
-      documentTitle="DOCUMENT BRANDING & FORMAT PREVIEW"
-      caseId="COLLEGE-PDF-FORMAT-PREVIEW"
+      documentTitle="DOCUMENT FORMAT & BRANDING PREVIEW"
+      caseId="COLLEGE-SHARED-FORMAT-PREVIEW"
       student={{ full_name: '[ Student Name ]', roll_number: '[ Roll Number ]' }}
       preceptor={{ full_name: '[ Faculty Preceptor Name ]', designation: '[ Faculty Designation ]' }}
       preceptorName="[ Faculty Preceptor Name ]"
@@ -66,7 +64,6 @@ const AdminFormatPDFPreview = ({ college, settings }) => {
       isLastPage={true}
     >
       <div className="space-y-6 text-xs">
-        {/* FORMAT PREVIEW PLACEHOLDER FRAME */}
         <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-8 text-center space-y-4 bg-slate-50/50">
           <div className="inline-block px-3 py-1 rounded-full bg-slate-900 text-white font-mono text-[10px] uppercase font-bold tracking-widest">
             College PDF Document Format Preview
@@ -99,7 +96,6 @@ const AdminFormatPDFPreview = ({ college, settings }) => {
           </div>
         </div>
 
-        {/* VERIFICATION & APPROVAL BADGE PLACEHOLDER */}
         <div className="border border-slate-300 p-3 rounded-xl bg-slate-900 text-white flex items-center justify-between text-xs">
           <div>
             <div className="text-[10px] font-mono uppercase text-emerald-400 font-bold">PharmDVerse Verification Registry</div>
@@ -115,29 +111,30 @@ const AdminFormatPDFPreview = ({ college, settings }) => {
   );
 };
 
-const SamplePptSlidePreview = ({ college, pptSettings }) => {
+const SamplePptSlidePreview = ({ college, settings }) => {
   const [slideNum, setSlideNum] = useState(1);
-  const showCollegeName = pptSettings?.show_college_name !== false;
-  const showAutonomous = pptSettings?.show_autonomous !== false;
-  const showHospitalName = pptSettings?.show_hospital_name !== false;
-  const showCollegeLogo = (pptSettings?.show_logo !== false && pptSettings?.show_college_logo !== false);
-  const showHospitalLogo = pptSettings?.show_hospital_logo !== false;
+  const showCollegeName = settings?.show_college_name !== false;
+  const showAutonomous = settings?.show_autonomous !== false;
+  const showHospitalName = settings?.show_hospital_name !== false;
+  const showCollegeLogo = settings?.show_college_logo !== false;
+  const showHospitalLogo = settings?.show_hospital_logo !== false;
 
-  const collegeName = pptSettings?.header_title || college?.college_name || college?.name || 'College Name';
+  const collegeName = college?.college_name || college?.name || 'College Name';
   const hospitalName = college?.hospital_name || college?.hospitalName || college?.primary_hospital_name || 'Primary Hospital Name';
-  const fontFamily = pptSettings?.font_family || 'Times New Roman';
-  const titleSize = pptSettings?.ppt_title_font_size || '22px';
-  const subHeadingSize = pptSettings?.ppt_subheading_font_size || '20px';
-  const bodySize = pptSettings?.ppt_body_font_size || '18px';
-  const footerText = pptSettings?.footer_text || 'Pharm.D Clinical Case Presentation • Confidential';
+  const watermarkText1 = (settings?.watermark_text_line1 || college?.college_code || 'PHARMDVERSE').toUpperCase();
+  const watermarkText2 = (settings?.watermark_text_line2 || collegeName).toUpperCase();
+  const watermarkEnabled = settings?.watermark_enabled !== false;
+  const footerLeft = settings?.footer_left_text || collegeName;
+  const footerCenter = settings?.footer_center_text || 'Confidential Clinical Case Presentation';
+  const showPageNum = settings?.show_page_number !== false;
+  const showDateTime = settings?.show_generated_datetime !== false;
 
   return (
-    <div className="space-y-4">
-      {/* Slide Navigation Bar */}
-      <div className="flex items-center justify-between p-3 bg-slate-900 text-white rounded-2xl text-xs font-bold shadow-md">
+    <div className="space-y-4 font-serif">
+      <div className="flex items-center justify-between p-3 bg-slate-900 text-white rounded-2xl text-xs font-bold shadow-md font-sans">
         <div className="flex items-center gap-2">
           <Presentation className="w-4 h-4 text-amber-400" />
-          <span>PPT Slide Format Preview ({pptSettings?.aspect_ratio || '16:9'}) • Theme: {pptSettings?.theme || 'Clinical Emerald'}</span>
+          <span>PPT Slide Shared Format Preview (16:9 Widescreen)</span>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -160,77 +157,68 @@ const SamplePptSlidePreview = ({ college, pptSettings }) => {
         </div>
       </div>
 
-      {/* Slide Screen Frame */}
-      <div className="border-4 border-slate-900 rounded-3xl p-6 bg-white shadow-2xl space-y-6 text-slate-900 min-h-[420px] flex flex-col justify-between" style={{ fontFamily }}>
+      <div className="border-4 border-slate-900 rounded-3xl p-6 bg-white shadow-2xl space-y-6 text-slate-900 min-h-[420px] flex flex-col justify-between relative overflow-hidden">
+        {watermarkEnabled && (
+          <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center opacity-10 select-none z-0">
+            <span className="text-4xl font-extrabold text-slate-800 uppercase tracking-widest -rotate-12">{watermarkText1}</span>
+            {watermarkText2 && <span className="text-xl font-bold text-slate-600 uppercase tracking-wider -rotate-12 mt-1">{watermarkText2}</span>}
+          </div>
+        )}
+
         {slideNum === 1 && (
-          <div className="space-y-5">
-            {/* Header Box with Dual Logos (College Left, Hospital Right) */}
+          <div className="space-y-5 relative z-10">
             <div className="p-4 bg-slate-100 rounded-2xl border-2 border-slate-900 flex items-center justify-between gap-4">
-              {showCollegeLogo && (college?.college_logo_url || college?.logo_url) ? (
-                <img src={college.college_logo_url || college.logo_url} alt="College Logo" className="w-14 h-14 object-contain rounded" />
-              ) : <div className="w-14 h-14" />}
+              <div className="w-14 h-14 flex items-center justify-center shrink-0">
+                {showCollegeLogo && (college?.college_logo_url || college?.logo_url) ? (
+                  <img src={college.college_logo_url || college.logo_url} alt="College Logo" className="max-w-14 max-h-14 object-contain rounded" />
+                ) : null}
+              </div>
 
               <div className="flex-1 text-center space-y-0.5">
                 {showCollegeName && (
-                  <h2 className="font-extrabold uppercase text-slate-900" style={{ fontSize: titleSize }}>
+                  <h2 className="font-black uppercase text-slate-900 text-lg sm:text-xl tracking-tight">
                     {collegeName}
                   </h2>
                 )}
-                {(showAutonomous || showHospitalName) && (
-                  <p className="text-slate-600 italic font-semibold" style={{ fontSize: subHeadingSize }}>
-                    {showAutonomous ? '(Autonomous)' : ''}
-                    {showAutonomous && showHospitalName ? ' • ' : ''}
-                    {showHospitalName ? hospitalName : ''}
+                {showAutonomous && Boolean(college?.is_autonomous ?? college?.isAutonomous) && (
+                  <p className="text-indigo-900 italic font-bold text-xs">
+                    (Autonomous)
                   </p>
+                )}
+                {showHospitalName && (
+                  <h3 className="text-slate-800 uppercase font-extrabold text-xs sm:text-sm">
+                    {hospitalName}
+                  </h3>
                 )}
               </div>
 
-              {showHospitalLogo && (college?.hospital_logo_url || college?.hospitalLogoUrl) ? (
-                <img src={college.hospital_logo_url || college.hospitalLogoUrl} alt="Hospital Logo" className="w-14 h-14 object-contain rounded" />
-              ) : <div className="w-14 h-14" />}
+              <div className="w-14 h-14 flex items-center justify-center shrink-0">
+                {showHospitalLogo && (college?.hospital_logo_url || college?.hospitalLogoUrl) ? (
+                  <img src={college.hospital_logo_url || college.hospitalLogoUrl} alt="Hospital Logo" className="max-w-14 max-h-14 object-contain rounded" />
+                ) : null}
+              </div>
             </div>
 
-            {/* Case ID Banner */}
-            <div className="p-2.5 bg-slate-900 text-white rounded-xl text-center font-mono font-bold" style={{ fontSize: bodySize }}>
+            <div className="p-2.5 bg-slate-900 text-white rounded-xl text-center font-mono font-bold text-sm">
               CASE ID : [ CASE ID PLACEHOLDER ]
             </div>
 
-            {/* Main Presentation Title */}
             <div className="text-center space-y-2 py-2">
-              <h1 className="font-black text-emerald-700 uppercase tracking-tight" style={{ fontSize: `calc(${titleSize} + 4px)` }}>
-                CLINICAL CASE PRESENTATION TITLE [PLACEHOLDER]
+              <h1 className="font-black text-emerald-700 uppercase tracking-tight text-xl">
+                CLINICAL CASE PRESENTATION TITLE
               </h1>
-              <p className="font-bold text-slate-800" style={{ fontSize: subHeadingSize }}>
+              <p className="font-bold text-slate-800 text-sm">
                 Final Diagnosis: [ Final Diagnosis Placeholder ]
               </p>
             </div>
-
-            {/* Student Details (LEFT) & Faculty Preceptor Details (RIGHT SIDE) */}
-            {pptSettings?.show_student_preceptor !== false && (
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-300 grid grid-cols-2 gap-4 text-xs" style={{ fontSize: bodySize }}>
-                {/* LEFT SIDE: STUDENT DETAILS */}
-                <div className="text-left space-y-1 border-r border-slate-200 pr-3">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Submitted / Presented By:</span>
-                  <strong className="text-slate-900 font-extrabold text-sm block">Student Name: [Student Name]</strong>
-                  <span className="text-[11px] text-slate-600 block font-mono">Roll Number: [Roll Number]</span>
-                </div>
-
-                {/* RIGHT SIDE: FACULTY PRECEPTOR DETAILS */}
-                <div className="text-right space-y-1 pl-3">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Evaluated & Approved By:</span>
-                  <strong className="text-emerald-700 font-extrabold text-sm block">Faculty Preceptor: [Faculty Preceptor Name]</strong>
-                  <span className="text-[11px] text-slate-600 block font-mono">Designation: [Faculty Designation]</span>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
         {slideNum > 1 && (
-          <div className="space-y-4">
-            <h2 className="font-extrabold text-slate-900 border-b pb-2 border-slate-300 flex items-center justify-between" style={{ fontSize: titleSize }}>
+          <div className="space-y-4 relative z-10">
+            <h2 className="font-extrabold text-slate-900 border-b pb-2 border-slate-300 flex items-center justify-between text-base">
               <span>Module Slide Format Preview {slideNum}</span>
-              <span className="text-xs text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-300 font-bold">🟢 Template Format</span>
+              <span className="text-xs text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-300 font-bold">🟢 Shared Template</span>
             </h2>
 
             <div className="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center space-y-3 bg-slate-50">
@@ -244,9 +232,10 @@ const SamplePptSlidePreview = ({ college, pptSettings }) => {
           </div>
         )}
 
-        {/* Footer */}
-        <div className="pt-3 border-t border-slate-300 text-center text-xs text-slate-500 font-medium">
-          {footerText}
+        <div className="pt-3 border-t border-slate-300 text-xs text-slate-700 font-medium flex items-center justify-between relative z-10 font-sans">
+          <span>{footerLeft} {showDateTime ? `• ${new Date().toLocaleDateString('en-GB')}` : ''}</span>
+          <span className="font-bold text-center text-slate-800">{footerCenter}</span>
+          <span>{showPageNum ? `Slide ${slideNum} of 2` : ''}</span>
         </div>
       </div>
     </div>
@@ -261,32 +250,12 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
   const [successMsg, setSuccessMsg] = useState('');
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isPptPreviewModalOpen, setIsPptPreviewModalOpen] = useState(false);
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState(DEFAULT_SHARED_SETTINGS);
 
-  // PPT Format Settings State
-  const [pptSettings, setPptSettings] = useState({
-    theme: 'Clinical Emerald',
-    aspect_ratio: '16:9 (Widescreen)',
-    header_title: initialCollege?.college_name || initialCollege?.name || '',
-    footer_text: 'Pharm.D Clinical Case Presentation • Confidential',
-    show_logo: true,
-    show_hospital_logo: true,
-    show_watermark: true,
-    show_autonomous: true,
-    show_student_preceptor: true
-  });
-  const [pptSaving, setPptSaving] = useState(false);
-  const { notification: pptNotify, showNotification: showPptNotify, clearNotification: clearPptNotify } = useInlineNotification();
   const { notification: brandNotify, showNotification: showBrandNotify, clearNotification: clearBrandNotify } = useInlineNotification();
 
   useEffect(() => {
     setCollege(initialCollege);
-    if (initialCollege?.college_name || initialCollege?.name) {
-      setPptSettings(prev => ({
-        ...prev,
-        header_title: prev.header_title || initialCollege.college_name || initialCollege.name
-      }));
-    }
   }, [initialCollege]);
 
   // LIVE SYNCHRONIZATION FOR COLLEGE IDENTITY
@@ -304,14 +273,6 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
     if (!college?.id) return;
     setLoading(true);
 
-    // Load PPT settings from localStorage if available
-    try {
-      const savedPpt = localStorage.getItem(`pharmdverse_ppt_settings_${college.id}`);
-      if (savedPpt) {
-        setPptSettings(JSON.parse(savedPpt));
-      }
-    } catch (e) {}
-
     const [res, colRes] = await Promise.all([
       fetchDocumentBrandingSettingsFromSupabase(college.id),
       fetchCollegeByIdFromSupabase(college.id)
@@ -322,20 +283,15 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
     }
 
     if (res.success) {
-      const pdf = res.pdfSettings || res.settings || {};
-      const ppt = res.pptSettings || {};
-
+      const saved = res.pdfSettings || res.settings || {};
       setSettings({
-        ...DEFAULT_SETTINGS,
-        ...pdf
+        ...DEFAULT_SHARED_SETTINGS,
+        ...saved,
+        footer_enabled: saved.footer_enabled ?? saved.repeat_footer ?? true,
+        watermark_enabled: saved.watermark_enabled ?? saved.show_watermark ?? true
       });
-
-      setPptSettings(prev => ({
-        ...prev,
-        ...ppt
-      }));
     } else {
-      setSettings(DEFAULT_SETTINGS);
+      setSettings(DEFAULT_SHARED_SETTINGS);
     }
     setLoading(false);
   };
@@ -361,8 +317,12 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
   };
 
   const handleRestoreDefault = () => {
-    setSettings(DEFAULT_SETTINGS);
-    window.dispatchEvent(new CustomEvent('pharmdverse_branding_updated', { detail: DEFAULT_SETTINGS }));
+    setSettings(DEFAULT_SHARED_SETTINGS);
+    window.dispatchEvent(new CustomEvent('pharmdverse_branding_updated', { detail: DEFAULT_SHARED_SETTINGS }));
+    showBrandNotify({
+      type: 'success',
+      message: '✓ Restored shared PDF & PPT format settings to default.'
+    });
   };
 
   const handleSave = async () => {
@@ -376,63 +336,14 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
       window.dispatchEvent(new CustomEvent('pharmdverse_branding_updated', { detail: settings }));
       showBrandNotify({
         type: 'success',
-        message: '✓ PDF Format Settings saved successfully!'
+        message: '✓ Saved shared PDF & PPT format settings successfully!'
       });
     } else {
       showBrandNotify({
         type: 'error',
-        message: res.error || '✖ Failed to save PDF Format Settings.'
+        message: res.error || '✖ Failed to save shared PDF & PPT format settings.'
       });
     }
-  };
-
-  const handleSavePptFormat = async () => {
-    if (!college?.id) return;
-    setPptSaving(true);
-    
-    const res = await savePptBrandingSettingsInSupabase(college.id, pptSettings);
-    try {
-      localStorage.setItem(`pharmdverse_ppt_settings_${college.id}`, JSON.stringify(pptSettings));
-    } catch (e) {}
-
-    setPptSaving(false);
-    if (res.success) {
-      showPptNotify({
-        type: 'success',
-        message: '✓ PPT Format Settings saved successfully!'
-      });
-    } else {
-      showPptNotify({
-        type: 'error',
-        message: res.error || '✖ Failed to save PPT Format Settings.'
-      });
-    }
-  };
-
-  const handleRestorePptDefault = () => {
-    const def = {
-      theme: 'Clinical Emerald',
-      aspect_ratio: '16:9 (Widescreen)',
-      header_title: college?.college_name || college?.name || 'Pharmacy College',
-      footer_text: 'Pharm.D Clinical Case Presentation • Confidential',
-      font_family: 'Times New Roman',
-      ppt_title_font_size: '22px',
-      ppt_subheading_font_size: '20px',
-      ppt_body_font_size: '18px',
-      show_logo: true,
-      show_autonomous: true,
-      show_student_preceptor: true
-    };
-    setPptSettings(def);
-    try {
-      if (college?.id) {
-        localStorage.setItem(`pharmdverse_ppt_settings_${college.id}`, JSON.stringify(def));
-      }
-    } catch (e) {}
-    showPptNotify({
-      type: 'success',
-      message: '✓ PPT Format Settings restored to default.'
-    });
   };
 
   if (loading) {
@@ -452,10 +363,10 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
         <div>
           <h2 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-            <span>PDF Format Configuration</span>
+            <span>PDF & PPT Format Configuration</span>
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Centralized PDF & Print Format Settings for all clinical documentation modules in <strong className="text-slate-800 dark:text-slate-200">{college?.college_name || college?.name}</strong>.
+            Centralized Header, Watermark & Footer settings configured once and shared across BOTH PDF documents and PPT slides for <strong className="text-slate-800 dark:text-slate-200">{college?.college_name || college?.name}</strong>.
           </p>
         </div>
 
@@ -463,10 +374,19 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
           <button
             type="button"
             onClick={() => setIsPreviewModalOpen(true)}
-            className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold flex items-center gap-1.5 transition-colors"
+            className="px-3.5 py-2 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-xs font-extrabold flex items-center gap-1.5 transition-colors shadow-xs"
           >
-            <Eye className="w-4 h-4 text-indigo-500" />
-            <span>Preview Full A4</span>
+            <Eye className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <span>Preview PDF A4</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsPptPreviewModalOpen(true)}
+            className="px-3.5 py-2 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-xs font-extrabold flex items-center gap-1.5 transition-colors shadow-xs"
+          >
+            <Presentation className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            <span>Preview PPT Slides</span>
           </button>
 
           <button
@@ -486,8 +406,8 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
               disabled={saving}
               className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-md shadow-indigo-600/20 disabled:opacity-50"
             >
-              <Save className="w-4 h-4" />
-              <span>{saving ? 'Saving...' : 'Save PDF Format'}</span>
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              <span>{saving ? 'Saving...' : 'Save Format Settings'}</span>
             </button>
           </div>
         </div>
@@ -507,304 +427,14 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
         </div>
       )}
 
-      {/* FULL-WIDTH CONFIGURATION PANELS */}
+      {/* FOUR CONSOLIDATED SHARED SECTIONS */}
       <div className="space-y-6 max-w-5xl mx-auto">
-        <div className="space-y-6">
-          
-          {/* SECTION 1: COLLEGE & HOSPITAL IDENTITY (READ ONLY WITH MANDATORY MESSAGE) */}
-          <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                <Building className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                Section 1: College & Hospital Identity
-              </h3>
-              <span className="text-[10px] font-mono text-amber-700 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-md border border-amber-300 dark:border-amber-800">
-                Read Only
-              </span>
-            </div>
-
-            {/* MANDATORY PROMINENT MESSAGE */}
-            <div className="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold text-indigo-900 dark:text-indigo-200 flex items-center gap-2.5 shadow-xs">
-              <Info className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-              <span>These details are managed from My College Profile.</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs opacity-90">
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center gap-3">
-                {college?.college_logo_url || college?.logoUrl ? (
-                  <img src={college?.college_logo_url || college?.logoUrl} alt="College Logo" className="w-10 h-10 object-contain rounded-lg border border-slate-200 dark:border-slate-700 bg-white" />
-                ) : (
-                  <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-700 font-bold flex items-center justify-center">CL</div>
-                )}
-                <div>
-                  <span className="text-[10px] text-slate-400 block">College Name:</span>
-                  <strong className="text-slate-900 dark:text-white font-bold">{college?.college_name || college?.name}</strong>
-                  {Boolean(college?.is_autonomous ?? college?.isAutonomous) && (
-                    <span className="block text-[10px] text-indigo-600 dark:text-indigo-400 font-bold italic">(Autonomous)</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center gap-3">
-                {college?.hospital_logo_url || college?.hospitalLogoUrl ? (
-                  <img src={college?.hospital_logo_url || college?.hospitalLogoUrl} alt="Hospital Logo" className="w-10 h-10 object-contain rounded-lg border border-slate-200 dark:border-slate-700 bg-white" />
-                ) : (
-                  <div className="w-10 h-10 rounded-lg bg-teal-100 dark:bg-teal-950 text-teal-700 font-bold flex items-center justify-center">HL</div>
-                )}
-                <div>
-                  <span className="text-[10px] text-slate-400 block">Hospital Name:</span>
-                  <strong className="text-slate-900 dark:text-white font-bold">{college?.hospital_name || college?.hospitalName || college?.primary_hospital_name || 'Primary Hospital Name'}</strong>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* SECTION 2: HEADER SETTINGS */}
-          <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
-              <Sliders className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              Section 2: Header Display Switches
-            </h3>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-              {[
-                { key: 'show_college_logo', label: 'Show College Logo' },
-                { key: 'show_college_name', label: 'Show College Name' },
-                { key: 'show_autonomous', label: 'Show Autonomous' },
-                { key: 'show_hospital_logo', label: 'Show Hospital Logo' },
-                { key: 'show_hospital_name', label: 'Show Hospital Name' }
-              ].map((item) => (
-                <div
-                  key={item.key}
-                  onClick={() => handleToggle(item.key)}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
-                    settings[item.key]
-                      ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-400 dark:border-indigo-800 font-bold text-slate-900 dark:text-white'
-                      : 'bg-slate-50/50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-500'
-                  }`}
-                >
-                  <span>{item.label}</span>
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
-                    settings[item.key] ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600'
-                  }`}>
-                    {settings[item.key] ? 'ON' : 'OFF'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* SECTION 3: WATERMARK */}
-          <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-500" />
-                Section 3: PDF Watermark
-              </h3>
-              <button
-                type="button"
-                onClick={() => handleToggle('watermark_enabled')}
-                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
-                  settings.watermark_enabled ? 'bg-amber-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600'
-                }`}
-              >
-                {settings.watermark_enabled ? 'Watermark Enabled' : 'Disabled'}
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Watermark Line 1</label>
-                  <input type="text" value={settings.watermark_text_line1} onChange={(e) => handleChange('watermark_text_line1', e.target.value)} className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold" />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Watermark Line 2</label>
-                  <input type="text" value={settings.watermark_text_line2} onChange={(e) => handleChange('watermark_text_line2', e.target.value)} className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white font-medium" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Opacity ({settings.watermark_opacity}%)</label>
-                  <input type="range" min={5} max={30} value={settings.watermark_opacity} onChange={(e) => handleChange('watermark_opacity', e.target.value)} className="w-full" />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Position</label>
-                  <select value={settings.watermark_position} onChange={(e) => handleChange('watermark_position', e.target.value)} className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold">
-                    <option value="Center">Center</option>
-                    <option value="Diagonal">Diagonal</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* SECTION 4: FOOTER */}
-          <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
-              <Layout className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              Section 4: Document Footer
-            </h3>
-
-            <div className="space-y-3 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Left Footer Text</label>
-                  <input type="text" value={settings.footer_left_text} onChange={(e) => handleChange('footer_left_text', e.target.value)} className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold" />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Center Footer Text</label>
-                  <input type="text" value={settings.footer_center_text} onChange={(e) => handleChange('footer_center_text', e.target.value)} className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white font-medium" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <div onClick={() => handleToggle('show_page_number')} className={`p-2.5 rounded-xl border cursor-pointer flex justify-between items-center ${settings.show_page_number ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 font-bold' : 'bg-slate-50 dark:bg-slate-800 border-slate-200'}`}>
-                  <span>Show Page Number</span>
-                  <span className="text-[10px]">{settings.show_page_number ? 'YES' : 'NO'}</span>
-                </div>
-
-                <div onClick={() => handleToggle('show_generated_datetime')} className={`p-2.5 rounded-xl border cursor-pointer flex justify-between items-center ${settings.show_generated_datetime ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 font-bold' : 'bg-slate-50 dark:bg-slate-800 border-slate-200'}`}>
-                  <span>Show Date & Time</span>
-                  <span className="text-[10px]">{settings.show_generated_datetime ? 'YES' : 'NO'}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* SECTION 5: PDF MULTI-PAGE CONTROLS & SIGNATURES */}
-          <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
-              <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              Section 5: PDF Multi-page Controls & Signatures
-            </h3>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-              <div onClick={() => handleToggle('repeat_header')} className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${settings.repeat_header ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-400 font-bold text-slate-900 dark:text-white' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 text-slate-500'}`}>
-                <div>
-                  <span className="block font-bold">Repeat Header</span>
-                  <span className="text-[10px] text-slate-400 font-normal">Header on every page</span>
-                </div>
-                <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${settings.repeat_header ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600'}`}>
-                  {settings.repeat_header ? 'ON' : 'OFF'}
-                </span>
-              </div>
-
-              <div onClick={() => handleToggle('repeat_footer')} className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${settings.repeat_footer ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-400 font-bold text-slate-900 dark:text-white' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 text-slate-500'}`}>
-                <div>
-                  <span className="block font-bold">Repeat Footer</span>
-                  <span className="text-[10px] text-slate-400 font-normal">Footer on every page</span>
-                </div>
-                <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${settings.repeat_footer ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600'}`}>
-                  {settings.repeat_footer ? 'ON' : 'OFF'}
-                </span>
-              </div>
-
-              <div onClick={() => handleToggle('show_student_signature')} className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${settings.show_student_signature ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-400 font-bold text-slate-900 dark:text-white' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 text-slate-500'}`}>
-                <div>
-                  <span className="block font-bold">Student Sig</span>
-                  <span className="text-[10px] text-slate-400 font-normal">Display signature line</span>
-                </div>
-                <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${settings.show_student_signature ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600'}`}>
-                  {settings.show_student_signature ? 'SHOW' : 'HIDE'}
-                </span>
-              </div>
-
-              <div onClick={() => handleToggle('show_preceptor_signature')} className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${settings.show_preceptor_signature ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-400 font-bold text-slate-900 dark:text-white' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 text-slate-500'}`}>
-                <div>
-                  <span className="block font-bold">Preceptor Sig</span>
-                  <span className="text-[10px] text-slate-400 font-normal">Display signature line</span>
-                </div>
-                <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${settings.show_preceptor_signature ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600'}`}>
-                  {settings.show_preceptor_signature ? 'SHOW' : 'HIDE'}
-                </span>
-              </div>
-
-              <div onClick={() => handleToggle('zebra_striping')} className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${settings.zebra_striping ? 'bg-teal-50/70 dark:bg-teal-950/40 border-teal-400 font-bold text-slate-900 dark:text-white' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 text-slate-500'}`}>
-                <div>
-                  <span className="block font-bold">Zebra Striping</span>
-                  <span className="text-[10px] text-slate-400 font-normal">Alternating table rows</span>
-                </div>
-                <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${settings.zebra_striping ? 'bg-teal-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600'}`}>
-                  {settings.zebra_striping ? 'ON' : 'OFF'}
-                </span>
-              </div>
-
-              <div onClick={() => handleToggle('repeat_table_header')} className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${settings.repeat_table_header ? 'bg-teal-50/70 dark:bg-teal-950/40 border-teal-400 font-bold text-slate-900 dark:text-white' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 text-slate-500'}`}>
-                <div>
-                  <span className="block font-bold">Repeat Table Th</span>
-                  <span className="text-[10px] text-slate-400 font-normal">Table header on split</span>
-                </div>
-                <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${settings.repeat_table_header ? 'bg-teal-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600'}`}>
-                  {settings.repeat_table_header ? 'ON' : 'OFF'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-
-
-        </div>
-
-      </div>
-
-      {/* PPT FORMAT CONFIGURATION SECTION */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
-          <div>
-            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-              <Presentation className="w-5 h-5 text-amber-500" />
-              <span>PPT Format Configuration</span>
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Customize presentation slides layout, header, themes, and presentation export formats for student case presentations.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => setIsPptPreviewModalOpen(true)}
-              className="px-3.5 py-2.5 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-xs font-extrabold flex items-center gap-1.5 transition-all shadow-xs"
-            >
-              <Eye className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              <span>Preview PPT Slides</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleRestorePptDefault}
-              className="px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold flex items-center gap-1.5 transition-colors"
-            >
-              <RefreshCw className="w-4 h-4 text-slate-400" />
-              <span>Restore PPT Default</span>
-            </button>
-
-            <InlineActionNotification notification={pptNotify} onClose={clearPptNotify} position="inline" />
-            <button
-              type="button"
-              onClick={handleSavePptFormat}
-              disabled={pptSaving}
-              className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-md shadow-amber-600/20 transition-all disabled:opacity-50"
-            >
-              {pptSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              <span>{pptSaving ? 'Saving...' : 'Save PPT Format'}</span>
-            </button>
-          </div>
-        </div>
-
-      {/* PPT FORMAT CONFIGURATION PANELS */}
-      <div className="space-y-6 max-w-5xl mx-auto pt-6 border-t border-slate-200 dark:border-slate-800">
         
-        {/* SECTION 1: COLLEGE & HOSPITAL IDENTITY (READ ONLY) */}
+        {/* SECTION 1: COLLEGE & HOSPITAL IDENTITY (READ ONLY WITH MANDATORY MESSAGE) */}
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-              <Building className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <Building className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
               Section 1: College & Hospital Identity
             </h3>
             <span className="text-[10px] font-mono text-amber-700 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-md border border-amber-300 dark:border-amber-800">
@@ -812,8 +442,9 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
             </span>
           </div>
 
-          <div className="p-3.5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-2.5 shadow-xs">
-            <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+          {/* MANDATORY PROMINENT MESSAGE */}
+          <div className="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold text-indigo-900 dark:text-indigo-200 flex items-center gap-2.5 shadow-xs">
+            <Info className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
             <span>These details are managed from My College Profile.</span>
           </div>
 
@@ -822,13 +453,13 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
               {college?.college_logo_url || college?.logoUrl ? (
                 <img src={college?.college_logo_url || college?.logoUrl} alt="College Logo" className="w-10 h-10 object-contain rounded-lg border border-slate-200 dark:border-slate-700 bg-white" />
               ) : (
-                <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-700 font-bold flex items-center justify-center">CL</div>
+                <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-700 font-bold flex items-center justify-center">CL</div>
               )}
               <div>
                 <span className="text-[10px] text-slate-400 block">College Name:</span>
                 <strong className="text-slate-900 dark:text-white font-bold">{college?.college_name || college?.name}</strong>
                 {Boolean(college?.is_autonomous ?? college?.isAutonomous) && (
-                  <span className="block text-[10px] text-amber-600 dark:text-amber-400 font-bold italic">(Autonomous)</span>
+                  <span className="block text-[10px] text-indigo-600 dark:text-indigo-400 font-bold italic">(Autonomous)</span>
                 )}
               </div>
             </div>
@@ -849,58 +480,57 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
 
         {/* SECTION 2: HEADER DISPLAY SWITCHES */}
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
-            <Sliders className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-            Section 2: Header Display Switches
-          </h3>
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <Sliders className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              Section 2: Header Display Switches
+            </h3>
+            <span className="text-[10px] font-mono text-slate-400 font-medium">Shared by PDF & PPT</span>
+          </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
             {[
-              { key: 'show_logo', label: 'Show College Logo' },
+              { key: 'show_college_logo', label: 'Show College Logo' },
               { key: 'show_college_name', label: 'Show College Name' },
               { key: 'show_autonomous', label: 'Show Autonomous' },
               { key: 'show_hospital_logo', label: 'Show Hospital Logo' },
-              { key: 'show_hospital_name', label: 'Show Hospital Name' },
-              { key: 'show_student_preceptor', label: 'Show Student & Preceptor Details' }
-            ].map((item) => {
-              const isEnabled = pptSettings[item.key] !== false;
-              return (
-                <div
-                  key={item.key}
-                  onClick={() => setPptSettings(prev => ({ ...prev, [item.key]: !isEnabled }))}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
-                    isEnabled
-                      ? 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-400 dark:border-amber-800 font-bold text-slate-900 dark:text-white'
-                      : 'bg-slate-50/50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-500'
-                  }`}
-                >
-                  <span>{item.label}</span>
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
-                    isEnabled ? 'bg-amber-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600'
-                  }`}>
-                    {isEnabled ? 'ON' : 'OFF'}
-                  </span>
-                </div>
-              );
-            })}
+              { key: 'show_hospital_name', label: 'Show Hospital Name' }
+            ].map((item) => (
+              <div
+                key={item.key}
+                onClick={() => handleToggle(item.key)}
+                className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                  settings[item.key]
+                    ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-400 dark:border-indigo-800 font-bold text-slate-900 dark:text-white'
+                    : 'bg-slate-50/50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-500'
+                }`}
+              >
+                <span>{item.label}</span>
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
+                  settings[item.key] ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600'
+                }`}>
+                  {settings[item.key] ? 'ON' : 'OFF'}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* SECTION 3: PPT WATERMARK */}
+        {/* SECTION 3: WATERMARK */}
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
           <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-500" />
-              Section 3: PPT Watermark
+              Section 3: Watermark
             </h3>
             <button
               type="button"
-              onClick={() => setPptSettings(prev => ({ ...prev, show_watermark: !prev.show_watermark }))}
+              onClick={() => handleToggle('watermark_enabled')}
               className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
-                pptSettings.show_watermark !== false ? 'bg-amber-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600'
+                settings.watermark_enabled ? 'bg-amber-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600'
               }`}
             >
-              {pptSettings.show_watermark !== false ? 'Watermark Enabled' : 'Disabled'}
+              {settings.watermark_enabled ? 'Watermark Enabled' : 'Disabled'}
             </button>
           </div>
 
@@ -908,181 +538,92 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Watermark Line 1</label>
-                <input
-                  type="text"
-                  value={pptSettings.watermark_text_line1 || college?.college_code || 'PHARMDVERSE'}
-                  onChange={(e) => setPptSettings(prev => ({ ...prev, watermark_text_line1: e.target.value }))}
-                  className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold"
-                />
+                <input type="text" value={settings.watermark_text_line1} onChange={(e) => handleChange('watermark_text_line1', e.target.value)} className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold" />
               </div>
 
               <div>
                 <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Watermark Line 2</label>
-                <input
-                  type="text"
-                  value={pptSettings.watermark_text_line2 || 'Clinical Case Presentation'}
-                  onChange={(e) => setPptSettings(prev => ({ ...prev, watermark_text_line2: e.target.value }))}
-                  className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white font-medium"
-                />
+                <input type="text" value={settings.watermark_text_line2} onChange={(e) => handleChange('watermark_text_line2', e.target.value)} className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white font-medium" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Opacity ({settings.watermark_opacity}%)</label>
+                <input type="range" min={5} max={30} value={settings.watermark_opacity} onChange={(e) => handleChange('watermark_opacity', e.target.value)} className="w-full" />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Position</label>
+                <select value={settings.watermark_position} onChange={(e) => handleChange('watermark_position', e.target.value)} className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold">
+                  <option value="Center">Center</option>
+                  <option value="Diagonal">Diagonal</option>
+                </select>
               </div>
             </div>
           </div>
         </div>
 
-        {/* SECTION 4: SLIDE SETUP & FOOTER */}
+        {/* SECTION 4: DOCUMENT FOOTER */}
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
-            <Layout className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            Section 4: Slide Setup & Footer
-          </h3>
-
-          <div className="space-y-4 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Presentation Theme</label>
-                <select
-                  value={pptSettings.theme}
-                  onChange={(e) => setPptSettings(prev => ({ ...prev, theme: e.target.value }))}
-                  className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white"
-                >
-                  <option value="Clinical Emerald">Clinical Emerald (Recommended)</option>
-                  <option value="Modern Navy">Modern Navy</option>
-                  <option value="Academic Indigo">Academic Indigo</option>
-                  <option value="Classic White">Classic Minimal White</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Slide Aspect Ratio</label>
-                <select
-                  value={pptSettings.aspect_ratio}
-                  onChange={(e) => setPptSettings(prev => ({ ...prev, aspect_ratio: e.target.value }))}
-                  className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white"
-                >
-                  <option value="16:9 (Widescreen)">16:9 (Widescreen - Modern HDTV)</option>
-                  <option value="4:3 (Standard)">4:3 (Standard Projector)</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Title Slide Header</label>
-                <input
-                  type="text"
-                  value={pptSettings.header_title}
-                  onChange={(e) => setPptSettings(prev => ({ ...prev, header_title: e.target.value }))}
-                  placeholder="e.g. Pharmacy College"
-                  className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Slide Footer Text</label>
-                <input
-                  type="text"
-                  value={pptSettings.footer_text}
-                  onChange={(e) => setPptSettings(prev => ({ ...prev, footer_text: e.target.value }))}
-                  placeholder="e.g. Pharm.D Clinical Case Presentation • Confidential"
-                  className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-xs font-semibold text-slate-900 dark:text-white"
-                />
-              </div>
-            </div>
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <Layout className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              Section 4: Document Footer
+            </h3>
+            <button
+              type="button"
+              onClick={() => handleToggle('footer_enabled')}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                settings.footer_enabled ? 'bg-emerald-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600'
+              }`}
+            >
+              {settings.footer_enabled ? 'Footer Enabled' : 'Disabled'}
+            </button>
           </div>
-        </div>
 
-        {/* SECTION 5: PPT TYPOGRAPHY & FONT SIZES */}
-        <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-1.5 pb-1.5 border-b border-slate-100 dark:border-slate-800">
-            <Type className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-            <span>PPT Typography & Font Sizes</span>
-          </h4>
+          <div className="space-y-3 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Left Footer Text</label>
+                <input type="text" value={settings.footer_left_text} onChange={(e) => handleChange('footer_left_text', e.target.value)} className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold" />
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
-            {/* Font Family Dropdown */}
-            <div className="md:col-span-2 space-y-1">
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                Font Family (Font Style)
-              </label>
-              <select
-                value={pptSettings.font_family || 'Times New Roman'}
-                onChange={(e) => setPptSettings(prev => ({ ...prev, font_family: e.target.value }))}
-                className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white"
-              >
-                <option value="Times New Roman">Times New Roman (Recommended)</option>
-                <option value="Arial">Arial (Sans-serif)</option>
-                <option value="Calibri">Calibri (Sans-serif)</option>
-                <option value="Inter">Inter (Clean Modern)</option>
-                <option value="Roboto">Roboto (Technical)</option>
-                <option value="Georgia">Georgia (Serif)</option>
-              </select>
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Center Footer Text</label>
+                <input type="text" value={settings.footer_center_text} onChange={(e) => handleChange('footer_center_text', e.target.value)} className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white font-medium" />
+              </div>
             </div>
 
-            {/* 3-Column Font Size Selector */}
-            <div className="md:col-span-2 grid grid-cols-3 gap-2 text-[10px]">
-              <div className="space-y-1">
-                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                  Title Size
-                </label>
-                <select
-                  value={pptSettings.ppt_title_font_size || '22px'}
-                  onChange={(e) => setPptSettings(prev => ({ ...prev, ppt_title_font_size: e.target.value }))}
-                  className="w-full h-10 px-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white font-mono text-center"
-                >
-                  <option value="20px">20 px</option>
-                  <option value="22px">22 px (Default)</option>
-                  <option value="24px">24 px</option>
-                  <option value="28px">28 px</option>
-                  <option value="32px">32 px</option>
-                </select>
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div onClick={() => handleToggle('show_page_number')} className={`p-2.5 rounded-xl border cursor-pointer flex justify-between items-center ${settings.show_page_number ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 font-bold' : 'bg-slate-50 dark:bg-slate-800 border-slate-200'}`}>
+                <div>
+                  <span className="block font-bold">Show Page / Slide Number</span>
+                  <span className="text-[10px] text-slate-400 font-normal">PDF: Page # | PPT: Slide #</span>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-600 text-white font-bold">{settings.show_page_number ? 'YES' : 'NO'}</span>
               </div>
 
-              <div className="space-y-1">
-                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                  Heading Size
-                </label>
-                <select
-                  value={pptSettings.ppt_subheading_font_size || '20px'}
-                  onChange={(e) => setPptSettings(prev => ({ ...prev, ppt_subheading_font_size: e.target.value }))}
-                  className="w-full h-10 px-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white font-mono text-center"
-                >
-                  <option value="16px">16 px</option>
-                  <option value="18px">18 px</option>
-                  <option value="20px">20 px (Default)</option>
-                  <option value="22px">22 px</option>
-                  <option value="24px">24 px</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                  Body Size
-                </label>
-                <select
-                  value={pptSettings.ppt_body_font_size || '18px'}
-                  onChange={(e) => setPptSettings(prev => ({ ...prev, ppt_body_font_size: e.target.value }))}
-                  className="w-full h-10 px-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white font-mono text-center"
-                >
-                  <option value="14px">14 px</option>
-                  <option value="16px">16 px</option>
-                  <option value="18px">18 px (Default)</option>
-                  <option value="20px">20 px</option>
-                </select>
+              <div onClick={() => handleToggle('show_generated_datetime')} className={`p-2.5 rounded-xl border cursor-pointer flex justify-between items-center ${settings.show_generated_datetime ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 font-bold' : 'bg-slate-50 dark:bg-slate-800 border-slate-200'}`}>
+                <div>
+                  <span className="block font-bold">Show Date & Time</span>
+                  <span className="text-[10px] text-slate-400 font-normal">Timestamp stamp</span>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-600 text-white font-bold">{settings.show_generated_datetime ? 'YES' : 'NO'}</span>
               </div>
             </div>
           </div>
         </div>
 
       </div>
-      </div>
 
-      {/* PREVIEW FULL PAGE MODAL */}
+      {/* PREVIEW FULL A4 PDF MODAL */}
       {isPreviewModalOpen && (
         <ModalWrapper
           isOpen={isPreviewModalOpen}
           onClose={() => setIsPreviewModalOpen(false)}
-          title={`Full ${settings.paper_size} (${settings.orientation}) PDF Format Preview`}
-          subtitle={`Exact rendering across all PharmDVerse clinical documentation modules (${settings.paper_size} - ${settings.orientation})`}
+          title="Shared PDF Document Format Preview (A4 Portrait)"
+          subtitle={`Previewing shared Header, Watermark & Footer configuration for ${college?.college_name || college?.name}`}
           maxWidth="max-w-7xl w-full"
         >
           <div className="p-6 bg-slate-100 dark:bg-slate-950 max-h-[85vh] overflow-y-auto">
@@ -1096,12 +637,12 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
         <ModalWrapper
           isOpen={isPptPreviewModalOpen}
           onClose={() => setIsPptPreviewModalOpen(false)}
-          title={`PowerPoint Slide Format Preview (${pptSettings.aspect_ratio || '16:9'})`}
-          subtitle={`Theme: ${pptSettings.theme || 'Clinical Emerald'} • Font: ${pptSettings.font_family || 'Times New Roman'}`}
-          maxWidth="max-w-5xl"
+          title="Shared PowerPoint Slide Format Preview (16:9 Widescreen)"
+          subtitle={`Previewing shared Header, Watermark & Footer configuration for ${college?.college_name || college?.name}`}
+          maxWidth="max-w-6xl w-full"
         >
-          <div className="p-4 bg-slate-100 dark:bg-slate-950 max-h-[82vh] overflow-y-auto">
-            <SamplePptSlidePreview college={college} pptSettings={pptSettings} />
+          <div className="p-6 bg-slate-100 dark:bg-slate-950 max-h-[85vh] overflow-y-auto">
+            <SamplePptSlidePreview college={college} settings={settings} />
           </div>
         </ModalWrapper>
       )}
