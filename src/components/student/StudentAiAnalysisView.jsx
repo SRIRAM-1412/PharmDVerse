@@ -87,12 +87,7 @@ const checkIsFormSaved = (formObj, formType = '') => {
 const getMedicationSpecificAnalysis = (drug) => {
   const trade = String(drug.trade_name || '').trim();
   const generic = String(drug.generic_name || '').trim();
-  const name = (generic && generic !== '—' ? generic : trade).toLowerCase();
-  const documentedInd = String(drug.indication || '').trim();
-
-  const caseIndicationText = (documentedInd && documentedInd !== '—' && documentedInd !== 'n/a' && !documentedInd.includes('From:'))
-    ? documentedInd
-    : 'Specific indication is not documented in the submitted case.';
+  const name = `${generic} ${trade}`.toLowerCase();
 
   let drugClass = '';
   let establishedUse = '';
@@ -100,17 +95,17 @@ const getMedicationSpecificAnalysis = (drug) => {
   let monitoringAdvice = '';
   let isVerified = true;
 
-  if (name.includes('buscopan') || name.includes('buscogast') || name.includes('hyoscine') || name.includes('scopolamine butylbromide')) {
+  if (name.includes('buscopan') || name.includes('buscogast') || name.includes('hyoscine') || name.includes('scopolamine')) {
     drugClass = 'Antimuscarinic antispasmodic / Anticholinergic antispasmodic';
     establishedUse = 'Symptomatic relief of visceral smooth-muscle spasm in the gastrointestinal, biliary, and genitourinary tracts; relief of spasms associated with Irritable Bowel Syndrome (IBS).';
     mechanismOfAction = 'Quaternary ammonium anticholinergic agent. Produces a peripheral spasmolytic effect through competitive inhibition of visceral muscarinic receptors and parasympathetic ganglion-blocking activity, reducing smooth-muscle hypertonicity without central nervous system penetration.';
     monitoringAdvice = 'Monitor relief of abdominal cramps/spasms. Watch for anticholinergic side effects (dry mouth, blurred vision, urinary retention, tachycardia).';
-  } else if (name.includes('rifamini') || name.includes('rifaximin') || name.includes('spiraxin')) {
+  } else if (name.includes('rifamini') || name.includes('rifaximin') || name.includes('spiraxin') || name.includes('rcifax')) {
     drugClass = 'Gastrointestinal selective antibacterial — Non-systemic Rifamycin derivative';
     establishedUse = 'Reduction in recurrence of overt Hepatic Encephalopathy in adults; Irritable Bowel Syndrome with Diarrhea (IBS-D); Traveler\'s Diarrhea caused by non-invasive Escherichia coli.';
     mechanismOfAction = 'Binds to the beta-subunit of bacterial DNA-dependent RNA polymerase, inhibiting bacterial RNA transcription and protein synthesis. Acts locally in the intestinal lumen with minimal systemic absorption (< 0.4%), reducing ammonia-producing gut bacteria.';
     monitoringAdvice = 'Monitor mental status/asterixis improvement, stool frequency, and GI tolerance. Watch for severe watery diarrhea (C. difficile risk).';
-  } else if (name.includes('mesalamine') || name.includes('5-asa') || name.includes('mesalazine') || name.includes('asacol') || name.includes('pentasa')) {
+  } else if (name.includes('mesalamine') || name.includes('5-asa') || name.includes('mesalazine') || name.includes('asacol') || name.includes('pentasa') || name.includes('mesacol')) {
     drugClass = 'Aminosalicylate — Gastrointestinal anti-inflammatory agent (5-Aminosalicylic Acid)';
     establishedUse = 'Induction and maintenance of remission in mild-to-moderate active Ulcerative Colitis and Crohn\'s Disease.';
     mechanismOfAction = 'Inhibits mucosal cyclooxygenase (COX) and lipoxygenase (LOX) pathways in colonic tissue, decreasing local Prostaglandin E2 and Leukotriene B4 synthesis. Scavenges reactive oxygen species and inhibits NF-kB nuclear translocation in mucosal epithelial cells.';
@@ -120,37 +115,37 @@ const getMedicationSpecificAnalysis = (drug) => {
     establishedUse = 'Prevention and treatment of Hepatic Encephalopathy (portal-systemic encephalopathy) and chronic constipation.';
     mechanismOfAction = 'Cleaved by colonic anaerobic microflora into low-molecular-weight organic acids (lactic, acetic acid), lowering colonic pH. Low pH converts absorbable ammonia (NH3) into unabsorbable ammonium ions (NH4+), while osmotic water retention promotes intestinal evacuation.';
     monitoringAdvice = 'Monitor stool frequency (target: 2 to 3 soft stools/day in hepatic encephalopathy) and serum sodium/potassium levels to prevent dehydration.';
-  } else if (name.includes('paracetamol') || name.includes('acetaminophen') || name.includes('dolo') || name.includes('crocin') || name.includes('calpol')) {
+  } else if (name.includes('paracetamol') || name.includes('acetaminophen') || name.includes('dolo') || name.includes('crocin') || name.includes('calpol') || name.includes('pcm')) {
     drugClass = 'Non-opioid analgesic & Antipyretic — Central cyclooxygenase inhibitor';
     establishedUse = 'Symptomatic management of mild-to-moderate pain and reduction of fever in adults and pediatric patients.';
     mechanismOfAction = 'Inhibits central nervous system cyclooxygenase (COX-3 / central COX variants), suppressing Prostaglandin E2 synthesis in the cerebral cortex and hypothalamic thermoregulatory center. Reduces central pain transmission without peripheral GI mucosal ulceration.';
     monitoringAdvice = 'Ensure total daily dose does not exceed 4,000 mg/day (or < 2,000-3,000 mg/day in hepatic impairment). Monitor LFTs.';
-  } else if (name.includes('metformin') || name.includes('glycomet') || name.includes('glucophage')) {
+  } else if (name.includes('metformin') || name.includes('glycomet') || name.includes('glucophage') || name.includes('glyciphage')) {
     drugClass = 'Biguanide antihyperglycemic agent';
     establishedUse = 'First-line pharmacotherapy for Type 2 Diabetes Mellitus, alone or in combination with other antidiabetics/insulin; Polycystic Ovary Syndrome (PCOS).';
     mechanismOfAction = 'Activates hepatic AMP-activated protein kinase (AMPK), suppressing hepatic gluconeogenesis and glycogenolysis. Enhances peripheral tissue insulin sensitivity and muscle GLUT4 glucose uptake while reducing intestinal glucose absorption.';
     monitoringAdvice = 'Monitor eGFR and renal function. Hold before contrast procedures or if eGFR < 30 mL/min to prevent lactic acidosis. Check Vitamin B12 levels.';
-  } else if (name.includes('pantoprazole') || name.includes('omeprazole') || name.includes('rabeprazole') || name.includes('esomeprazole') || name.includes('pan-40')) {
+  } else if (name.includes('pantoprazole') || name.includes('omeprazole') || name.includes('rabeprazole') || name.includes('esomeprazole') || name.includes('pan-40') || name.includes('pantocid') || name.includes('pantodac')) {
     drugClass = 'Proton Pump Inhibitor (PPI) — Gastric H+/K+-ATPase inhibitor';
     establishedUse = 'Gastroesophageal Reflux Disease (GORD), peptic ulcer disease, stress ulcer prophylaxis, and Helicobacter pylori eradication.';
     mechanismOfAction = 'Covalently binds to cysteine residues on the extracellular domain of the parietal H+/K+-ATPase enzyme system (proton pump), inhibiting the final step of gastric acid secretion into the stomach lumen.';
     monitoringAdvice = 'Re-evaluate ongoing indication periodically. Long-term therapy requires monitoring for hypomagnesemia, B12 deficiency, bone fracture risk, and C. difficile.';
-  } else if (name.includes('atorvastatin') || name.includes('rosuvastatin') || name.includes('simvastatin') || name.includes('lipitor')) {
+  } else if (name.includes('atorvastatin') || name.includes('rosuvastatin') || name.includes('simvastatin') || name.includes('lipitor') || name.includes('storvas') || name.includes('statin')) {
     drugClass = 'HMG-CoA Reductase Inhibitor (Statin lipid-regulating agent)';
     establishedUse = 'Hypercholesterolemia, mixed dyslipidemia, and primary/secondary prevention of atherosclerotic cardiovascular events (MI, Stroke).';
     mechanismOfAction = 'Competitively inhibits 3-hydroxy-3-methylglutaryl-coenzyme A (HMG-CoA) reductase, blocking hepatic mevalonate and cholesterol synthesis. Upregulates cell-surface LDL receptors, accelerating systemic clearance of LDL-C and VLDL remnants.';
     monitoringAdvice = 'Monitor baseline LFTs (ALT/AST) and lipid panel. Instruct patient to report unexplained muscle pain, tenderness, or weakness (myopathy risk).';
-  } else if (name.includes('aspirin') || name.includes('ecosprin')) {
+  } else if (name.includes('aspirin') || name.includes('ecosprin') || name.includes('acetylsalicylic')) {
     drugClass = 'Antiplatelet agent — Irreversible Cyclooxygenase-1 (COX-1) inhibitor';
     establishedUse = 'Primary & secondary prevention of acute coronary syndromes, ischemic stroke, transient ischemic attacks, and post-angioplasty stent thrombosis.';
     mechanismOfAction = 'Irreversibly acetylates the Serine-529 residue of COX-1 in platelets, permanently blocking Thromboxane A2 (TXA2) synthesis and inhibiting TXA2-mediated platelet activation and aggregation for the 7 to 10 day lifespan of the platelet.';
     monitoringAdvice = 'Monitor for GI bleeding, dark stools, epigastric pain, and bleeding risk parameters.';
-  } else if (name.includes('clopidogrel') || name.includes('plavix')) {
+  } else if (name.includes('clopidogrel') || name.includes('plavix') || name.includes('clopilet')) {
     drugClass = 'Antiplatelet agent — Irreversible P2Y12 ADP receptor antagonist';
     establishedUse = 'Reduction of atherothrombotic events in recent myocardial infarction, ischemic stroke, established peripheral arterial disease, or post-coronary stent placement.';
     mechanismOfAction = 'Hepatic biotransformation via CYP2C19 yields an active thiol metabolite that irreversibly modifies platelet P2Y12 purinergic receptors, preventing ADP binding and subsequent activation of the GPIIb/IIIa glycoprotein complex.';
     monitoringAdvice = 'Monitor for bleeding events, hemoglobin/hematocrit levels, and CYP2C19 poor metabolizer status.';
-  } else if (name.includes('telmisat') || name.includes('telma') || name.includes('losartan') || name.includes('valsartan') || name.includes('olmesartan') || name.includes('micardis')) {
+  } else if (name.includes('telmisartan') || name.includes('telmisat') || name.includes('telma') || name.includes('losartan') || name.includes('valsartan') || name.includes('olmesartan') || name.includes('candesartan') || name.includes('irbesartan') || name.includes('micardis') || name.includes('sartan')) {
     drugClass = 'Angiotensin II Receptor Blocker (ARB / AT1 receptor antagonist)';
     establishedUse = 'Essential hypertension, reduction of cardiovascular morbidity in high-risk patients, and diabetic nephropathy.';
     mechanismOfAction = 'Selectively blocks the binding of Angiotensin II to the AT1 receptor subtype in vascular smooth muscle and adrenal cortex, blocking Angiotensin II-mediated vasoconstriction and aldosterone secretion.';
@@ -927,22 +922,11 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                                 </span>
                               </p>
 
-                              <div className="space-y-2 border-t border-slate-100 dark:border-slate-800 pt-2">
-                                <strong className="text-slate-900 dark:text-white block font-bold">Indication / Use:</strong>
-
-                                <div className="pl-3 border-l-2 border-slate-300 dark:border-slate-700 space-y-0.5">
-                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Documented Case Indication</span>
-                                  <p className={`break-words ${specificAnalysis.caseIndicationText.includes('not documented') ? 'text-slate-400 italic' : 'text-slate-800 dark:text-slate-200 font-medium'}`}>
-                                    {specificAnalysis.caseIndicationText}
-                                  </p>
-                                </div>
-
-                                <div className="pl-3 border-l-2 border-emerald-500 dark:border-emerald-600 space-y-0.5 mt-2">
-                                  <span className="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400 block">Established Clinical Use</span>
-                                  <p className="break-words text-slate-700 dark:text-slate-300">
-                                    {specificAnalysis.establishedUse}
-                                  </p>
-                                </div>
+                              <div className="space-y-1.5 border-t border-slate-100 dark:border-slate-800 pt-2">
+                                <strong className="text-slate-900 dark:text-white block font-bold">Indication / Established Use:</strong>
+                                <p className="break-words text-slate-700 dark:text-slate-300 pl-3 border-l-2 border-emerald-500 dark:border-emerald-600 font-medium">
+                                  {specificAnalysis.establishedUse}
+                                </p>
                               </div>
 
                               <div className="border-t border-slate-100 dark:border-slate-800 pt-2">
