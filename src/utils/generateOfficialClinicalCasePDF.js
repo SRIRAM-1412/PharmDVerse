@@ -329,11 +329,12 @@ export const generateOfficialClinicalCasePDF = ({
   // 1. PATIENT PROFILE FORM ONLY
   // =========================================================================
   if (selectedForm === 'profile') {
-    doc.setFont(fontFamily, 'bold'); doc.setFontSize(11.5); doc.setTextColor(15, 23, 42);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(12.5); doc.setTextColor(3, 105, 161);
     doc.text('PATIENT PROFILE DOCUMENTATION', marginX + 1, y);
     doc.setFont(fontFamily, 'bold'); doc.setFontSize(10.5); doc.setTextColor(3, 105, 161);
     doc.text(`(CASE ID: ${norm.caseId})`, pageWidth - marginX, y, { align: 'right' });
-    y += 6;
+    doc.setTextColor(15, 23, 42);
+    y += 7;
 
     // PATIENT DETAILS GRID TABLE (3 Rows with tuned cell widths & boundary guards)
     ensureSpace(32);
@@ -692,11 +693,12 @@ export const generateOfficialClinicalCasePDF = ({
   // 2. PATIENT COUNSELLING DOCUMENTATION FORM ONLY (STEP 12)
   // =========================================================================
   if (selectedForm === 'counselling') {
-    doc.setFont(fontFamily, 'bold'); doc.setFontSize(11.5); doc.setTextColor(15, 23, 42);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(12.5); doc.setTextColor(13, 148, 136);
     doc.text('PATIENT COUNSELLING DOCUMENTATION', marginX + 1, y);
-    doc.setFont(fontFamily, 'bold'); doc.setFontSize(10.5); doc.setTextColor(3, 105, 161);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(10.5); doc.setTextColor(13, 148, 136);
     doc.text(`(CASE ID: ${norm.caseId})`, pageWidth - marginX, y, { align: 'right' });
-    y += 6;
+    doc.setTextColor(15, 23, 42);
+    y += 7;
 
     // 1. SESSION OVERVIEW BOX (3 Rows: height 24mm with lines at +8 and +16)
     ensureSpace(26);
@@ -863,11 +865,12 @@ export const generateOfficialClinicalCasePDF = ({
   // 3. PHARMACIST INTERVENTION DOCUMENTATION FORM ONLY (STEP 13)
   // =========================================================================
   if (selectedForm === 'intervention') {
-    doc.setFont(fontFamily, 'bold'); doc.setFontSize(11.5); doc.setTextColor(15, 23, 42);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(12.5); doc.setTextColor(67, 56, 202);
     doc.text('PHARMACIST INTERVENTION DOCUMENTATION', marginX + 1, y);
-    doc.setFont(fontFamily, 'bold'); doc.setFontSize(10.5); doc.setTextColor(3, 105, 161);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(10.5); doc.setTextColor(67, 56, 202);
     doc.text(`(CASE ID: ${norm.caseId})`, pageWidth - marginX, y, { align: 'right' });
-    y += 6;
+    doc.setTextColor(15, 23, 42);
+    y += 7;
 
     // 1. PATIENT INFORMATION BOX (3 Rows: height 24mm with lines at +8 and +16)
     ensureSpace(26);
@@ -1056,11 +1059,12 @@ export const generateOfficialClinicalCasePDF = ({
   // 4. DRUG INFORMATION REQUEST DOCUMENTATION FORM ONLY (STEP 14)
   // =========================================================================
   if (selectedForm === 'dir') {
-    doc.setFont(fontFamily, 'bold'); doc.setFontSize(11.5); doc.setTextColor(15, 23, 42);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(12.5); doc.setTextColor(180, 83, 9);
     doc.text('DRUG INFORMATION REQUEST DOCUMENTATION', marginX + 1, y);
-    doc.setFont(fontFamily, 'bold'); doc.setFontSize(10.5); doc.setTextColor(3, 105, 161);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(10.5); doc.setTextColor(180, 83, 9);
     doc.text(`(CASE ID: ${norm.caseId})`, pageWidth - marginX, y, { align: 'right' });
-    y += 6;
+    doc.setTextColor(15, 23, 42);
+    y += 7;
 
     // 1. SESSION & ENQUIRER OVERVIEW BOX
     ensureSpace(28);
@@ -1226,11 +1230,12 @@ export const generateOfficialClinicalCasePDF = ({
   // 5. ADR DOCUMENTATION LOG FORM ONLY (STEP 15)
   // =========================================================================
   if (selectedForm === 'adr') {
-    doc.setFont(fontFamily, 'bold'); doc.setFontSize(11.5); doc.setTextColor(15, 23, 42);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(12.5); doc.setTextColor(225, 29, 72);
     doc.text('ADR DOCUMENTATION LOG', marginX + 1, y);
-    doc.setFont(fontFamily, 'bold'); doc.setFontSize(10.5); doc.setTextColor(3, 105, 161);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(10.5); doc.setTextColor(225, 29, 72);
     doc.text(`(CASE ID: ${norm.caseId})`, pageWidth - marginX, y, { align: 'right' });
-    y += 6;
+    doc.setTextColor(15, 23, 42);
+    y += 7;
 
     // 1. GENERAL RECORD INFORMATION BOX
     ensureSpace(24);
