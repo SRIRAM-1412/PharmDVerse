@@ -157,7 +157,9 @@ const KNOWN_DRUG_STEMS = [
   'toin', 'prazole', 'sartan', 'statin', 'cillin', 'mycin', 'cycline', 'floxacin',
   'olol', 'dipine', 'pril', 'tidine', 'gliptin', 'gliflozin', 'coxib', 'vir',
   'mab', 'zepam', 'zolam', 'nidazole', 'barbital', 'terol', 'lukast', 'cetirizine', 'triz',
-  'setron', 'sone', 'nide', 'drine', 'lam'
+  'setron', 'sone', 'nide', 'drine', 'lam', 'quine', 'capone', 'giline', 'pexole', 'nirole',
+  'triptyline', 'pramine', 'xetine', 'lopram', 'traline', 'faxine', 'nacipran', 'fenac',
+  'profen', 'dronate', 'zolid', 'oxacin', 'thromycin', 'navir', 'grel'
 ];
 
 /**
@@ -502,18 +504,6 @@ const generatePreSubmissionReview = (norm, caseModulesData) => {
             'The entered medication name appears to contain a spelling or truncation variation.',
             matchedCorrection,
             'Verify medication spelling against prescription/clinical record.',
-            `field-med-name-${idx}`
-          );
-        } else if (lowerCombined.length > 2 && !lowerCombined.includes('—')) {
-          addIssue(
-            'PLEASE_VERIFY',
-            'Patient Profile',
-            'patient-profile',
-            `Medication #${idx + 1} Name`,
-            combined,
-            'The medication name could not be confidently identified in standard drug nomenclature.',
-            'No confident correction available. Verify exact spelling against clinical record.',
-            'Verify trade and generic names against original prescription.',
             `field-med-name-${idx}`
           );
         }
