@@ -206,7 +206,6 @@ const getMedicationSpecificAnalysis = (drug) => {
 
   return {
     drugClass,
-    caseIndicationText,
     establishedUse,
     mechanismOfAction,
     monitoringAdvice,
