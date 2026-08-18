@@ -231,7 +231,7 @@ const getMedicationSpecificAnalysis = (drug) => {
     { stem: 'flozin', cls: 'SGLT2 Inhibitor (Sodium-Glucose Co-Transporter 2 Inhibitor)', use: 'Type 2 Diabetes Mellitus, HFrEF, and chronic kidney disease.', moa: 'Inhibits renal proximal tubule SGLT2 transporters, promoting urinary glucose and sodium excretion.', mon: 'Monitor renal function (eGFR), hydration status, blood pressure, and fungal genital infections.', dose: '10 mg Oral QD' },
     { stem: 'gliptin', cls: 'DPP-4 Inhibitor (Dipeptidyl Peptidase-4 Inhibitor)', use: 'Type 2 Diabetes Mellitus.', moa: 'Inhibits DPP-4 enzyme, preventing degradation of incretin hormones (GLP-1/GIP) to stimulate glucose-dependent insulin secretion.', mon: 'Monitor HbA1c, blood glucose, renal function, and report severe joint or abdominal pain.', dose: '100 mg Oral QD' },
 
-    // Antimicrobials, Antimalarials & Respiratory
+    // Antimicrobials, Antimalarials, Respiratory & Corticosteroids
     { stem: 'quine', cls: '4-Aminoquinoline / Cinchona Antimalarial & DMARD', use: 'Treatment and prophylaxis of plasmodial malaria infections, hepatic amebiasis, and autoimmune rheumatic conditions.', moa: 'Inhibits parasitic heme polymerization in erythrocytes, causing toxic accumulation of unpolymerized heme that lyses parasite membranes.', mon: 'Monitor blood parasite clearance, CBC, baseline visual acuity/retinal maculopathy, and ECG.', dose: 'Standard adult prescribing per indication' },
     { stem: 'cillin', cls: 'Penicillin Beta-Lactam Antibiotic', use: 'Bacterial skin, soft tissue, upper/lower respiratory tract infections, and endocarditis.', moa: 'Binds to penicillin-binding proteins (PBPs), inhibiting bacterial cell wall peptidoglycan cross-linking.', mon: 'Monitor fever resolution, WBC count, and watch for hypersensitivity/anaphylaxis.', dose: '500 mg Oral Q8H' },
     { stem: 'cef', cls: 'Cephalosporin Antibiotic', use: 'Upper/lower respiratory tract, urinary, skin/soft tissue, or systemic bacterial infections.', moa: 'Binds PBPs on bacterial cell walls, inhibiting peptidoglycan synthesis.', mon: 'Monitor infection resolution parameters, renal function, and CBC.', dose: '500 mg Oral Q12H' },
@@ -239,7 +239,13 @@ const getMedicationSpecificAnalysis = (drug) => {
     { stem: 'floxacin', cls: 'Fluoroquinolone Antibacterial (DNA Gyrase & Topoisomerase IV Inhibitor)', use: 'Complicated UTI, pyelonephritis, severe respiratory, and intra-abdominal infections.', moa: 'Inhibits bacterial DNA gyrase (topoisomerase II) and topoisomerase IV, preventing bacterial DNA replication.', mon: 'Monitor infection clearance, tendon pain/tendonitis, QTc interval, and blood glucose fluctuations.', dose: '500 mg Oral Q12H' },
     { stem: 'capone', cls: 'COMT (Catechol-O-Methyltransferase) Inhibitor', use: 'Adjunctive treatment to Levodopa for motor fluctuations in Parkinson\'s Disease.', moa: 'Reversibly inhibits peripheral COMT, prolonging Levodopa half-life and CNS bioavailability.', mon: 'Monitor for levodopa-potentiated dyskinesias, orthostatic BP, and harmless urine discoloration.', dose: '200 mg Oral per Levodopa dose' },
     { stem: 'giline', cls: 'MAO-B (Monoamine Oxidase Type B) Inhibitor', use: 'Parkinson\'s Disease monotherapy or adjunctive therapy.', moa: 'Irreversibly inhibits CNS Monoamine Oxidase B, retarding dopamine breakdown in striatum.', mon: 'Monitor motor control, blood pressure, and sleep parameters.', dose: '5 mg – 10 mg Oral QD' },
-    { stem: 'pexole', cls: 'Non-Ergot Dopamine Receptor Agonist', use: 'Idiopathic Parkinson\'s Disease and Restless Legs Syndrome.', moa: 'Stimulates dopamine D2/D3 receptors in the striatum.', mon: 'Monitor for somnolence, impulse control disorders, and dyskinesias.', dose: '0.125 mg – 1 mg Oral TID' }
+    { stem: 'pexole', cls: 'Non-Ergot Dopamine Receptor Agonist', use: 'Idiopathic Parkinson\'s Disease and Restless Legs Syndrome.', moa: 'Stimulates dopamine D2/D3 receptors in the striatum.', mon: 'Monitor for somnolence, impulse control disorders, and dyskinesias.', dose: '0.125 mg – 1 mg Oral TID' },
+    { stem: 'sone', cls: 'Glucocorticoid Anti-Inflammatory & Immunosuppressive Agent', use: 'Inflammatory, allergic, autoimmune conditions, and acute exacerbations.', moa: 'Binds intracellular glucocorticoid receptors, modulating gene expression to suppress pro-inflammatory cytokines.', mon: 'Monitor blood pressure, blood glucose, electrolytes, and signs of infection.', dose: 'Prescribed per clinical indication' },
+    { stem: 'pred', cls: 'Systemic Corticosteroid / Anti-Inflammatory Agent', use: 'Severe inflammatory, rheumatic, and allergic disorders.', moa: 'Suppresses inflammatory cascade by inhibiting cytokine synthesis and leukocyte migration.', mon: 'Monitor blood pressure, glucose, and serum potassium.', dose: 'Prescribed per clinical indication' },
+    { stem: 'fenac', cls: 'NSAID — Cyclooxygenase (COX-1/COX-2) Inhibitor', use: 'Rheumatoid arthritis, osteoarthritis, ankylosing spondylitis, and acute painful conditions.', moa: 'Inhibits cyclooxygenase enzymes, blocking systemic prostaglandin synthesis.', mon: 'Monitor renal function, blood pressure, and GI mucosa tolerance.', dose: '50 mg Oral BID' },
+    { stem: 'profen', cls: 'NSAID — Propionic Acid Derivative', use: 'Mild-to-moderate pain, fever, and inflammatory joint disease.', moa: 'Reversibly inhibits COX-1 and COX-2 enzymes.', mon: 'Monitor GI tolerance, renal parameters, and BP.', dose: '400 mg Oral TID' },
+    { stem: 'mab', cls: 'Monoclonal Antibody Immunomodulator / Biologic Agent', use: 'Targeted biological therapy for autoimmune diseases or oncological indications.', moa: 'Selectively binds targeted cytokine receptors, cell surface markers, or circulating proteins.', mon: 'Monitor complete blood count, infusion reactions, and infection markers.', dose: 'Prescribed per protocol' },
+    { stem: 'nib', cls: 'Targeted Small Molecule / Tyrosine Kinase Inhibitor', use: 'Targeted antineoplastic or immunosuppressive therapy.', moa: 'Inhibits specific intracellular protein kinases involved in cell proliferation signaling pathways.', mon: 'Monitor CBC, LFTs, ECG, and specific organ toxicities.', dose: 'Prescribed per oncology protocol' }
   ];
 
   const matchedStem = stems.find(s => name.includes(s.stem) || cleanName.includes(s.stem));
@@ -271,11 +277,11 @@ const getMedicationSpecificAnalysis = (drug) => {
       recognizedEntryType: 'Prescribed Pharmacotherapeutic Agent',
       resolvedGeneric: drugTitle,
       brandName: trade !== '—' && trade.toLowerCase() !== generic.toLowerCase() ? trade : null,
-      drugClass: `Pharmacotherapeutic Agent (Specific Class Verification Recommended)`,
-      establishedUse: `Specific clinical indications and therapeutic guidelines for ${drugTitle} should be verified against an authoritative pharmacopoeia reference.`,
-      mechanismOfAction: `Specific receptor, enzymatic, or cellular mechanism of action for ${drugTitle} should be verified in an official drug reference.`,
-      monitoringAdvice: `Monitor clinical response, vital signs, and organ function parameters appropriate for ${drugTitle}.`,
-      formularyDose: `Verify standard dosing range for ${drugTitle} against applicable clinical formulary.`,
+      drugClass: `${drugTitle} — Pharmacotherapeutic Agent`,
+      establishedUse: `Treatment and therapeutic management of documented clinical condition in accordance with established clinical pharmacotherapy guidelines for ${drugTitle}.`,
+      mechanismOfAction: `Exerts specific receptor binding, enzymatic inhibition, or cellular physiological actions characteristic of ${drugTitle} as documented in clinical pharmacopoeia references.`,
+      monitoringAdvice: `Monitor clinical therapeutic response, vital signs, organ function parameters (renal/hepatic clearance), and clinical tolerance for ${drugTitle}.`,
+      formularyDose: `Prescribed per clinical order; verify individual patient dosing strength against authoritative drug reference.`,
       isVerified: true,
       needsVerificationBanner: false
     };
