@@ -51,24 +51,23 @@ export const WorkflowReferencePanel = ({ role = 'student' }) => {
     { title: 'PDF / PPT', icon: FileDown, bg: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300' }
   ];
 
-  // Preceptor Steps
+  // Preceptor Steps (6 Sequential Steps)
   const preceptorSteps = [
     { title: 'Preceptor Login', icon: Stethoscope, bg: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300' },
-    { title: 'Assigned Cases', icon: Users, bg: 'bg-emerald-600 text-white shadow-xs' },
-    { title: 'Review Docs', icon: FileSearch, bg: 'bg-teal-100 text-teal-700 dark:bg-teal-900/60 dark:text-teal-300' },
-    { title: 'Review Forms', icon: ClipboardCheck, bg: 'bg-teal-100 text-teal-700 dark:bg-teal-900/60 dark:text-teal-300' },
+    { title: 'Assigned Students & Cases', icon: Users, bg: 'bg-emerald-600 text-white shadow-xs' },
+    { title: 'Review Clinical Documentation', icon: FileSearch, bg: 'bg-teal-100 text-teal-700 dark:bg-teal-900/60 dark:text-teal-300' },
     { title: 'Approve / Return', icon: RotateCcw, bg: 'bg-amber-500 text-white shadow-xs' },
     { title: 'Approved & Locked', icon: Lock, bg: 'bg-emerald-600 text-white shadow-xs' },
     { title: 'Download PDF/PPT', icon: FileDown, bg: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300' }
   ];
 
-  // Admin Steps
+  // Admin Steps (7 Sequential Steps)
   const adminSteps = [
     { title: 'Admin Login', icon: Building2, bg: 'bg-purple-100 text-purple-700 dark:bg-purple-900/60 dark:text-purple-300' },
     { title: 'Dashboard', icon: LayoutDashboard, bg: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300' },
-    { title: 'Student Cases', icon: Users, bg: 'bg-purple-600 text-white shadow-xs' },
+    { title: 'Student & Case Management', icon: Users, bg: 'bg-purple-600 text-white shadow-xs' },
     { title: 'All College Cases', icon: Landmark, bg: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300' },
-    { title: 'View Status', icon: BarChart3, bg: 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300' },
+    { title: 'Case Status & Monitoring', icon: BarChart3, bg: 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300' },
     { title: 'Approved Cases', icon: ShieldCheck, bg: 'bg-emerald-600 text-white shadow-xs' },
     { title: 'Download PDF/PPT', icon: FileDown, bg: 'bg-purple-100 text-purple-700 dark:bg-purple-900/60 dark:text-purple-300' }
   ];
@@ -210,7 +209,7 @@ export const WorkflowReferencePanel = ({ role = 'student' }) => {
                   </span>
                 </div>
 
-                <div className={`grid grid-cols-3 sm:grid-cols-6 ${config.steps.length === 11 ? 'lg:grid-cols-11' : (config.steps.length === 7 ? 'lg:grid-cols-7' : 'lg:grid-cols-9')} gap-2.5 pt-1 items-start`}>
+                <div className={`grid grid-cols-3 sm:grid-cols-6 ${config.steps.length === 11 ? 'lg:grid-cols-11' : (config.steps.length === 6 ? 'lg:grid-cols-6' : 'lg:grid-cols-7')} gap-2.5 pt-1 items-start`}>
                   {config.steps.map((st, idx) => {
                     const IconComp = st.icon;
                     return (
@@ -316,23 +315,26 @@ export const WorkflowReferencePanel = ({ role = 'student' }) => {
                       <FileSearch className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> Case Review Process
                     </h5>
                     <ul className="space-y-2 text-xs text-slate-700 dark:text-slate-300 font-medium">
-                      <li className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900/40">1. Open candidate submitted case</li>
-                      <li className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900/40">2. Inspect clinical documentation & drug therapy</li>
-                      <li className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900/40">3. Verify entered fields, labs, and interventions</li>
-                      <li className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/80 font-bold text-emerald-900 dark:text-emerald-200">4. Approve Case OR Return with comments</li>
+                      <li className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900/40">1. Access assigned students & candidate submitted cases</li>
+                      <li className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900/40">2. Review Clinical Documentation (Profile, Counselling, Intervention, DIR & ADR Logs)</li>
+                      <li className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900/40">3. Verify entered clinical fields, lab parameters, and treatment regimens</li>
+                      <li className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/80 font-bold text-emerald-900 dark:text-emerald-200">4. Approve Case OR Return with feedback comments</li>
                     </ul>
                   </div>
 
                   <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/60 space-y-3">
                     <h5 className="font-extrabold text-sm text-amber-900 dark:text-amber-300 flex items-center gap-2">
-                      <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400" /> Approval & Return Rules
+                      <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400" /> Approval & Submission Rules
                     </h5>
                     <div className="space-y-2.5 text-xs">
-                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300">
+                      <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-300">
+                        <strong>Submission Rule:</strong> Only submitted Clinical Documentation is available for Preceptor Review.
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300">
                         <strong>After Approval:</strong> Case status changes to <span className="font-bold text-emerald-600">Approved & Locked</span>. Student, Preceptor & College Admin can download official PDF / PPT.
                       </div>
-                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-300">
-                        <strong>If Returned:</strong> Student modifies requested changes and resubmits to preceptor review queue.
+                      <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-300">
+                        <strong>If Returned:</strong> Student modifies requested information and resubmits to preceptor review queue.
                       </div>
                     </div>
                   </div>
@@ -347,9 +349,10 @@ export const WorkflowReferencePanel = ({ role = 'student' }) => {
                     </h5>
                     <ul className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
                       <li className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50">• Customize College & Hospital Logos</li>
-                      <li className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50">• Watermark Text, Diagonal Angle & Opacity</li>
-                      <li className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50">• Headers, Footers & Baseline Alignment</li>
-                      <li className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50">• Save Settings for all Approved Cases</li>
+                      <li className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50">• Configure PDF Header, Footer & Watermark</li>
+                      <li className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50">• Configure PPT Header, Footer & Watermark</li>
+                      <li className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50">• Configure PDF/PPT Typography & Layout</li>
+                      <li className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50">• Save College-Specific Format Settings</li>
                     </ul>
                   </div>
 
@@ -358,7 +361,7 @@ export const WorkflowReferencePanel = ({ role = 'student' }) => {
                       <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> Critical System Guarantee
                     </h5>
                     <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                      Student enters data → Student submits → Preceptor reviews → Preceptor approves → Case becomes <strong className="text-emerald-600">Approved & Locked</strong> → exact same complete approved data displays consistently in PDF and PPT downloads.
+                      Student saves Clinical Documentation → AI analysis/review → Student modifies and saves as needed → Student submits → Preceptor reviews → Preceptor approves → Case becomes <strong className="text-emerald-600">Approved & Locked</strong> → complete approved data is available consistently in official PDF/PPT downloads.
                     </p>
                   </div>
                 </div>
