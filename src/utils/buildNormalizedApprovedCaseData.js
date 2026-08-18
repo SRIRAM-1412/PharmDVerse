@@ -5,6 +5,17 @@
  *  2. PDF Generator (generateOfficialClinicalCasePDF.js)
  *  3. PPT Generator (generateClinicalCasePPTX.js)
  */
+
+export const formatDisplayDate = (dateVal) => {
+  if (!dateVal || dateVal === '—' || dateVal === 'N/A' || dateVal === 'null' || dateVal === 'undefined') return '—';
+  const str = String(dateVal).trim();
+  if (str.includes('T')) {
+    const datePart = str.split('T')[0];
+    if (datePart && datePart.length === 10) return datePart;
+  }
+  return str;
+};
+
 export const buildNormalizedApprovedCaseData = ({
   clinicalCase = {},
   student = {},
@@ -75,18 +86,18 @@ export const buildNormalizedApprovedCaseData = ({
 
   // Dates
   const dates = {
-    doa: profile.date_of_admission || profile.doa || clinicalCase?.date_of_admission || 'N/A',
-    dod: profile.date_of_discharge || profile.dod || profile.doc || clinicalCase?.date_of_discharge || 'N/A',
-    doc: profile.date_of_consultation || profile.doc || profile.date_of_admission || 'N/A',
-    counsellingDate: counselling.counselling_date || counselling.date || 'N/A',
+    doa: formatDisplayDate(profile.date_of_admission || profile.doa || clinicalCase?.date_of_admission),
+    dod: formatDisplayDate(profile.date_of_discharge || profile.dod || profile.doc || clinicalCase?.date_of_discharge),
+    doc: formatDisplayDate(profile.date_of_consultation || profile.doc || profile.date_of_admission),
+    counsellingDate: formatDisplayDate(counselling.counselling_date || counselling.date),
     counsellingTime: counselling.counselling_time || counselling.time || '',
-    interventionDate: intervention.date_of_intervention || intervention.intervention_date || intervention.date || 'N/A',
-    reportingDate: intervention.reporting_date || 'N/A',
-    queryDate: dir.request_date || dir.query_date || dir.date || 'N/A',
+    interventionDate: formatDisplayDate(intervention.date_of_intervention || intervention.intervention_date || intervention.date),
+    reportingDate: formatDisplayDate(intervention.reporting_date),
+    queryDate: formatDisplayDate(dir.request_date || dir.query_date || dir.date),
     queryTime: dir.request_time || dir.time || '',
-    adrReportingDate: adr.reporting_date || adr.date || 'N/A',
-    adrOnsetDate: adr.onset_date || adr.reaction_started_at || 'N/A',
-    adrEndedAt: adr.reaction_ended_at || 'N/A'
+    adrReportingDate: formatDisplayDate(adr.reporting_date || adr.date),
+    adrOnsetDate: formatDisplayDate(adr.onset_date || adr.reaction_started_at),
+    adrEndedAt: formatDisplayDate(adr.reaction_ended_at)
   };
 
   // Safe Array Extractors
@@ -150,7 +161,10 @@ export const buildNormalizedApprovedCaseData = ({
     ].filter(Boolean).join(', ') || 'CVS: S1S2, RS: Clear, GI: Soft.'
   };
 
-  const vitals = safeArray(caseModulesData?.vitals || profile.vital_signs || profile.vitals || clinicalCase?.vital_signs || clinicalCase?.vitals);
+  const vitals = safeArray(caseModulesData?.vitals || profile.vital_signs || profile.vitals || clinicalCase?.vital_signs || clinicalCase?.vitals).map(v => ({
+    ...v,
+    date: formatDisplayDate(v.date || v.created_at)
+  }));
   
   // Clinical Test Value Evaluator helper
   const evaluateLabImpression = (testVal, rangeStr, explicitImpression) => {
@@ -204,10 +218,10 @@ export const buildNormalizedApprovedCaseData = ({
     clinicalCase?.prescribed_drugs ||
     clinicalCase?.medications
   ).map(d => {
-    const startDate = d.start_date || '';
-    const stopDate = d.stop_date || '';
-    const durationText = startDate || stopDate ? 
-      `${startDate ? `From: ${startDate}` : ''} ${stopDate ? `To: ${stopDate}` : ''}`.trim() : 
+    const startDate = formatDisplayDate(d.start_date);
+    const stopDate = formatDisplayDate(d.stop_date);
+    const durationText = (startDate !== '—' || stopDate !== '—') ? 
+      `${startDate !== '—' ? `From: ${startDate}` : ''} ${stopDate !== '—' ? `To: ${stopDate}` : ''}`.trim() : 
       'Active Regimen';
 
     return {
@@ -288,7 +302,7 @@ export const buildNormalizedApprovedCaseData = ({
 
   // Detailed ADR Map
   const adrMap = {
-    adrNumber: adr.adr_number || 'ADR-LOG-001',
+    adrNumber: adr.adr_number || adr.adrNumber || 'ADR-LOG-001',
     reportingDate: dates.adrReportingDate,
     onsetDate: dates.adrOnsetDate,
     endedAt: dates.adrEndedAt,
@@ -298,14 +312,22 @@ export const buildNormalizedApprovedCaseData = ({
     gender: adr.gender || demographics.gender,
     weight: adr.weight || demographics.weight,
     department: adr.department || demographics.department,
-    reactionTitle: adr.reaction_title || adr.reaction_description || 'N/A',
+    reactionTitle: adr.reaction_title || adr.reactionTitle || 'N/A',
     reactionCategory: adr.reaction_category || 'Dermatological',
     reactionDescription: adr.reaction_description || adr.reaction_title || 'N/A',
     reactionDuration: adr.reaction_duration || '',
     clinicalManagement: adr.clinical_management || '',
     currentCondition: adr.current_patient_condition || adr.reaction_outcome || 'Recovering',
-    suspectedMeds: safeArray(adr.suspected_meds || adr.suspected_drugs),
-    concomitantMeds: safeArray(adr.concomitant_meds || adr.concomitant_drugs),
+    suspectedMeds: safeArray(adr.suspected_meds || adr.suspected_drugs).map(m => ({
+      ...m,
+      start_date: formatDisplayDate(m.start_date),
+      stop_date: formatDisplayDate(m.stop_date)
+    })),
+    concomitantMeds: safeArray(adr.concomitant_meds || adr.concomitant_drugs).map(m => ({
+      ...m,
+      start_date: formatDisplayDate(m.start_date),
+      stop_date: formatDisplayDate(m.stop_date)
+    })),
     drugAllergyHistory: adr.drug_allergy_history || demographics.allergyDrugs,
     previousAdrHistory: adr.previous_adr_history || 'None',
     relevantMedicalConditions: adr.relevant_medical_conditions || history.pastMedicalHistory,
