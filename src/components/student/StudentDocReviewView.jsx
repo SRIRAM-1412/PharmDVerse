@@ -96,13 +96,15 @@ const KNOWN_DRUGS = [
   'lasix', 'furosemide',
   'aldactone', 'spironolactone',
   'lantus', 'actrapid', 'mixtard', 'insulin',
-  'pantop-40', 'pantop-d', 'pan-40', 'pan-d'
+  'pantop-40', 'pantop-d', 'pan-40', 'pan-d',
+  'one all', '1 all', 'oneall', 'levocetirizine', 'levocetriz', 'levozet', 'cetzine', 'okacet', 'alerid', 'cetirizine',
+  'pan d', 'pan-d', 'rabeprazole', 'rabeloc', 'rabicip', 'razo', 'cyra'
 ];
 
 const KNOWN_DRUG_STEMS = [
   'prazole', 'sartan', 'statin', 'cillin', 'mycin', 'cycline', 'floxacin',
   'olol', 'dipine', 'pril', 'tidine', 'gliptin', 'gliflozin', 'coxib', 'vir',
-  'mab', 'zepam', 'zolam', 'nidazole', 'barbital', 'terol', 'lukast'
+  'mab', 'zepam', 'zolam', 'nidazole', 'barbital', 'terol', 'lukast', 'cetirizine', 'triz'
 ];
 
 /**
@@ -277,8 +279,8 @@ const generatePreSubmissionReview = (norm, caseModulesData) => {
       let matchedCorrection = null;
       const tokens = lowerCombined.split(/[\s()/-]+/).filter(Boolean);
 
-      // Check if entry contains a known valid brand or generic (e.g. "PANTOP PANTOPRAZOLE", "TELMA", "ECOSPRIN")
-      const hasValidBrandOrGeneric = tokens.some(t => 
+      // Check if entry contains a known valid brand or generic (e.g. "ONE ALL LEVOCETRIZ", "PANTOP PANTOPRAZOLE", "TELMA")
+      const hasValidBrandOrGeneric = KNOWN_DRUGS.some(k => lowerCombined.includes(k)) || tokens.some(t => 
         KNOWN_DRUGS.includes(t) || 
         KNOWN_DRUG_STEMS.some(stem => t.includes(stem))
       );

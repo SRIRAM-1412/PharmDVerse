@@ -576,10 +576,14 @@ export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOn
     
     showBottomNotify({
       type: 'success',
-      message: profRes.profile_completed 
-        ? '✓ Profile saved and marked as Completed (Green)'
-        : '✓ Draft saved. Complete all required fields (*) to mark as Completed.'
+      message: '✓ Patient Profile saved successfully! Returning to Pre-Submission Review...'
     });
+
+    if (onBack) {
+      setTimeout(() => {
+        onBack();
+      }, 1000);
+    }
   };
 
   if (loading) {
@@ -1218,11 +1222,13 @@ export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOn
                   <td className="p-2 font-mono font-bold text-center">{idx + 1}</td>
                   <td className="p-2">
                     <input
+                      id={`field-med-name-${idx}`}
+                      data-field-id={`field-med-name-${idx}`}
                       type="text"
                       value={d.trade_name}
                       onChange={(e) => {
                         const copy = [...prescribedDrugs];
-                        copy[idx].trade_name = e.target.value.replace(/[^A-Za-z\s]/g, '').toUpperCase();
+                        copy[idx].trade_name = e.target.value.replace(/[^A-Za-z0-9\s-]/g, '').toUpperCase();
                         setPrescribedDrugs(copy);
                       }}
                       placeholder="Enter trade name"
