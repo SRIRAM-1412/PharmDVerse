@@ -329,17 +329,18 @@ export const generateOfficialClinicalCasePDF = ({
   // Helper to render Form Title & Case ID on two separate lines with zero collisions
   const drawFormTitleBanner = (titleText, colorRgb) => {
     doc.setFont(fontFamily, 'bold');
-    doc.setFontSize(12.5);
+    doc.setFontSize(12.0);
     doc.setTextColor(colorRgb[0], colorRgb[1], colorRgb[2]);
     doc.text(titleText, marginX + 1, y);
 
+    // Line 2: CASE ID right below form title
     doc.setFont(fontFamily, 'bold');
     doc.setFontSize(10.0);
-    doc.setTextColor(colorRgb[0], colorRgb[1], colorRgb[2]);
-    doc.text(`(CASE ID: ${norm.caseId})`, pageWidth - marginX - 1, y, { align: 'right' });
+    doc.setTextColor(3, 105, 161);
+    doc.text(`(CASE ID: ${norm.caseId})`, pageWidth - marginX - 1, y + 5.5, { align: 'right' });
 
     doc.setTextColor(15, 23, 42);
-    y += 7.5;
+    y += 12;
   };
 
   // =========================================================================
@@ -656,8 +657,8 @@ export const generateOfficialClinicalCasePDF = ({
         const routeLines = doc.splitTextToSize(String(d.route_of_admin || d.route || 'Oral'), 14);
         const doseLines = doc.splitTextToSize(String(d.dose || 'N/A'), 16);
         const freqLines = doc.splitTextToSize(String(d.frequency || 'OD'), 14);
-        const startLines = doc.splitTextToSize(String(d.start_date || 'N/A'), 20);
-        const stopLines = doc.splitTextToSize(String(d.stop_date || 'N/A'), 20);
+        const startLines = doc.splitTextToSize(String(d.start_date || '—'), 20);
+        const stopLines = doc.splitTextToSize(String(d.stop_date || '—'), 20);
 
         const maxLines = Math.max(brandLines.length, genericLines.length, routeLines.length, doseLines.length, freqLines.length, startLines.length, stopLines.length, 1);
         const rowH = Math.max(maxLines * 5 + 2, 7);

@@ -217,20 +217,30 @@ export const buildNormalizedApprovedCaseData = ({
     profile.drugs ||
     clinicalCase?.prescribed_drugs ||
     clinicalCase?.medications
-  ).map(d => {
-    const startDate = formatDisplayDate(d.start_date);
-    const stopDate = formatDisplayDate(d.stop_date);
-    const durationText = (startDate !== '—' || stopDate !== '—') ? 
-      `${startDate !== '—' ? `From: ${startDate}` : ''} ${stopDate !== '—' ? `To: ${stopDate}` : ''}`.trim() : 
+  ).map((d, idx) => {
+    const rawStart = d.start_date || d.startDate || d.from_date || d.start || d.date_started;
+    const rawStop = d.stop_date || d.stopDate || d.to_date || d.end_date || d.stop || d.date_stopped;
+
+    const parsedStart = formatDisplayDate(rawStart);
+    const parsedStop = formatDisplayDate(rawStop);
+
+    // Fallback hierarchy: explicit drug start/stop date -> admission/discharge date -> default
+    const finalStart = (parsedStart !== '—' && parsedStart !== 'N/A') ? parsedStart : (dates.doa !== '—' && dates.doa !== 'N/A' ? dates.doa : '—');
+    const finalStop = (parsedStop !== '—' && parsedStop !== 'N/A') ? parsedStop : (dates.dod !== '—' && dates.dod !== 'N/A' ? dates.dod : 'Ongoing');
+
+    const durationText = (finalStart !== '—' || finalStop !== '—') ? 
+      `${finalStart !== '—' ? `From: ${finalStart}` : ''} ${finalStop !== '—' ? `To: ${finalStop}` : ''}`.trim() : 
       'Active Regimen';
 
     return {
-      s_no: d.s_no,
-      trade_name: d.trade_name || d.brand_name || '—',
-      generic_name: d.generic_name || d.drug_name || '—',
-      dose: d.dose || '—',
+      s_no: d.s_no || idx + 1,
+      trade_name: d.trade_name || d.brand_name || d.brand || d.trade || '—',
+      generic_name: d.generic_name || d.drug_name || d.name || '—',
+      dose: d.dose || d.dosage || '—',
       route_of_admin: d.route_of_admin || d.route || 'Oral',
-      frequency: d.frequency || 'OD',
+      frequency: d.frequency || d.freq || 'OD',
+      start_date: finalStart,
+      stop_date: finalStop,
       indication: d.indication || d.reason || durationText
     };
   });
