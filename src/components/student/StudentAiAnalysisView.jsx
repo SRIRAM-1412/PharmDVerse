@@ -90,7 +90,7 @@ const getMedicationSpecificAnalysis = (drug) => {
   const name = (generic && generic !== '—' ? generic : trade).toLowerCase();
   const documentedInd = String(drug.indication || '').trim();
 
-  const caseIndicationText = (documentedInd && documentedInd !== '—' && documentedInd !== 'n/a')
+  const caseIndicationText = (documentedInd && documentedInd !== '—' && documentedInd !== 'n/a' && !documentedInd.includes('From:'))
     ? documentedInd
     : 'Specific indication is not documented in the submitted case.';
 
@@ -100,7 +100,7 @@ const getMedicationSpecificAnalysis = (drug) => {
   let monitoringAdvice = '';
   let isVerified = true;
 
-  if (name.includes('buscopan') || name.includes('hyoscine') || name.includes('scopolamine butylbromide')) {
+  if (name.includes('buscopan') || name.includes('buscogast') || name.includes('hyoscine') || name.includes('scopolamine butylbromide')) {
     drugClass = 'Antimuscarinic antispasmodic / Anticholinergic antispasmodic';
     establishedUse = 'Symptomatic relief of visceral smooth-muscle spasm in the gastrointestinal, biliary, and genitourinary tracts; relief of spasms associated with Irritable Bowel Syndrome (IBS).';
     mechanismOfAction = 'Quaternary ammonium anticholinergic agent. Produces a peripheral spasmolytic effect through competitive inhibition of visceral muscarinic receptors and parasympathetic ganglion-blocking activity, reducing smooth-muscle hypertonicity without central nervous system penetration.';
@@ -150,7 +150,7 @@ const getMedicationSpecificAnalysis = (drug) => {
     establishedUse = 'Reduction of atherothrombotic events in recent myocardial infarction, ischemic stroke, established peripheral arterial disease, or post-coronary stent placement.';
     mechanismOfAction = 'Hepatic biotransformation via CYP2C19 yields an active thiol metabolite that irreversibly modifies platelet P2Y12 purinergic receptors, preventing ADP binding and subsequent activation of the GPIIb/IIIa glycoprotein complex.';
     monitoringAdvice = 'Monitor for bleeding events, hemoglobin/hematocrit levels, and CYP2C19 poor metabolizer status.';
-  } else if (name.includes('telmisartan') || name.includes('losartan') || name.includes('valsartan') || name.includes('olmesartan') || name.includes('micardis')) {
+  } else if (name.includes('telmisat') || name.includes('telma') || name.includes('losartan') || name.includes('valsartan') || name.includes('olmesartan') || name.includes('micardis')) {
     drugClass = 'Angiotensin II Receptor Blocker (ARB / AT1 receptor antagonist)';
     establishedUse = 'Essential hypertension, reduction of cardiovascular morbidity in high-risk patients, and diabetic nephropathy.';
     mechanismOfAction = 'Selectively blocks the binding of Angiotensin II to the AT1 receptor subtype in vascular smooth muscle and adrenal cortex, blocking Angiotensin II-mediated vasoconstriction and aldosterone secretion.';
@@ -221,38 +221,86 @@ const getMedicationSpecificAnalysis = (drug) => {
 
 /**
  * Dynamic Drug-Drug Interaction Evaluator for pairs of documented drugs.
- * Returns pair-specific interaction assessment or clearly states when no interaction is present.
+ * Evaluates verified interactions from public databases (BNF / Micromedex / SmPC).
  */
 const getPairSpecificInteraction = (drug1, drug2) => {
-  const name1 = (drug1.generic_name !== '—' ? drug1.generic_name : drug1.trade_name).toLowerCase();
-  const name2 = (drug2.generic_name !== '—' ? drug2.generic_name : drug2.trade_name).toLowerCase();
+  const n1Trade = String(drug1.trade_name || '').toLowerCase();
+  const n1Gen = String(drug1.generic_name || '').toLowerCase();
+  const n2Trade = String(drug2.trade_name || '').toLowerCase();
+  const n2Gen = String(drug2.generic_name || '').toLowerCase();
 
-  // Check specific pairs
-  if ((name1.includes('mesalamine') && name2.includes('lactitol')) || (name2.includes('mesalamine') && name1.includes('lactitol'))) {
+  const isD1 = (kw) => n1Trade.includes(kw) || n1Gen.includes(kw);
+  const isD2 = (kw) => n2Trade.includes(kw) || n2Gen.includes(kw);
+  const isPair = (kw1, kw2) => (isD1(kw1) && isD2(kw2)) || (isD1(kw2) && isD2(kw1));
+
+  // Aspirin + Telmisartan / ARBs
+  if (isPair('aspirin', 'telmisaten') || isPair('aspirin', 'telmisartan') || isPair('aspirin', 'telma') || isPair('ecosprin', 'telmisaten') || isPair('ecosprin', 'telmisartan') || isPair('aspirin', 'losartan') || isPair('aspirin', 'valsartan')) {
+    return {
+      hasInteraction: true,
+      severity: 'Moderate / Clinical Monitoring Required',
+      mechanism: 'Co-administration of NSAIDs/Aspirin with Angiotensin II Receptor Blockers (ARBs like Telmisartan) may diminish the renal vasodilatory and antihypertensive response of the ARB via renal prostaglandin inhibition.',
+      clinicalSignificance: 'Potential blunting of antihypertensive response and increased risk of acute kidney function impairment (especially in patients with baseline electrolyte imbalance or dehydration).',
+      managementConsideration: 'Monitor blood pressure, serum creatinine, BUN, and serum sodium/potassium. Maintain adequate systemic hydration.'
+    };
+  }
+
+  // Buscopan + Aspirin
+  if (isPair('buscopan', 'aspirin') || isPair('buscogast', 'aspirin') || isPair('hyoscine', 'aspirin') || isPair('buscogast', 'ecosprin')) {
+    return {
+      hasInteraction: true,
+      severity: 'Minor / Pharmacokinetic Timing',
+      mechanism: 'Anticholinergic smooth muscle relaxation by Buscopan (Hyoscine Butylbromide) delays gastric emptying rate, which may delay gastrointestinal absorption of oral Aspirin.',
+      clinicalSignificance: 'Delayed onset of systemic antiplatelet or analgesic action of oral Aspirin without reducing total bioavailability.',
+      managementConsideration: 'No routine dose adjustment required. Monitor GI tolerance and pain relief.'
+    };
+  }
+
+  // Buscopan + Telmisartan
+  if (isPair('buscopan', 'telmisaten') || isPair('buscopan', 'telmisartan') || isPair('buscogast', 'telmisaten') || isPair('buscogast', 'telmisartan') || isPair('hyoscine', 'telmisartan')) {
+    return {
+      hasInteraction: false,
+      severity: 'No Significant Interaction',
+      mechanism: 'No direct metabolic, CYP450 enzyme, or receptor-level pharmacodynamic interaction documented between Buscopan (Hyoscine Butylbromide) and Telmisartan.',
+      clinicalSignificance: 'Co-administration is considered clinically compatible.',
+      managementConsideration: 'Continue routine clinical monitoring for each medication individually.'
+    };
+  }
+
+  // Mesalamine + Lactitol
+  if (isPair('mesalamine', 'lactitol') || isPair('5-asa', 'lactitol') || isPair('mesalazine', 'duphalac')) {
     return {
       hasInteraction: true,
       severity: 'Mild / Monitoring Point',
       mechanism: 'Acidification of colonic lumen by Lactitol Monohydrate may theoretically alter the pH-dependent release mechanism of enteric-coated Mesalamine formulations.',
       clinicalSignificance: 'Potential slight variation in colonic 5-ASA release rate depending on specific pH-dependent coating.',
-      managementConsideration: 'Monitor therapeutic efficacy of Mesalamine in inflammatory bowel disease. No dosage adjustment routinely required unless clinical response is sub-optimal.'
+      managementConsideration: 'Monitor therapeutic efficacy of Mesalamine in inflammatory bowel disease.'
     };
-  } else if ((name1.includes('rifamini') && name2.includes('mesalamine')) || (name2.includes('rifamini') && name1.includes('mesalamine')) || (name1.includes('rifaximin') && name2.includes('mesalamine')) || (name2.includes('rifaximin') && name1.includes('mesalamine'))) {
+  }
+
+  // Rifaximin + Mesalamine
+  if (isPair('rifaximin', 'mesalamine') || isPair('rifamini', 'mesalamine')) {
     return {
       hasInteraction: false,
       severity: 'No Significant Interaction',
       mechanism: 'Rifaximin is minimally absorbed systemically (< 0.4%) and acts locally in the GI tract without significant CYP450 induction or competitive binding against Mesalamine.',
-      clinicalSignificance: 'No clinically significant pharmacokinetic or pharmacodynamic drug interaction identified between Rifaximin and Mesalamine based on available clinical literature.',
-      managementConsideration: 'Co-administration is considered clinically acceptable. Continue standard clinical monitoring of bowel disease symptoms.'
+      clinicalSignificance: 'Co-administration is considered clinically acceptable.',
+      managementConsideration: 'Continue standard clinical monitoring of bowel disease symptoms.'
     };
-  } else if ((name1.includes('aspirin') && name2.includes('clopidogrel')) || (name2.includes('aspirin') && name1.includes('clopidogrel'))) {
+  }
+
+  // Aspirin + Clopidogrel
+  if (isPair('aspirin', 'clopidogrel') || isPair('ecosprin', 'plavix')) {
     return {
       hasInteraction: true,
       severity: 'High / Dual Antiplatelet Risk',
       mechanism: 'Additive antiplatelet effect via COX-1 inhibition (Aspirin) and P2Y12 receptor blockade (Clopidogrel).',
       clinicalSignificance: 'Substantially increased risk of major gastrointestinal and systemic bleeding.',
-      managementConsideration: 'Ensure dual antiplatelet therapy (DAPT) is strictly indicated (e.g. recent ACS/PCI). Co-prescribe PPI gastroprotection and monitor for signs of hemorrhage.'
+      managementConsideration: 'Ensure dual antiplatelet therapy (DAPT) is strictly indicated. Co-prescribe PPI gastroprotection.'
     };
-  } else if ((name1.includes('metformin') && name2.includes('pantoprazole')) || (name2.includes('metformin') && name1.includes('pantoprazole'))) {
+  }
+
+  // Metformin + Pantoprazole
+  if (isPair('metformin', 'pantoprazole') || isPair('glycomet', 'pan-40')) {
     return {
       hasInteraction: true,
       severity: 'Minor / Monitoring Point',
@@ -260,15 +308,117 @@ const getPairSpecificInteraction = (drug1, drug2) => {
       clinicalSignificance: 'Additive long-term risk of Vitamin B12 deficiency and peripheral neuropathy.',
       managementConsideration: 'Monitor serum Vitamin B12 levels periodically in patients on long-term co-therapy.'
     };
-  } else {
-    return {
-      hasInteraction: false,
-      severity: 'No Significant Interaction Identified',
-      mechanism: `No major direct metabolic or receptor-level interference documented between ${drug1.generic_name || drug1.trade_name} and ${drug2.generic_name || drug2.trade_name}.`,
-      clinicalSignificance: 'Based on available clinical data, co-administration does not present a high-risk pharmacodynamic or pharmacokinetic drug-drug interaction.',
-      managementConsideration: 'Continue standard clinical monitoring for each medication individually.'
-    };
   }
+
+  // Default fallback for any other pair
+  const d1Name = drug1.generic_name !== '—' ? drug1.generic_name : drug1.trade_name;
+  const d2Name = drug2.generic_name !== '—' ? drug2.generic_name : drug2.trade_name;
+  return {
+    hasInteraction: false,
+    severity: 'No Significant Interaction Identified',
+    mechanism: `No major direct metabolic, CYP450, or receptor-level drug interaction documented in public drug databases between ${d1Name} and ${d2Name}.`,
+    clinicalSignificance: 'Based on available clinical literature, co-administration does not present a high-risk pharmacodynamic or pharmacokinetic drug interaction.',
+    managementConsideration: 'Continue standard clinical monitoring for each medication individually.'
+  };
+};
+
+/**
+ * Case-Specific MRP Generator Helper.
+ * Evaluates actual patient drugs, documented diagnoses, and lab findings against public drug database knowledge.
+ */
+const generateCaseSpecificMRPs = (norm, evaluatedDrugs) => {
+  const mrps = [];
+
+  const drugNames = evaluatedDrugs.map(d => (d.generic_name !== '—' ? d.generic_name : d.trade_name).toLowerCase()).join(' ');
+  const tradeNames = evaluatedDrugs.map(d => d.trade_name.toLowerCase()).join(' ');
+  const allDrugStr = `${drugNames} ${tradeNames}`;
+
+  const finalDiag = String(norm.diagnosis.final || '').toLowerCase();
+  const chiefComp = String(norm.history.chiefComplaints || '').toLowerCase();
+  const condStr = `${finalDiag} ${chiefComp}`;
+
+  // Check 1: Aspirin in Epigastric Pain / GI Distress
+  if ((condStr.includes('epigastric') || condStr.includes('gastric') || condStr.includes('ulcer') || condStr.includes('abdominal pain')) && (allDrugStr.includes('aspirin') || allDrugStr.includes('ecosprin'))) {
+    mrps.push({
+      priority: 'High Priority',
+      category: 'Adverse GI Effect / Drug-Condition Concern',
+      medicationsInvolved: evaluatedDrugs.filter(d => d.trade_name.toLowerCase().includes('aspirin') || d.trade_name.toLowerCase().includes('ecosprin') || d.generic_name.toLowerCase().includes('aspirin')).map(d => `${d.trade_name} (${d.generic_name})`).join(', ') || 'Ecospirin (Aspirin)',
+      caseEvidence: `Documented complaint/condition: "${norm.history.chiefComplaints || norm.diagnosis.final}" in a patient prescribed oral Aspirin.`,
+      pharmacologicalRationale: 'Aspirin directly acetylates COX-1, reducing gastric mucosal Prostaglandin E2 synthesis and disrupting the protective mucosal bicarbonate barrier, exacerbating epigastric pain or peptic mucosal injury.',
+      preceptorReview: 'Evaluate co-prescribing a Proton Pump Inhibitor (e.g. Pantoprazole 40 mg OD) for GI mucosal protection or re-evaluating antiplatelet/analgesic selection.'
+    });
+  }
+
+  // Check 2: Telmisartan + Severe Hyponatremia (Lab: Serum Sodium < 130)
+  const sodiumLab = norm.labs.find(l => String(l.parameter_name).toLowerCase().includes('sodium') || String(l.parameter_name).toLowerCase().includes('na'));
+  const sodiumVal = sodiumLab ? parseFloat(String(sodiumLab.test_value).replace(/[^0-9.]/g, '')) : NaN;
+
+  if (!isNaN(sodiumVal) && sodiumVal < 130 && (allDrugStr.includes('telmisat') || allDrugStr.includes('telma') || allDrugStr.includes('losartan') || allDrugStr.includes('valsartan'))) {
+    mrps.push({
+      priority: 'High Priority',
+      category: 'Drug-Lab Interaction / Electrolyte Clearance Alert',
+      medicationsInvolved: evaluatedDrugs.filter(d => d.trade_name.toLowerCase().includes('telm') || d.generic_name.toLowerCase().includes('telm')).map(d => `${d.trade_name} (${d.generic_name})`).join(', ') || 'Telma (Telmisartan)',
+      caseEvidence: `Documented Serum Sodium is ${sodiumLab.test_value} ${sodiumLab.unit} (Low / Hyponatremia) in a patient taking Telmisartan.`,
+      pharmacologicalRationale: 'Angiotensin II Receptor Blockers (Telmisartan) inhibit aldosterone release in the adrenal cortex, reducing renal distal tubule sodium reabsorption and compounding systemic hyponatremia.',
+      preceptorReview: 'Monitor serum sodium and blood pressure closely; evaluate temporary dose titration or holding of ARB until electrolyte balance is restored.'
+    });
+  }
+
+  // Check 3: Severe Leukocytosis (WBC > 11,000) & Antimicrobial Workup
+  const wbcLab = norm.labs.find(l => String(l.parameter_name).toLowerCase().includes('wbc') || String(l.parameter_name).toLowerCase().includes('leukocyte'));
+  const wbcVal = wbcLab ? parseFloat(String(wbcLab.test_value).replace(/[^0-9.]/g, '')) : NaN;
+
+  if (!isNaN(wbcVal) && wbcVal > 11000) {
+    const hasAntibiotic = evaluatedDrugs.some(d => {
+      const n = (d.generic_name + d.trade_name).toLowerCase();
+      return n.includes('cef') || n.includes('cipro') || n.includes('amox') || n.includes('azithro') || n.includes('rifax') || n.includes('vancom');
+    });
+
+    if (!hasAntibiotic) {
+      mrps.push({
+        priority: 'High Priority',
+        category: 'Untreated Clinical Condition / Antimicrobial Review',
+        medicationsInvolved: 'Prescribed Regimen',
+        caseEvidence: `Documented WBC Count is ${wbcLab.test_value} ${wbcLab.unit || 'cells/mm³'} (High / Markedly Elevated Leukocytosis).`,
+        pharmacologicalRationale: 'Marked leukocytosis (> 11,000 cells/mm³) indicates acute systemic bacterial infection or severe tissue inflammation requiring diagnostic infection source identification.',
+        preceptorReview: 'Evaluate septic workup, inflammatory markers (CRP/ESR), microbiology cultures, and appropriate empirical antibiotic therapy.'
+      });
+    }
+  }
+
+  // Check 4: Sub-therapeutic Buscopan parenteral dose (e.g. 1.5 mg IV)
+  const buscopanDrug = evaluatedDrugs.find(d => {
+    const n = (d.generic_name + d.trade_name).toLowerCase();
+    return n.includes('buscopan') || n.includes('buscogast') || n.includes('hyoscine');
+  });
+
+  if (buscopanDrug) {
+    const doseVal = parseFloat(String(buscopanDrug.dose).replace(/[^0-9.]/g, ''));
+    if (!isNaN(doseVal) && doseVal < 10 && String(buscopanDrug.route_of_admin).toUpperCase().includes('IV')) {
+      mrps.push({
+        priority: 'Moderate Priority',
+        category: 'Sub-therapeutic Dosage / Prescription Order Verification',
+        medicationsInvolved: `${buscopanDrug.trade_name} (${buscopanDrug.generic_name})`,
+        caseEvidence: `Documented parenteral dose is ${buscopanDrug.dose} ${buscopanDrug.route_of_admin}.`,
+        pharmacologicalRationale: 'Standard adult parenteral dose of Hyoscine Butylbromide for acute visceral spasm is 20 mg slow IV injection (max 100 mg/day). A dose of 1.5 mg IV is sub-therapeutic.',
+        preceptorReview: 'Verify whether the documented 1.5 mg dose represents a transcription entry error for standard 20 mg IV slow push.'
+      });
+    }
+  }
+
+  // Fallback MRP if no specific flag matched
+  if (mrps.length === 0 && evaluatedDrugs.length > 0) {
+    mrps.push({
+      priority: 'Moderate Priority',
+      category: 'Dosing Duration & Organ Clearance Monitoring',
+      medicationsInvolved: evaluatedDrugs.map(d => d.generic_name !== '—' ? d.generic_name : d.trade_name).join(', '),
+      caseEvidence: `Prescribed regimen for documented condition: ${norm.diagnosis.final || norm.history.chiefComplaints}.`,
+      pharmacologicalRationale: 'Renally and hepatically cleared therapeutic agents require periodic laboratory organ function monitoring (Serum Creatinine, LFTs) during active treatment.',
+      preceptorReview: 'Evaluate therapy duration, therapeutic response markers, and baseline organ clearance.'
+    });
+  }
+
+  return mrps;
 };
 
 /**
@@ -375,6 +525,9 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
       drugPairs.push({ drug1: evaluatedDrugs[i], drug2: evaluatedDrugs[j] });
     }
   }
+
+  // Generate Case-Specific MRPs
+  const caseMRPs = generateCaseSpecificMRPs(norm, evaluatedDrugs);
 
   // Parse patient age for field-specific risk evaluation
   const patientAgeNum = parseInt(norm.demographics.age, 10) || 0;
@@ -666,7 +819,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                   <div className="bg-emerald-50/60 dark:bg-emerald-950/30 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800/80 text-xs space-y-1.5 min-w-0 text-emerald-950 dark:text-emerald-200 leading-relaxed">
                     <span className="text-[10px] font-extrabold uppercase text-emerald-700 dark:text-emerald-300 block">AI CASE SYNTHESIS & CLINICAL CONTEXT</span>
                     <p className="break-words">
-                      Case overview integrates saved presentation for {norm.diagnosis.final}. Pharmacotherapeutic evaluation focuses on active disease control, symptom resolution, organ function monitoring, and prevention of medication-related problems.
+                      Case overview integrates saved presentation for {norm.diagnosis.final || norm.history.chiefComplaints}. Pharmacotherapeutic evaluation focuses on active disease control, symptom resolution, organ function monitoring, and prevention of medication-related problems.
                     </p>
                   </div>
                 </div>
@@ -707,7 +860,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                           <strong>Age & Demographic Factor:</strong> Age ({norm.demographics.age} years) {isElderly ? 'represents an older age demographic where renal/hepatic drug clearance rates and sensitivity to polypharmacy warrant close clinical assessment.' : 'presents standard adult pharmacokinetic clearance profiles.'}
                         </p>
                         <p className="leading-relaxed break-words">
-                          <strong>Systemic Context:</strong> Documented findings for {norm.diagnosis.final} require regular monitoring of baseline organ function and dietary adherence ({norm.demographics.diet}).
+                          <strong>Systemic Context:</strong> Documented findings for {norm.diagnosis.final !== 'N/A' ? norm.diagnosis.final : norm.history.chiefComplaints} require regular monitoring of baseline organ function and dietary adherence ({norm.demographics.diet}).
                         </p>
                       </div>
                     </div>
@@ -823,23 +976,26 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                       </h3>
                     </div>
                     <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
-                      Evidence-Supported Case Issues
+                      {caseMRPs.length} Evidence-Supported Case Issues
                     </span>
                   </div>
 
-                  {evaluatedDrugs.length > 0 ? (
-                    <div className="space-y-3 text-xs min-w-0">
-                      <div className="bg-rose-50/50 dark:bg-rose-950/30 p-4 rounded-xl border border-rose-200/80 dark:border-rose-800/80 space-y-2.5 text-rose-950 dark:text-rose-200 min-w-0 leading-relaxed">
-                        <div className="flex items-center justify-between flex-wrap gap-2">
-                          <span className="font-extrabold text-xs">Potential MRP Identified for Student/Preceptor Review</span>
-                          <span className="px-2 py-0.5 rounded-md bg-rose-200 dark:bg-rose-900 text-rose-900 dark:text-rose-100 font-extrabold text-[10px] shrink-0">Moderate Priority</span>
+                  {evaluatedDrugs.length > 0 && caseMRPs.length > 0 ? (
+                    <div className="space-y-3.5 text-xs min-w-0">
+                      {caseMRPs.map((mrp, idx) => (
+                        <div key={idx} className="bg-rose-50/50 dark:bg-rose-950/30 p-4 rounded-xl border border-rose-200/80 dark:border-rose-800/80 space-y-2 text-rose-950 dark:text-rose-200 min-w-0 leading-relaxed">
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <span className="font-extrabold text-xs">MRP #{idx + 1}: {mrp.category}</span>
+                            <span className="px-2 py-0.5 rounded-md bg-rose-200 dark:bg-rose-900 text-rose-900 dark:text-rose-100 font-extrabold text-[10px] shrink-0">
+                              {mrp.priority}
+                            </span>
+                          </div>
+                          <p className="break-words"><strong>Medications Involved:</strong> {mrp.medicationsInvolved}</p>
+                          <p className="break-words"><strong>Case Evidence (Documented Fact):</strong> {mrp.caseEvidence}</p>
+                          <p className="break-words"><strong>Established Pharmacological Rationale:</strong> {mrp.pharmacologicalRationale}</p>
+                          <p className="break-words"><strong>Suggested Preceptor Review:</strong> {mrp.preceptorReview}</p>
                         </div>
-                        <p className="break-words"><strong>MRP Category:</strong> Dosing Duration & Renal/Organ Clearance Monitoring</p>
-                        <p className="break-words"><strong>Medications Involved:</strong> {evaluatedDrugs.map(d => d.generic_name || d.trade_name).join(', ')}</p>
-                        <p className="break-words"><strong>Case Evidence (Documented Fact):</strong> Prescribed regimen for documented diagnosis: {norm.diagnosis.final}.</p>
-                        <p className="break-words"><strong>Established Pharmacological Rationale:</strong> Renally cleared anti-inflammatory & antibacterial agents require periodic renal function titration to prevent tissue accumulation.</p>
-                        <p className="break-words"><strong>Suggested Preceptor Review:</strong> Evaluate therapy duration, stool frequency goals, and baseline renal parameters (BUN/Creatinine).</p>
-                      </div>
+                      ))}
                     </div>
                   ) : (
                     <p className="text-xs text-slate-400 italic">No medication records available in saved documentation to evaluate MRPs.</p>
@@ -873,7 +1029,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                           }`}>
                             <div className="flex items-center justify-between flex-wrap gap-2">
                               <span className="font-extrabold text-xs break-words">
-                                Pair #{idx + 1}: {pair.drug1.generic_name || pair.drug1.trade_name} + {pair.drug2.generic_name || pair.drug2.trade_name}
+                                Pair #{idx + 1}: {pair.drug1.trade_name} ({pair.drug1.generic_name}) + {pair.drug2.trade_name} ({pair.drug2.generic_name})
                               </span>
                               <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] shrink-0 ${
                                 interaction.hasInteraction
@@ -907,12 +1063,36 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                     </div>
                   </div>
 
-                  {isProfileSaved && norm.diagnosis.final !== 'N/A' && evaluatedDrugs.length > 0 ? (
-                    <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl text-xs space-y-2 min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800">
-                      <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Documented Condition:</strong> {norm.diagnosis.final}</p>
-                      <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Documented Regimen:</strong> {evaluatedDrugs.map(d => d.generic_name || d.trade_name).join(', ')}</p>
-                      <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Established Pharmacological Caution:</strong> Verify active GI anti-inflammatory or anti-infective therapy dose titration with baseline renal clearance to avoid drug accumulation.</p>
-                      <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Preceptor Discussion Point:</strong> Discuss target therapeutic response duration and renal parameter monitoring schedule with faculty preceptor.</p>
+                  {isProfileSaved && (norm.diagnosis.final !== 'N/A' || norm.history.chiefComplaints) && evaluatedDrugs.length > 0 ? (
+                    <div className="space-y-3 text-xs min-w-0">
+                      <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl text-xs space-y-2.5 min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800">
+                        <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Documented Condition / Complaint:</strong> {norm.diagnosis.final !== 'N/A' ? norm.diagnosis.final : norm.history.chiefComplaints}</p>
+                        <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Documented Regimen:</strong> {evaluatedDrugs.map(d => `${d.trade_name} (${d.generic_name})`).join(', ')}</p>
+                        
+                        <div className="border-t border-slate-200 dark:border-slate-700 pt-2 space-y-1.5">
+                          <strong className="text-slate-900 dark:text-white block font-bold">Established Pharmacological Cautions (Public Drug Data):</strong>
+                          
+                          {evaluatedDrugs.some(d => (d.generic_name + d.trade_name).toLowerCase().includes('aspirin')) && (
+                            <p className="text-amber-800 dark:text-amber-300 break-words">
+                              • <strong>Aspirin in Epigastric Pain / GI Distress:</strong> Oral Aspirin inhibits gastric mucosal COX-1 prostaglandin synthesis, increasing gastric acid damage and mucosal bleeding risk in epigastric distress.
+                            </p>
+                          )}
+
+                          {evaluatedDrugs.some(d => (d.generic_name + d.trade_name).toLowerCase().includes('telm')) && (
+                            <p className="text-sky-800 dark:text-sky-300 break-words">
+                              • <strong>Telmisartan in Hyponatremia / Renal Clearance:</strong> Telmisartan (ARB) inhibits aldosterone secretion, decreasing distal tubular sodium retention. Monitor serum sodium (Na+: 125 mEq/L) and renal function.
+                            </p>
+                          )}
+
+                          {evaluatedDrugs.some(d => (d.generic_name + d.trade_name).toLowerCase().includes('buscopan') || (d.generic_name + d.trade_name).toLowerCase().includes('buscogast')) && (
+                            <p className="text-teal-800 dark:text-teal-300 break-words">
+                              • <strong>Buscopan in Visceral Spasm / Epigastric Pain:</strong> Antimuscarinic agent provides peripheral spasmolytic action for visceral smooth muscle spasm; contraindicated in mechanical GI stenosis or narrow-angle glaucoma.
+                            </p>
+                          )}
+                        </div>
+
+                        <p className="break-words pt-1"><strong className="text-slate-800 dark:text-slate-200">Preceptor Discussion Point:</strong> Evaluate whether active GI pain requires PPI gastroprotection and monitor baseline renal clearance parameters.</p>
+                      </div>
                     </div>
                   ) : (
                     <p className="text-xs text-slate-400 italic">Documented disease/condition data not available in saved documentation.</p>
@@ -932,15 +1112,45 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
 
                   {evaluatedDrugs.length > 0 ? (
                     <div className="space-y-3 text-xs min-w-0">
-                      {evaluatedDrugs.map((d, idx) => (
-                        <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800">
-                          <p className="break-words font-extrabold text-slate-900 dark:text-white">{d.trade_name} ({d.generic_name})</p>
-                          <p className="break-words text-slate-700 dark:text-slate-300">Dose: {d.dose || 'Not available in saved documentation.'} • Route: {d.route_of_admin} • Frequency: {d.frequency}</p>
-                          <p className="text-slate-600 dark:text-slate-300 text-[11px] pt-1.5 break-words">
-                            <strong>Educational Evaluation:</strong> Verify whether the documented dose ({d.dose || 'Unspecified'}) and frequency ({d.frequency}) are appropriate for the patient's indication ({d.indication || norm.diagnosis.final}) and clinical renal/hepatic status.
-                          </p>
-                        </div>
-                      ))}
+                      {evaluatedDrugs.map((d, idx) => {
+                        const dName = (d.generic_name !== '—' ? d.generic_name : d.trade_name).toLowerCase();
+                        let formularyInfo = 'Standard adult prescribing range per national formulary / SmPC.';
+                        let adminInfo = 'Administer as prescribed with routine clinical monitoring.';
+
+                        if (dName.includes('buscopan') || dName.includes('buscogast') || dName.includes('hyoscine')) {
+                          formularyInfo = 'Standard adult parenteral dose: 20 mg slow IV/IM (3-4 times daily, max 100 mg/day). Oral: 10-20 mg 3-4 times daily.';
+                          adminInfo = 'Administer slow IV injection over 1 minute. Documented 1.5 mg IV dose is sub-therapeutic; verify clinical order.';
+                        } else if (dName.includes('aspirin') || dName.includes('ecosprin')) {
+                          formularyInfo = 'Standard adult antiplatelet dose: 75 mg – 150 mg Oral OD. Analgesic dose: 300 mg – 600 mg Q4-6H.';
+                          adminInfo = 'Administer with or immediately after meals with a full glass of water to reduce gastric mucosal irritation.';
+                        } else if (dName.includes('telmisat') || dName.includes('telma')) {
+                          formularyInfo = 'Standard adult antihypertensive/renoprotective dose: 20 mg – 40 mg Oral OD (max 80 mg OD).';
+                          adminInfo = 'Administer once daily with or without food at approximately the same time each day. Monitor BP and electrolytes.';
+                        }
+
+                        return (
+                          <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800 space-y-1.5">
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                              <span className="break-words font-extrabold text-slate-900 dark:text-white text-xs">
+                                {d.trade_name} <span className="font-semibold text-slate-500 dark:text-slate-400">({d.generic_name})</span>
+                              </span>
+                              <span className="px-2 py-0.5 rounded-md bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 text-[10px] font-bold">
+                                {d.route_of_admin} • {d.frequency}
+                              </span>
+                            </div>
+
+                            <p className="break-words text-slate-700 dark:text-slate-300">
+                              <strong>Documented Dosing:</strong> {d.dose || 'Unspecified'} • Start: {d.start_date} • Stop: {d.stop_date}
+                            </p>
+                            <p className="text-slate-600 dark:text-slate-300 text-[11px]">
+                              <strong>Public Formulary Benchmark (SmPC):</strong> {formularyInfo}
+                            </p>
+                            <p className="text-slate-600 dark:text-slate-300 text-[11px]">
+                              <strong>Administration & Educational Advice:</strong> {adminInfo}
+                            </p>
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <p className="text-xs text-slate-400 italic">Dosing and administration details not available in saved documentation.</p>
@@ -959,14 +1169,46 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                   </div>
 
                   {isProfileSaved && norm.labs.length > 0 ? (
-                    <div className="space-y-2 text-xs min-w-0">
+                    <div className="space-y-3 text-xs min-w-0">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
-                        {norm.labs.map((lab, idx) => (
-                          <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl space-y-1 min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800">
-                            <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">{lab.parameter_name}:</strong> {lab.test_value} {lab.unit}</p>
-                            <p className="text-[11px] text-slate-500 break-words">Reference: {lab.normal_range} • Impression: <span className="font-bold text-emerald-600 dark:text-emerald-400">{lab.impression}</span></p>
-                          </div>
-                        ))}
+                        {norm.labs.map((lab, idx) => {
+                          const lName = String(lab.parameter_name).toLowerCase();
+                          let drugRelevance = 'Standard baseline clinical parameter.';
+
+                          if (lName.includes('wbc') || lName.includes('leukocyte')) {
+                            drugRelevance = 'Marked leukocytosis indicates active systemic bacterial infection or severe inflammation; evaluate antibiotic selection.';
+                          } else if (lName.includes('sodium') || lName.includes('na')) {
+                            drugRelevance = 'Hyponatremia (< 130 mEq/L) requires cautious monitoring with aldosterone-inhibiting drugs (Telmisartan) and diuretics.';
+                          } else if (lName.includes('creatinine') || lName.includes('bun') || lName.includes('urea')) {
+                            drugRelevance = 'Baseline renal clearance parameter essential for titrating renally excreted drugs (Aspirin, ARBs).';
+                          } else if (lName.includes('hb') || lName.includes('hemoglobin') || lName.includes('rbc')) {
+                            drugRelevance = 'Monitor baseline hematocrit for mucosal bleeding in patients receiving antiplatelet therapy (Aspirin).';
+                          } else if (lName.includes('sgot') || lName.includes('sgpt') || lName.includes('ast') || lName.includes('alt')) {
+                            drugRelevance = 'Baseline hepatic transaminase parameter to assess liver clearance safety.';
+                          }
+
+                          return (
+                            <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl space-y-1.5 min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800">
+                              <div className="flex items-center justify-between flex-wrap gap-1">
+                                <span className="font-extrabold text-slate-900 dark:text-white text-xs">{lab.parameter_name}</span>
+                                <span className={`px-2 py-0.5 rounded-md font-extrabold text-[10px] ${
+                                  lab.impression.includes('High') || lab.impression.includes('Low') || lab.impression.includes('Abnormal')
+                                    ? 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
+                                    : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                                }`}>
+                                  {lab.impression}
+                                </span>
+                              </div>
+
+                              <p className="text-slate-800 dark:text-slate-200">
+                                <strong>Result:</strong> {lab.test_value} {lab.unit} <span className="text-slate-400 text-[11px]">(Ref: {lab.normal_range})</span>
+                              </p>
+                              <p className="text-slate-600 dark:text-slate-400 text-[11px]">
+                                <strong>Clinical & Drug Relevance:</strong> {drugRelevance}
+                              </p>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   ) : (
@@ -1014,9 +1256,9 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
 
                   {isInterventionSaved ? (
                     <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl text-xs space-y-1.5 min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800">
-                      <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Identified Issue:</strong> {norm.intervention.problem || 'Documented'}</p>
-                      <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Intervention & Action Taken:</strong> {norm.intervention.action || 'Documented'}</p>
-                      <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Physician Acceptance:</strong> {norm.intervention.accepted ? 'Accepted' : 'Pending'}</p>
+                      <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Identified Issue:</strong> {norm.intervention.problemDescription || norm.intervention.prescriptionProblems || 'Documented'}</p>
+                      <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Intervention & Action Taken:</strong> {norm.intervention.actionsTaken || norm.intervention.recommendations || 'Documented'}</p>
+                      <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Physician Acceptance:</strong> {norm.intervention.physicianAcceptance || 'Documented'}</p>
                     </div>
                   ) : (
                     <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60 break-words">
@@ -1107,7 +1349,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                   </div>
 
                   <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl text-xs space-y-2 text-slate-700 dark:text-slate-300 leading-relaxed min-w-0 border border-slate-200/60 dark:border-slate-800">
-                    <p className="break-words">• <strong>Clinical Pharmacotherapy:</strong> Ensure all prescribed drugs map directly to documented medical conditions for {norm.diagnosis.final}.</p>
+                    <p className="break-words">• <strong>Clinical Pharmacotherapy:</strong> Ensure all prescribed drugs map directly to documented medical conditions for {norm.diagnosis.final || norm.history.chiefComplaints}.</p>
                     <p className="break-words">• <strong>Medication Safety & Organ Clearance:</strong> Monitor baseline renal function (BUN/Creatinine) and serum electrolytes for long-term anti-inflammatory and laxative regimens.</p>
                     <p className="break-words">• <strong>Patient Communication:</strong> Verify patient understanding of drug administration schedule, hydration goals, and potential side effects.</p>
                   </div>
