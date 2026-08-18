@@ -1,9 +1,23 @@
 import jsPDF from 'jspdf';
-import { buildNormalizedApprovedCaseData } from './buildNormalizedApprovedCaseData';
+import { buildNormalizedApprovedCaseData, formatDisplayDate as importedFormatDisplayDate } from './buildNormalizedApprovedCaseData';
 
 /**
- * Image format detection helper for jsPDF addImage
+ * Safe Date Formatting Helper for PDF output
  */
+export const formatDisplayDate = (val) => {
+  if (typeof importedFormatDisplayDate === 'function') {
+    return importedFormatDisplayDate(val);
+  }
+  if (!val || val === '—' || val === 'N/A' || val === 'null' || val === 'undefined') return '—';
+  const str = String(val).trim();
+  if (str.includes('T')) {
+    const datePart = str.split('T')[0];
+    if (datePart && datePart.length === 10) return datePart;
+  }
+  return str;
+};
+
+
 const getImageFormat = (imgUrl) => {
   if (!imgUrl) return 'PNG';
   if (typeof imgUrl === 'string') {
