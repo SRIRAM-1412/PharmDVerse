@@ -68,28 +68,35 @@ export const StudentLayout = ({ student, onLogout }) => {
     loadUnreadCount();
   };
 
-  const handleOpenPatientProfile = (clinicalCase) => {
+  const [navSourceTab, setNavSourceTab] = useState(null);
+
+  const handleOpenPatientProfile = (clinicalCase, sourceTab = null) => {
     setSelectedCaseForForm(clinicalCase);
+    if (sourceTab) setNavSourceTab(sourceTab);
     handleNavigate('patient-profile');
   };
 
-  const handleOpenPatientCounselling = (clinicalCase) => {
+  const handleOpenPatientCounselling = (clinicalCase, sourceTab = null) => {
     setSelectedCaseForForm(clinicalCase);
+    if (sourceTab) setNavSourceTab(sourceTab);
     handleNavigate('patient-counselling');
   };
 
-  const handleOpenPharmacistIntervention = (clinicalCase) => {
+  const handleOpenPharmacistIntervention = (clinicalCase, sourceTab = null) => {
     setSelectedCaseForForm(clinicalCase);
+    if (sourceTab) setNavSourceTab(sourceTab);
     handleNavigate('pharmacist-intervention');
   };
 
-  const handleOpenDrugInformationRequest = (clinicalCase) => {
+  const handleOpenDrugInformationRequest = (clinicalCase, sourceTab = null) => {
     setSelectedCaseForForm(clinicalCase);
+    if (sourceTab) setNavSourceTab(sourceTab);
     handleNavigate('drug-info-request');
   };
 
-  const handleOpenADRDocumentation = (clinicalCase) => {
+  const handleOpenADRDocumentation = (clinicalCase, sourceTab = null) => {
     setSelectedCaseForForm(clinicalCase);
+    if (sourceTab) setNavSourceTab(sourceTab);
     handleNavigate('adr-documentation');
   };
 
@@ -360,7 +367,7 @@ export const StudentLayout = ({ student, onLogout }) => {
             <PatientProfileFormView
               clinicalCase={selectedCaseForForm}
               student={student}
-              onBack={() => handleNavigate('my-cases')}
+              onBack={() => handleNavigate(navSourceTab === 'doc-review' ? 'doc-review' : 'my-cases')}
             />
           )}
 
@@ -368,7 +375,7 @@ export const StudentLayout = ({ student, onLogout }) => {
             <PatientCounsellingFormView
               clinicalCase={selectedCaseForForm}
               student={student}
-              onBack={() => handleNavigate('my-cases')}
+              onBack={() => handleNavigate(navSourceTab === 'doc-review' ? 'doc-review' : 'my-cases')}
             />
           )}
 
@@ -376,7 +383,7 @@ export const StudentLayout = ({ student, onLogout }) => {
             <PharmacistInterventionFormView
               clinicalCase={selectedCaseForForm}
               student={student}
-              onBack={() => handleNavigate('my-cases')}
+              onBack={() => handleNavigate(navSourceTab === 'doc-review' ? 'doc-review' : 'my-cases')}
             />
           )}
 
@@ -384,7 +391,7 @@ export const StudentLayout = ({ student, onLogout }) => {
             <DrugInformationFormView
               clinicalCase={selectedCaseForForm}
               student={student}
-              onBack={() => handleNavigate('my-cases')}
+              onBack={() => handleNavigate(navSourceTab === 'doc-review' ? 'doc-review' : 'my-cases')}
             />
           )}
 
@@ -392,7 +399,7 @@ export const StudentLayout = ({ student, onLogout }) => {
             <ADRDocumentationFormView
               clinicalCase={selectedCaseForForm}
               student={student}
-              onBack={() => handleNavigate('my-cases')}
+              onBack={() => handleNavigate(navSourceTab === 'doc-review' ? 'doc-review' : 'my-cases')}
             />
           )}
 
@@ -400,11 +407,11 @@ export const StudentLayout = ({ student, onLogout }) => {
             <StudentDocReviewView
               student={student}
               onNavigate={handleNavigate}
-              onOpenPatientProfile={handleOpenPatientProfile}
-              onOpenPatientCounselling={handleOpenPatientCounselling}
-              onOpenPharmacistIntervention={handleOpenPharmacistIntervention}
-              onOpenDrugInformationRequest={handleOpenDrugInformationRequest}
-              onOpenADRDocumentation={handleOpenADRDocumentation}
+              onOpenPatientProfile={(c) => handleOpenPatientProfile(c, 'doc-review')}
+              onOpenPatientCounselling={(c) => handleOpenPatientCounselling(c, 'doc-review')}
+              onOpenPharmacistIntervention={(c) => handleOpenPharmacistIntervention(c, 'doc-review')}
+              onOpenDrugInformationRequest={(c) => handleOpenDrugInformationRequest(c, 'doc-review')}
+              onOpenADRDocumentation={(c) => handleOpenADRDocumentation(c, 'doc-review')}
             />
           )}
 

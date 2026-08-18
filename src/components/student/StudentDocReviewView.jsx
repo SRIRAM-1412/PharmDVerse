@@ -78,48 +78,32 @@ const checkIsFormSaved = (formObj, formType = '') => {
   return false;
 };
 
-/**
- * Known Dictionary of Valid Medications & Brand Names
- */
-const KNOWN_DRUG_DICTIONARY = {
-  // Generics
-  'hyoscine butylbromide': { type: 'Generic Name', isBrand: false },
-  'hyoscine': { type: 'Generic Name', isBrand: false },
-  'mesalamine': { type: 'Generic Name', isBrand: false },
-  'mesalazine': { type: 'Generic Name', isBrand: false },
-  'aspirin': { type: 'Generic Name', isBrand: false },
-  'acetylsalicylic acid': { type: 'Generic Name', isBrand: false },
-  'telmisartan': { type: 'Generic Name', isBrand: false },
-  'paracetamol': { type: 'Generic Name', isBrand: false },
-  'acetaminophen': { type: 'Generic Name', isBrand: false },
-  'amoxicillin': { type: 'Generic Name', isBrand: false },
-  'pantoprazole': { type: 'Generic Name', isBrand: false },
-  'atorvastatin': { type: 'Generic Name', isBrand: false },
-  'metformin': { type: 'Generic Name', isBrand: false },
-  'spironolactone': { type: 'Generic Name', isBrand: false },
-  'furosemide': { type: 'Generic Name', isBrand: false },
-  'insulin': { type: 'Generic Name', isBrand: false },
-  'ceftriaxone': { type: 'Generic Name', isBrand: false },
-  'azithromycin': { type: 'Generic Name', isBrand: false },
-  'clopidogrel': { type: 'Generic Name', isBrand: false },
-  'amlodipine': { type: 'Generic Name', isBrand: false },
+const KNOWN_DRUGS = [
+  'pantop', 'pantop 40', 'pantocid', 'pan 40', 'pantodac', 'pantoprazole',
+  'ecosprin', 'aspirin', 'acetylsalicylic acid',
+  'telma', 'telpres', 'tazloc', 'telmikind', 'telmisartan',
+  'buscopan', 'buscogast', 'hyoscine', 'hyoscine butylbromide',
+  'crocin', 'dolo', 'dolo 650', 'calpol', 'pacimol', 'pcm', 'paracetamol', 'acetaminophen',
+  'augmentin', 'amoxicillin', 'moxikind',
+  'ciplox', 'cifran', 'ciprofloxacin',
+  'taxim', 'cefotaxime', 'monocef', 'ceftriaxone',
+  'zithrox', 'azithral', 'azithromycin',
+  'atorva', 'atorlip', 'storvas', 'atorvastatin',
+  'glycomet', 'gluformin', 'metformin',
+  'amlong', 'stamlo', 'amlodipine',
+  'clopitab', 'cereluc', 'clopidogrel',
+  'deriphyllin', 'etofylline', 'theophylline',
+  'lasix', 'furosemide',
+  'aldactone', 'spironolactone',
+  'lantus', 'actrapid', 'mixtard', 'insulin',
+  'pantop-40', 'pantop-d', 'pan-40', 'pan-d'
+];
 
-  // Brands (Mandatory Rule 7: Do NOT suggest replacing valid brand with generic!)
-  'buscopan': { type: 'Brand Name', isBrand: true, genericName: 'Hyoscine butylbromide' },
-  'buscogast': { type: 'Brand Name', isBrand: true, genericName: 'Hyoscine butylbromide' },
-  'telma': { type: 'Brand Name', isBrand: true, genericName: 'Telmisartan' },
-  'ecosprin': { type: 'Brand Name', isBrand: true, genericName: 'Aspirin' },
-  'pan 40': { type: 'Brand Name', isBrand: true, genericName: 'Pantoprazole' },
-  'pantocid': { type: 'Brand Name', isBrand: true, genericName: 'Pantoprazole' },
-  'crocin': { type: 'Brand Name', isBrand: true, genericName: 'Paracetamol' },
-  'dolo 650': { type: 'Brand Name', isBrand: true, genericName: 'Paracetamol' },
-  'augmentin': { type: 'Brand Name', isBrand: true, genericName: 'Amoxicillin + Clavulanic Acid' },
-  'lasix': { type: 'Brand Name', isBrand: true, genericName: 'Furosemide' },
-  'aldactone': { type: 'Brand Name', isBrand: true, genericName: 'Spironolactone' },
-  'lantus': { type: 'Brand Name', isBrand: true, genericName: 'Insulin Glargine' },
-  'actrapid': { type: 'Brand Name', isBrand: true, genericName: 'Human Regular Insulin' },
-  'deriphyllin': { type: 'Brand Name', isBrand: true, genericName: 'Etofylline + Theophylline' }
-};
+const KNOWN_DRUG_STEMS = [
+  'prazole', 'sartan', 'statin', 'cillin', 'mycin', 'cycline', 'floxacin',
+  'olol', 'dipine', 'pril', 'tidine', 'gliptin', 'gliflozin', 'coxib', 'vir',
+  'mab', 'zepam', 'zolam', 'nidazole', 'barbital', 'terol', 'lukast'
+];
 
 /**
  * Common misspelling corrections dictionary
@@ -284,41 +268,45 @@ const generatePreSubmissionReview = (norm, caseModulesData) => {
       }
 
       // Check for Misspelled Medication Name (Requirement 8)
+      // Use exact word boundaries so correct spellings like "pantoprazole" do not loosely match "pantoprazol"
       let matchedCorrection = null;
-      Object.keys(COMMON_SPELLING_CORRECTIONS).forEach(misspelled => {
-        if (lowerCombined.includes(misspelled)) {
-          matchedCorrection = COMMON_SPELLING_CORRECTIONS[misspelled];
-        }
-      });
+      const tokens = lowerCombined.split(/[\s()/-]+/).filter(Boolean);
 
-      if (matchedCorrection) {
-        addIssue(
-          'PLEASE_VERIFY',
-          'Patient Profile',
-          'patient-profile',
-          `Medication #${idx + 1} Name`,
-          combined,
-          'The entered medication name appears to contain a spelling variation.',
-          matchedCorrection,
-          'Verify medication spelling against prescription/clinical record.'
-        );
-      } else {
-        // Check Brand vs Generic dictionary (Requirement 7 & 9)
-        const matchedKnown = Object.keys(KNOWN_DRUG_DICTIONARY).find(k => lowerCombined.includes(k));
-        if (!matchedKnown && lowerCombined.length > 2 && !lowerCombined.includes('—')) {
-          // Unrecognized drug string check (Requirement 9)
-          if (!lowerCombined.includes('aspirin') && !lowerCombined.includes('telmisartan') && !lowerCombined.includes('buscopan')) {
-            addIssue(
-              'PLEASE_VERIFY',
-              'Patient Profile',
-              'patient-profile',
-              `Medication #${idx + 1} Name`,
-              combined,
-              'The medication name could not be confidently identified in standard drug nomenclature.',
-              'No confident correction available. Verify exact spelling against clinical record.',
-              'Verify trade and generic names against original prescription.'
-            );
+      // Check if entry contains a known valid brand or generic (e.g. "PANTOP PANTOPRAZOLE", "TELMA", "ECOSPRIN")
+      const hasValidBrandOrGeneric = tokens.some(t => 
+        KNOWN_DRUGS.includes(t) || 
+        KNOWN_DRUG_STEMS.some(stem => t.includes(stem))
+      );
+
+      if (!hasValidBrandOrGeneric) {
+        tokens.forEach(tok => {
+          if (COMMON_SPELLING_CORRECTIONS[tok]) {
+            matchedCorrection = COMMON_SPELLING_CORRECTIONS[tok];
           }
+        });
+
+        if (matchedCorrection) {
+          addIssue(
+            'PLEASE_VERIFY',
+            'Patient Profile',
+            'patient-profile',
+            `Medication #${idx + 1} Name`,
+            combined,
+            'The entered medication name appears to contain a spelling variation.',
+            matchedCorrection,
+            'Verify medication spelling against prescription/clinical record.'
+          );
+        } else if (lowerCombined.length > 2 && !lowerCombined.includes('—')) {
+          addIssue(
+            'PLEASE_VERIFY',
+            'Patient Profile',
+            'patient-profile',
+            `Medication #${idx + 1} Name`,
+            combined,
+            'The medication name could not be confidently identified in standard drug nomenclature.',
+            'No confident correction available. Verify exact spelling against clinical record.',
+            'Verify trade and generic names against original prescription.'
+          );
         }
       }
 
