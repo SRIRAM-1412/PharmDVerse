@@ -161,42 +161,61 @@ const KNOWN_DRUG_STEMS = [
 ];
 
 /**
- * Common misspelling corrections dictionary
+ * Calculates Levenshtein Distance between two strings for fuzzy spelling detection
  */
-const COMMON_SPELLING_CORRECTIONS = {
-  // Drugs
-  'mesalamin': 'Mesalamine',
-  'hyoscine butylbromid': 'Hyoscine butylbromide',
-  'amoxicilin': 'Amoxicillin',
-  'telmisat': 'Telmisartan',
-  'telmisartin': 'Telmisartan',
-  'paracetmol': 'Paracetamol',
-  'pantoprazol': 'Pantoprazole',
-  'atorvastatin': 'Atorvastatin',
-  'aspirine': 'Aspirin',
-  'spironolacton': 'Spironolactone',
-  'levocetriz': 'Levocetirizine',
-  'levocetirizin': 'Levocetirizine',
-  'levocetrizine': 'Levocetirizine',
+const getLevenshteinDistance = (a, b) => {
+  if (!a || !b) return 99;
+  const matrix = [];
+  for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
 
-  // Diagnoses
-  'hypertenssion': 'Hypertension',
-  'hypertensionn': 'Hypertension',
-  'diabates': 'Diabetes Mellitus',
-  'diabtes': 'Diabetes Mellitus',
-  'astma': 'Asthma',
-  'pneumonea': 'Pneumonia',
-  'serosis': 'Cirrhosis',
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
+        );
+      }
+    }
+  }
+  return matrix[b.length][a.length];
+};
 
-  // Symptoms
-  'feverr': 'Fever',
-  'nauseaa': 'Nausea',
-  'vomitting': 'Vomiting',
+/**
+ * Finds the closest known drug spelling or truncation match for misspelled inputs (e.g. "azithromyc" -> "Azithromycin")
+ */
+const findClosestDrugSpelling = (inputStr) => {
+  if (!inputStr || inputStr.length < 3) return null;
+  const lower = inputStr.toLowerCase().trim();
 
-  // Diagnostic tests
-  'echocardiogramm': 'Echocardiogram',
-  'electrocardiogramm': 'Electrocardiogram',
-  'ultrasond': 'Ultrasound'
+  // 1. Check direct prefix/truncation match (e.g. "azithromyc" -> "Azithromycin")
+  const prefixMatch = KNOWN_DRUGS.find(d => d.length > lower.length && d.startsWith(lower) && lower.length >= 4);
+  if (prefixMatch) {
+    return prefixMatch.charAt(0).toUpperCase() + prefixMatch.slice(1);
+  }
+
+  // 2. Check Levenshtein Distance match (e.g. "paracetmol" -> "Paracetamol", distance <= 3)
+  let bestMatch = null;
+  let minDistance = 999;
+
+  KNOWN_DRUGS.forEach(known => {
+    if (Math.abs(known.length - lower.length) <= 3 && known.length >= 4) {
+      const dist = getLevenshteinDistance(lower, known);
+      if (dist <= 3 && dist < minDistance) {
+        minDistance = dist;
+        bestMatch = known;
+      }
+    }
+  });
+
+  if (bestMatch && minDistance <= 3) {
+    return bestMatch.charAt(0).toUpperCase() + bestMatch.slice(1);
+  }
+
+  return null;
 };
 
 /**
@@ -345,8 +364,17 @@ const generatePreSubmissionReview = (norm, caseModulesData) => {
         tokens.forEach(tok => {
           if (COMMON_SPELLING_CORRECTIONS[tok]) {
             matchedCorrection = COMMON_SPELLING_CORRECTIONS[tok];
+          } else {
+            const fuzzyMatch = findClosestDrugSpelling(tok);
+            if (fuzzyMatch) {
+              matchedCorrection = fuzzyMatch;
+            }
           }
         });
+
+        if (!matchedCorrection && lowerCombined.length >= 3) {
+          matchedCorrection = findClosestDrugSpelling(lowerCombined);
+        }
 
         if (matchedCorrection) {
           addIssue(
@@ -355,9 +383,10 @@ const generatePreSubmissionReview = (norm, caseModulesData) => {
             'patient-profile',
             `Medication #${idx + 1} Name`,
             combined,
-            'The entered medication name appears to contain a spelling variation.',
+            'The entered medication name appears to contain a spelling or truncation variation.',
             matchedCorrection,
-            'Verify medication spelling against prescription/clinical record.'
+            'Verify medication spelling against prescription/clinical record.',
+            `field-med-name-${idx}`
           );
         } else if (lowerCombined.length > 2 && !lowerCombined.includes('—')) {
           addIssue(
@@ -368,7 +397,8 @@ const generatePreSubmissionReview = (norm, caseModulesData) => {
             combined,
             'The medication name could not be confidently identified in standard drug nomenclature.',
             'No confident correction available. Verify exact spelling against clinical record.',
-            'Verify trade and generic names against original prescription.'
+            'Verify trade and generic names against original prescription.',
+            `field-med-name-${idx}`
           );
         }
       }
