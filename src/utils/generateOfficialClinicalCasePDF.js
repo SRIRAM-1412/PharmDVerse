@@ -729,16 +729,16 @@ export const generateOfficialClinicalCasePDF = ({
 
     // Row 2: IP/OP No, Type, Ward/Unit, Department (Tuned width limits)
     doc.setFont(fontFamily, 'normal'); doc.text('IP/OP No: ', marginX + 2, cSessY + 13.5);
-    doc.setFont(fontFamily, 'bold'); doc.text(String(counselling.ip_op_number || norm.demographics.ipOpNo), marginX + 16, cSessY + 13.5, { maxWidth: 30 });
+    doc.setFont(fontFamily, 'bold'); doc.text(String(counselling.ip_op_number || norm.demographics.ipOpNo), marginX + 16, cSessY + 13.5, { maxWidth: 22 });
 
-    doc.setFont(fontFamily, 'normal'); doc.text('Type: ', marginX + 48, cSessY + 13.5);
-    doc.setFont(fontFamily, 'bold'); doc.text(String(counselling.patient_type || 'Inpatient'), marginX + 57, cSessY + 13.5, { maxWidth: 30 });
+    doc.setFont(fontFamily, 'normal'); doc.text('Type: ', marginX + 40, cSessY + 13.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(counselling.patient_type || 'Inpatient'), marginX + 49, cSessY + 13.5, { maxWidth: 20 });
 
-    doc.setFont(fontFamily, 'normal'); doc.text('Ward/Unit: ', marginX + 92, cSessY + 13.5);
-    doc.setFont(fontFamily, 'bold'); doc.text(String(counselling.unit_ward || norm.demographics.wardBed), marginX + 108, cSessY + 13.5, { maxWidth: 42 });
+    doc.setFont(fontFamily, 'normal'); doc.text('Ward/Unit: ', marginX + 71, cSessY + 13.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(counselling.unit_ward || norm.demographics.wardBed), marginX + 87, cSessY + 13.5, { maxWidth: 48 });
 
-    doc.setFont(fontFamily, 'normal'); doc.text('Dept: ', marginX + 152, cSessY + 13.5);
-    doc.setFont(fontFamily, 'bold'); doc.text(String(counselling.department || norm.demographics.department), marginX + 161, cSessY + 13.5, { maxWidth: 17 });
+    doc.setFont(fontFamily, 'normal'); doc.text('Dept: ', marginX + 137, cSessY + 13.5);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(counselling.department || norm.demographics.department), marginX + 146, cSessY + 13.5, { maxWidth: 33 });
 
     // Row 3: Known Allergies
     doc.setFont(fontFamily, 'normal'); doc.text('Known Allergies: ', marginX + 2, cSessY + 21.0);
@@ -771,16 +771,26 @@ export const generateOfficialClinicalCasePDF = ({
       const col = idx % 2 === 0 ? marginX + 4 : marginX + 94;
       const rowOffset = Math.floor(idx / 2) * 6.5 + 5;
 
+      // Draw outer bracket [   ]
+      doc.setFont(fontFamily, 'normal'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
+      doc.text('[   ]', col, checkY + rowOffset);
+
       if (isChecked) {
-        doc.setFont(fontFamily, 'bold'); doc.setTextColor(2, 132, 199);
-        doc.text('[ ✓ ]', col, checkY + rowOffset);
-        doc.setFont(fontFamily, 'bold'); doc.setTextColor(15, 23, 42);
-        doc.text(point, col + 8, checkY + rowOffset, { maxWidth: 80 });
+        // Draw crisp vector checkmark in distinct sky blue (2, 132, 199)
+        doc.saveGraphicsState();
+        doc.setDrawColor(2, 132, 199);
+        doc.setLineWidth(0.65);
+        const tickX = col + 1.6;
+        const tickY = checkY + rowOffset - 1.2;
+        doc.line(tickX, tickY, tickX + 1.0, tickY + 1.3);
+        doc.line(tickX + 1.0, tickY + 1.3, tickX + 2.8, tickY - 1.7);
+        doc.restoreGraphicsState();
+
+        doc.setFont(fontFamily, 'bold'); doc.setFontSize(9.5); doc.setTextColor(15, 23, 42);
+        doc.text(point, col + 9, checkY + rowOffset, { maxWidth: 78 });
       } else {
-        doc.setFont(fontFamily, 'normal'); doc.setTextColor(148, 163, 184);
-        doc.text('[   ]', col, checkY + rowOffset);
-        doc.setTextColor(100, 116, 139);
-        doc.text(point, col + 8, checkY + rowOffset, { maxWidth: 80 });
+        doc.setFont(fontFamily, 'normal'); doc.setFontSize(9.5); doc.setTextColor(148, 163, 184);
+        doc.text(point, col + 9, checkY + rowOffset, { maxWidth: 78 });
       }
     });
     doc.setTextColor(15, 23, 42);
