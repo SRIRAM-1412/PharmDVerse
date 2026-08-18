@@ -903,7 +903,7 @@ export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOn
             </div>
           </div>
 
-          <div>
+          <div id="field-allergies" data-field-id="field-allergies">
             <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Allergies</label>
             <div className="space-y-2">
               <input type="text" value={allergyFood} onChange={(e) => setAllergyFood(e.target.value)} placeholder="Enter food allergies" className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900" />

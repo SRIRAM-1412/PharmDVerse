@@ -180,13 +180,14 @@ const generatePreSubmissionReview = (norm, caseModulesData) => {
     const vitals = norm.vitals || [];
 
     // A. Allergy Information Gap Check (Requirement 21)
-    if (!profile.allergies || profile.allergies.trim() === '' || profile.allergies === 'N/A' || profile.allergies === '—') {
+    const allergyVal = String(profile.allergy_drugs || profile.allergy_food || profile.allergies || norm.allergies || '').trim();
+    if (!allergyVal || allergyVal === 'N/A' || allergyVal === '—') {
       addIssue(
         'DOCUMENTATION_GAP',
         'Patient Profile',
         'patient-profile',
         'Allergy Information',
-        profile.allergies || 'Empty',
+        allergyVal || 'Empty',
         'Allergy status has not been explicitly documented in the patient profile.',
         'If allergy information is available and clinically relevant, document the patient\'s allergy status before final submission.',
         'Document allergy status or explicit "No Known Drug Allergies (NKDA)".',
