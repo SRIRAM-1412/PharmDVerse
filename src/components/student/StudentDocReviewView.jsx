@@ -79,32 +79,85 @@ const checkIsFormSaved = (formObj, formType = '') => {
 };
 
 const KNOWN_DRUGS = [
-  'pantop', 'pantop 40', 'pantocid', 'pan 40', 'pantodac', 'pantoprazole',
-  'ecosprin', 'aspirin', 'acetylsalicylic acid',
-  'telma', 'telpres', 'tazloc', 'telmikind', 'telmisartan',
-  'buscopan', 'buscogast', 'hyoscine', 'hyoscine butylbromide',
-  'crocin', 'dolo', 'dolo 650', 'calpol', 'pacimol', 'pcm', 'paracetamol', 'acetaminophen',
-  'augmentin', 'amoxicillin', 'moxikind',
-  'ciplox', 'cifran', 'ciprofloxacin',
-  'taxim', 'cefotaxime', 'monocef', 'ceftriaxone',
-  'zithrox', 'azithral', 'azithromycin',
-  'atorva', 'atorlip', 'storvas', 'atorvastatin',
-  'glycomet', 'gluformin', 'metformin',
-  'amlong', 'stamlo', 'amlodipine',
-  'clopitab', 'cereluc', 'clopidogrel',
-  'deriphyllin', 'etofylline', 'theophylline',
-  'lasix', 'furosemide',
-  'aldactone', 'spironolactone',
-  'lantus', 'actrapid', 'mixtard', 'insulin',
-  'pantop-40', 'pantop-d', 'pan-40', 'pan-d',
-  'one all', '1 all', 'oneall', 'levocetirizine', 'levocetriz', 'levozet', 'cetzine', 'okacet', 'alerid', 'cetirizine',
-  'pan d', 'pan-d', 'rabeprazole', 'rabeloc', 'rabicip', 'razo', 'cyra'
+  // Anticonvulsants / Seizure Management
+  'phenytoin', 'eptoin', 'dilantin', 'phenytoin sodium',
+  'carbamazepine', 'tegretol', 'zeptol', 'mazetol',
+  'oxcarbazepine', 'trileptal', 'oxetol',
+  'valproate', 'valproic acid', 'sodium valproate', 'valparin', 'epilim', 'divalproex',
+  'levetiracetam', 'keppra', 'levipil',
+  'lamotrigine', 'lamictal',
+  'clobazam', 'frisium',
+  'phenobarbital', 'gardenal',
+  'lacosamide', 'vimpat',
+  'topiramate', 'topamax',
+
+  // Anti-Ulcer & Gastrointestinal
+  'pantop', 'pantop 40', 'pantocid', 'pan 40', 'pantodac', 'pantoprazole', 'pan-d', 'pan d', 'pantop-d',
+  'omeprazole', 'ozid', 'ocid',
+  'rabeprazole', 'rabeloc', 'rabicip', 'razo', 'cyra',
+  'esomeprazole', 'nexpro',
+  'ranitidine', 'zinetac', 'aciloc', 'famotidine', 'famocid',
+  'sucralfate', 'sucrafil',
+  'ondansetron', 'zofran', 'emeset',
+  'domperidone', 'vomistop', 'metoclopramide', 'perinorm',
+  'lactulose', 'duphalac', 'lactitol', 'importal',
+  'mesalamine', 'mesalazine', '5-asa', 'mesacol', 'asacol',
+  'rifaximin', 'rcifax', 'spiraxin',
+  'hyoscine', 'hyoscine butylbromide', 'buscopan', 'buscogast',
+
+  // Analgesics, NSAIDs & Antipyretics
+  'paracetamol', 'acetaminophen', 'dolo', 'dolo 650', 'crocin', 'calpol', 'pacimol', 'pcm',
+  'ibuprofen', 'brufen', 'advil', 'diclofenac', 'voveran', 'voltaren',
+  'aceclofenac', 'zinetac', 'naproxen', 'naprosyn', 'ketorolac', 'ketorol',
+  'mefenamic acid', 'meftal', 'tramadol', 'ultram', 'tramazac',
+
+  // Antibiotics & Antimicrobials
+  'azithromycin', 'atm', 'azithral', 'zithrox', 'clarithromycin', 'erythromycin',
+  'amoxicillin', 'moxikind', 'augmentin', 'ampicillin', 'sulbactam',
+  'piperacillin', 'tazobactam', 'pipzo', 'zocin',
+  'ceftriaxone', 'monocef', 'cefotaxime', 'taxim',
+  'cefixime', 'taxim-o', 'cefpodoxime', 'doxcef', 'cefuroxime', 'altacef', 'ceftum', 'cefepime',
+  'meropenem', 'meronem', 'ertapenem', 'imipenem',
+  'ciprofloxacin', 'ciplox', 'cifran', 'levofloxacin', 'levoquin', 'moxifloxacin', 'ofloxacin', 'oflox',
+  'amikacin', 'amicip', 'mikacin', 'gentamicin', 'genticyn',
+  'vancomycin', 'vancocin', 'linezolid', 'lizolid',
+  'metronidazole', 'flagyl', 'metrogyl', 'doxycycline', 'nitrofurantoin',
+
+  // Cardiovascular, Antihypertensives & Antiplatelets
+  'aspirin', 'ecosprin', 'acetylsalicylic acid', 'acetylsalicylic',
+  'clopidogrel', 'clopilet', 'plavix', 'ticagrelor', 'brilinta',
+  'heparin', 'enoxaparin', 'clexane', 'lwmh', 'warfarin', 'coumadin', 'apixaban', 'rivaroxaban',
+  'telmisartan', 'telma', 'telpres', 'tazloc', 'telmikind',
+  'losartan', 'zaart', 'valsartan', 'olmesartan',
+  'amlodipine', 'amlong', 'stamlo', 'cilnidipine', 'cilacar', 'nifedipine', 'nicardia',
+  'atenolol', 'aten', 'metoprolol', 'betaloc', 'metolar', 'bisoprolol', 'concor', 'carvedilol',
+  'enalapril', 'ramipril', 'cardace', 'prazosin', 'minipress',
+  'nitroglycerin', 'sorbitrate', 'isosorbide', 'amiodarone', 'digoxin',
+
+  // Diuretics
+  'furosemide', 'frusemide', 'lasix', 'torsemide', 'dytor',
+  'spironolactone', 'aldactone', 'hydrochlorothiazide', 'hctz', 'chlorthalidone',
+
+  // Antidiabetics & Statins
+  'metformin', 'glycomet', 'glucophage', 'glyciphage',
+  'glimepiride', 'amaryl', 'gliclazide', 'teneligliptin', 'sitagliptin', 'vildagliptin',
+  'dapagliflozin', 'empagliflozin', 'insulin', 'actrapid', 'lantus', 'mixtard', 'humulin',
+  'atorvastatin', 'atorva', 'storvas', 'lipitor', 'rosuvastatin', 'rosuvas', 'simvastatin', 'fenofibrate',
+
+  // Antihistamines & Respiratory
+  'one all', '1 all', 'oneall', 'levocetirizine', 'levocetriz', 'levozet', 'cetzine', 'okacet', 'alerid', 'cetirizine', 'fexofenadine', 'loratadine',
+  'salbutamol', 'asthalin', 'levosalbutamol', 'ipratropium', 'duolin', 'budesonide', 'pulmicort', 'foracort', 'montelukast', 'deriphyllin', 'etofylline', 'theophylline',
+
+  // Steroids & Gout
+  'dexamethasone', 'dexona', 'hydrocortisone', 'effcorlin', 'methylprednisolone', 'solumedrol', 'prednisolone', 'omnacortil', 'betamethasone',
+  'allopurinol', 'zyloric', 'febuxostat', 'colchicine'
 ];
 
 const KNOWN_DRUG_STEMS = [
-  'prazole', 'sartan', 'statin', 'cillin', 'mycin', 'cycline', 'floxacin',
+  'toin', 'prazole', 'sartan', 'statin', 'cillin', 'mycin', 'cycline', 'floxacin',
   'olol', 'dipine', 'pril', 'tidine', 'gliptin', 'gliflozin', 'coxib', 'vir',
-  'mab', 'zepam', 'zolam', 'nidazole', 'barbital', 'terol', 'lukast', 'cetirizine', 'triz'
+  'mab', 'zepam', 'zolam', 'nidazole', 'barbital', 'terol', 'lukast', 'cetirizine', 'triz',
+  'setron', 'sone', 'nide', 'drine', 'lam'
 ];
 
 /**
