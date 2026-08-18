@@ -149,7 +149,7 @@ const generatePreSubmissionReview = (norm, caseModulesData) => {
   const issues = [];
   let issueIdCounter = 1;
 
-  const addIssue = (category, formModule, formTab, fieldName, enteredValue, issue, suggestion, actionText) => {
+  const addIssue = (category, formModule, formTab, fieldName, enteredValue, issue, suggestion, actionText, targetFieldId = '') => {
     issues.push({
       id: `issue-${issueIdCounter++}`,
       category, // 'CORRECTION_REQUIRED' | 'PLEASE_VERIFY' | 'DOCUMENTATION_GAP'
@@ -159,7 +159,8 @@ const generatePreSubmissionReview = (norm, caseModulesData) => {
       enteredValue: enteredValue || 'Not Documented',
       issue,
       suggestion,
-      actionText: actionText || 'Verify against original clinical record and manually correct the form if necessary.'
+      actionText: actionText || 'Verify against original clinical record and manually correct the form if necessary.',
+      targetFieldId: targetFieldId || `field-${formTab}`
     });
   };
 
@@ -188,7 +189,8 @@ const generatePreSubmissionReview = (norm, caseModulesData) => {
         profile.allergies || 'Empty',
         'Allergy status has not been explicitly documented in the patient profile.',
         'If allergy information is available and clinically relevant, document the patient\'s allergy status before final submission.',
-        'Document allergy status or explicit "No Known Drug Allergies (NKDA)".'
+        'Document allergy status or explicit "No Known Drug Allergies (NKDA)".',
+        'field-allergies'
       );
     }
 
@@ -205,7 +207,8 @@ const generatePreSubmissionReview = (norm, caseModulesData) => {
           rawDiagnosis,
           'The entered diagnosis or condition may contain a spelling or terminology formatting issue.',
           COMMON_SPELLING_CORRECTIONS[lowerDiag],
-          'Verify diagnosis terminology against original clinical case notes.'
+          'Verify diagnosis terminology against original clinical case notes.',
+          'field-diagnosis'
         );
       }
     } else {
@@ -217,7 +220,8 @@ const generatePreSubmissionReview = (norm, caseModulesData) => {
         'Not Documented',
         'Neither a final nor provisional diagnosis has been recorded in the saved profile.',
         'Document the patient\'s primary diagnosis or chief clinical condition.',
-        'Enter diagnosis in Patient Profile form.'
+        'Enter diagnosis in Patient Profile form.',
+        'field-diagnosis'
       );
     }
 
@@ -574,17 +578,20 @@ export const StudentDocReviewView = ({ student, onNavigate, onOpenPatientProfile
     return true;
   });
 
-  const handleReviewFieldClick = (formTab) => {
+  const handleReviewFieldClick = (issueObj) => {
+    const formTab = typeof issueObj === 'string' ? issueObj : issueObj.formTab;
+    const targetFieldId = typeof issueObj === 'object' ? issueObj.targetFieldId : '';
+
     if (formTab === 'patient-profile' && onOpenPatientProfile && selectedCase) {
-      onOpenPatientProfile(selectedCase);
+      onOpenPatientProfile(selectedCase, targetFieldId);
     } else if (formTab === 'patient-counselling' && onOpenPatientCounselling && selectedCase) {
-      onOpenPatientCounselling(selectedCase);
+      onOpenPatientCounselling(selectedCase, targetFieldId);
     } else if (formTab === 'pharmacist-intervention' && onOpenPharmacistIntervention && selectedCase) {
-      onOpenPharmacistIntervention(selectedCase);
+      onOpenPharmacistIntervention(selectedCase, targetFieldId);
     } else if (formTab === 'drug-info-request' && onOpenDrugInformationRequest && selectedCase) {
-      onOpenDrugInformationRequest(selectedCase);
+      onOpenDrugInformationRequest(selectedCase, targetFieldId);
     } else if (formTab === 'adr-documentation' && onOpenADRDocumentation && selectedCase) {
-      onOpenADRDocumentation(selectedCase);
+      onOpenADRDocumentation(selectedCase, targetFieldId);
     } else if (onNavigate) {
       onNavigate(formTab, 'All', selectedCaseId);
     }
@@ -850,7 +857,7 @@ export const StudentDocReviewView = ({ student, onNavigate, onOpenPatientProfile
 
                         {/* REVIEW FIELD ACTION BUTTON (REQUIREMENT 25) */}
                         <button
-                          onClick={() => handleReviewFieldClick(issue.formTab)}
+                          onClick={() => handleReviewFieldClick(issue)}
                           className="px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs shrink-0 cursor-pointer"
                         >
                           <span>Review Field</span>

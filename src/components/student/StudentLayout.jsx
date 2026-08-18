@@ -69,34 +69,40 @@ export const StudentLayout = ({ student, onLogout }) => {
   };
 
   const [navSourceTab, setNavSourceTab] = useState(null);
+  const [targetHighlightField, setTargetHighlightField] = useState(null);
 
-  const handleOpenPatientProfile = (clinicalCase, sourceTab = null) => {
+  const handleOpenPatientProfile = (clinicalCase, sourceTab = null, highlightFieldId = null) => {
     setSelectedCaseForForm(clinicalCase);
     if (sourceTab) setNavSourceTab(sourceTab);
+    setTargetHighlightField(highlightFieldId || null);
     handleNavigate('patient-profile');
   };
 
-  const handleOpenPatientCounselling = (clinicalCase, sourceTab = null) => {
+  const handleOpenPatientCounselling = (clinicalCase, sourceTab = null, highlightFieldId = null) => {
     setSelectedCaseForForm(clinicalCase);
     if (sourceTab) setNavSourceTab(sourceTab);
+    setTargetHighlightField(highlightFieldId || null);
     handleNavigate('patient-counselling');
   };
 
-  const handleOpenPharmacistIntervention = (clinicalCase, sourceTab = null) => {
+  const handleOpenPharmacistIntervention = (clinicalCase, sourceTab = null, highlightFieldId = null) => {
     setSelectedCaseForForm(clinicalCase);
     if (sourceTab) setNavSourceTab(sourceTab);
+    setTargetHighlightField(highlightFieldId || null);
     handleNavigate('pharmacist-intervention');
   };
 
-  const handleOpenDrugInformationRequest = (clinicalCase, sourceTab = null) => {
+  const handleOpenDrugInformationRequest = (clinicalCase, sourceTab = null, highlightFieldId = null) => {
     setSelectedCaseForForm(clinicalCase);
     if (sourceTab) setNavSourceTab(sourceTab);
+    setTargetHighlightField(highlightFieldId || null);
     handleNavigate('drug-info-request');
   };
 
-  const handleOpenADRDocumentation = (clinicalCase, sourceTab = null) => {
+  const handleOpenADRDocumentation = (clinicalCase, sourceTab = null, highlightFieldId = null) => {
     setSelectedCaseForForm(clinicalCase);
     if (sourceTab) setNavSourceTab(sourceTab);
+    setTargetHighlightField(highlightFieldId || null);
     handleNavigate('adr-documentation');
   };
 
@@ -367,6 +373,7 @@ export const StudentLayout = ({ student, onLogout }) => {
             <PatientProfileFormView
               clinicalCase={selectedCaseForForm}
               student={student}
+              highlightField={targetHighlightField}
               onBack={() => handleNavigate(navSourceTab === 'doc-review' ? 'doc-review' : 'my-cases')}
             />
           )}
@@ -375,6 +382,7 @@ export const StudentLayout = ({ student, onLogout }) => {
             <PatientCounsellingFormView
               clinicalCase={selectedCaseForForm}
               student={student}
+              highlightField={targetHighlightField}
               onBack={() => handleNavigate(navSourceTab === 'doc-review' ? 'doc-review' : 'my-cases')}
             />
           )}
@@ -383,6 +391,7 @@ export const StudentLayout = ({ student, onLogout }) => {
             <PharmacistInterventionFormView
               clinicalCase={selectedCaseForForm}
               student={student}
+              highlightField={targetHighlightField}
               onBack={() => handleNavigate(navSourceTab === 'doc-review' ? 'doc-review' : 'my-cases')}
             />
           )}
@@ -391,6 +400,7 @@ export const StudentLayout = ({ student, onLogout }) => {
             <DrugInformationFormView
               clinicalCase={selectedCaseForForm}
               student={student}
+              highlightField={targetHighlightField}
               onBack={() => handleNavigate(navSourceTab === 'doc-review' ? 'doc-review' : 'my-cases')}
             />
           )}
@@ -399,6 +409,7 @@ export const StudentLayout = ({ student, onLogout }) => {
             <ADRDocumentationFormView
               clinicalCase={selectedCaseForForm}
               student={student}
+              highlightField={targetHighlightField}
               onBack={() => handleNavigate(navSourceTab === 'doc-review' ? 'doc-review' : 'my-cases')}
             />
           )}
@@ -407,11 +418,11 @@ export const StudentLayout = ({ student, onLogout }) => {
             <StudentDocReviewView
               student={student}
               onNavigate={handleNavigate}
-              onOpenPatientProfile={(c) => handleOpenPatientProfile(c, 'doc-review')}
-              onOpenPatientCounselling={(c) => handleOpenPatientCounselling(c, 'doc-review')}
-              onOpenPharmacistIntervention={(c) => handleOpenPharmacistIntervention(c, 'doc-review')}
-              onOpenDrugInformationRequest={(c) => handleOpenDrugInformationRequest(c, 'doc-review')}
-              onOpenADRDocumentation={(c) => handleOpenADRDocumentation(c, 'doc-review')}
+              onOpenPatientProfile={(c, fId) => handleOpenPatientProfile(c, 'doc-review', fId)}
+              onOpenPatientCounselling={(c, fId) => handleOpenPatientCounselling(c, 'doc-review', fId)}
+              onOpenPharmacistIntervention={(c, fId) => handleOpenPharmacistIntervention(c, 'doc-review', fId)}
+              onOpenDrugInformationRequest={(c, fId) => handleOpenDrugInformationRequest(c, 'doc-review', fId)}
+              onOpenADRDocumentation={(c, fId) => handleOpenADRDocumentation(c, 'doc-review', fId)}
             />
           )}
 

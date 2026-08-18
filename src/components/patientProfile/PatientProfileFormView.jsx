@@ -115,12 +115,39 @@ const evaluateTestValueStatus = (valStr, refRangeStr) => {
   return 'none';
 };
 
-export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOnly: propReadOnly = false, isReturned = false, snapshotAtReturn = null }) => {
+export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOnly: propReadOnly = false, isReturned = false, snapshotAtReturn = null, highlightField = null }) => {
   const isReadOnly = propReadOnly || clinicalCase?.status === 'Approved' || clinicalCase?.overall_case_status === 'Approved';
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState('');
+
+  // Auto-scroll and highlight target field from Pre-Submission Review
+  useEffect(() => {
+    if (highlightField && !loading) {
+      const timer = setTimeout(() => {
+        let elem = document.getElementById(highlightField) || document.querySelector(`[data-field-id="${highlightField}"]`);
+        if (!elem) {
+          const hLower = String(highlightField).toLowerCase();
+          if (hLower.includes('allerg')) elem = document.getElementById('field-allergies') || document.querySelector('[name*="allerg"]');
+          else if (hLower.includes('diag')) elem = document.getElementById('field-diagnosis') || document.querySelector('[name*="diag"]');
+          else if (hLower.includes('complaint')) elem = document.getElementById('field-chief_complaints') || document.querySelector('[name*="complaint"]');
+          else if (hLower.includes('med')) elem = document.getElementById('field-prescribed-drugs') || document.querySelector('[data-field-type="prescribed-drugs"]') || document.querySelector('table');
+          else if (hLower.includes('lab')) elem = document.getElementById('field-lab-investigations') || document.querySelector('[data-field-type="lab-investigations"]') || document.querySelector('table');
+        }
+
+        if (elem) {
+          elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (elem.focus) elem.focus();
+          elem.classList.add('ring-4', 'ring-amber-500', 'border-amber-500', 'bg-amber-100/90', 'dark:bg-amber-950/90', 'transition-all', 'duration-300');
+          setTimeout(() => {
+            elem.classList.remove('ring-4', 'ring-amber-500', 'border-amber-500', 'bg-amber-100/90', 'dark:bg-amber-950/90');
+          }, 6000);
+        }
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightField, loading]);
 
   // 1. Patient Details
   const [patientName, setPatientName] = useState('');
