@@ -39,65 +39,90 @@ const checkIsFormSubmitted = (formObj, isProfile = false) => {
 
 /**
  * Dynamic Medication Evaluator helper.
- * Produces medication-specific clinical analysis for each drug individually based on its pharmacotherapeutic profile.
+ * Produces medication-specific clinical analysis under "INDICATION & MECHANISM" for each drug individually.
+ * Contains exactly:
+ * 1. DRUG CLASS
+ * 2. INDICATION / USE (Documented Case Indication & Established Clinical Use)
+ * 3. MECHANISM OF ACTION (MOA)
  */
 const getMedicationSpecificAnalysis = (drug, patientDiagnosis) => {
   const trade = String(drug.trade_name || '').trim();
   const generic = String(drug.generic_name || '').trim();
   const name = (generic && generic !== '—' ? generic : trade).toLowerCase();
-  const dose = String(drug.dose || '').trim();
-  const freq = String(drug.frequency || 'OD').trim();
-  const route = String(drug.route_of_admin || 'Oral').trim();
-  const indication = String(drug.indication || '').trim();
+  const documentedInd = String(drug.indication || '').trim();
 
-  let category = 'General Clinical Pharmacotherapy';
-  let clinicalImpression = '';
+  const caseIndicationText = (documentedInd && documentedInd !== '—' && documentedInd !== 'n/a')
+    ? documentedInd
+    : 'Specific indication is not documented in the submitted case.';
+
+  let drugClass = '';
+  let establishedUse = '';
+  let mechanismOfAction = '';
   let monitoringAdvice = '';
-  let doseAssessment = `Documented dose (${dose || 'Not available in submitted documentation.'}) via ${route} (${freq}).`;
 
   if (name.includes('rifamini') || name.includes('rifaximin')) {
-    category = 'Gastrointestinal / Anti-infective (Non-systemic)';
-    clinicalImpression = `Non-systemic broad-spectrum gut antibiotic targeting intestinal flora. Indicated for Hepatic Encephalopathy (preventing bacterial ammonia production) or Irritable Bowel Syndrome with Diarrhea (IBS-D). Minimal systemic absorption (< 0.4%).`;
-    monitoringAdvice = `Monitor reduction in GI symptoms, stool frequency, and mental status/asterixis if used for Hepatic Encephalopathy. Watch for severe watery diarrhea (C. difficile risk).`;
+    drugClass = 'GI Anti-infective — Non-systemic gut-selective antibiotic (Rifamycin derivative)';
+    establishedUse = 'Hepatic Encephalopathy (prevention of recurrence), Irritable Bowel Syndrome with Diarrhea (IBS-D), and Traveler\'s Diarrhea.';
+    mechanismOfAction = 'Binds to the beta-subunit of bacterial DNA-dependent RNA polymerase, inhibiting bacterial RNA synthesis. Reduces ammonia-producing enteric microflora in the intestinal lumen with minimal systemic absorption (< 0.4%).';
+    monitoringAdvice = 'Monitor mental status/asterixis improvement, stool frequency, and GI tolerance. Watch for severe watery diarrhea (C. difficile risk).';
   } else if (name.includes('mesalamine') || name.includes('5-asa') || name.includes('mesalazine')) {
-    category = 'Gastrointestinal Anti-inflammatory (5-ASA Derivative)';
-    clinicalImpression = `Topical colonic anti-inflammatory agent for Inflammatory Bowel Disease (Ulcerative Colitis or Crohn's Disease). Inhibits mucosal prostaglandin & leukotriene synthesis.`;
-    monitoringAdvice = `Monitor renal function parameters (Serum Creatinine & BUN) prior to initiation and periodically during therapy due to risk of interstitial nephritis. Assess blood counts and GI tolerability.`;
+    drugClass = 'Gastrointestinal Anti-inflammatory — 5-Aminosalicylic Acid (5-ASA) derivative';
+    establishedUse = 'Induction and maintenance of remission in mild-to-moderate Inflammatory Bowel Disease (Ulcerative Colitis and Crohn\'s Disease).';
+    mechanismOfAction = 'Inhibits cyclooxygenase (COX) and lipoxygenase (LOX) pathways in colonic mucosa, decreasing local prostaglandin and leukotriene synthesis. Scavenges reactive oxygen species and inhibits NF-kB nuclear translocation in mucosal epithelial cells.';
+    monitoringAdvice = 'Monitor baseline and periodic renal function (Serum Creatinine & BUN) for interstitial nephritis risk. Monitor LFTs and blood counts.';
   } else if (name.includes('lactitol') || name.includes('lactulose')) {
-    category = 'Osmotic Laxative & Ammonia-Detoxifying Agent';
-    clinicalImpression = `Synthetic disaccharide osmotic agent. Acidifies colonic contents, trapping toxic ammonia (NH3) as unabsorbable ammonium ions (NH4+), while drawing water into bowel lumen to promote evacuation.`;
-    monitoringAdvice = `Monitor stool frequency (target: 2 to 3 soft stools per day in hepatic encephalopathy). Check fluid & electrolyte balance (serum sodium, potassium) to prevent dehydration.`;
+    drugClass = 'Synthetic Disaccharide Osmotic Laxative & Ammonia Detoxifier';
+    establishedUse = 'Prevention and treatment of Hepatic Encephalopathy (portal-systemic encephalopathy) and chronic constipation.';
+    mechanismOfAction = 'Cleaved by colonic anaerobic bacteria into short-chain organic acids (lactic, acetic acid), lowering colonic pH. Low pH traps free ammonia (NH3) as unabsorbable ammonium ions (NH4+), while osmotic pressure draws water into bowel lumen to increase stool volume and transit speed.';
+    monitoringAdvice = 'Monitor stool frequency (target: 2 to 3 soft stools/day in hepatic encephalopathy) and serum sodium/potassium levels to prevent dehydration.';
   } else if (name.includes('paracetamol') || name.includes('acetaminophen')) {
-    category = 'Analgesic & Antipyretic (Non-Opioid)';
-    clinicalImpression = `Central prostaglandin synthesis inhibitor for mild-to-moderate pain and fever reduction. Does not possess peripheral anti-inflammatory properties or cause GI ulceration.`;
-    monitoringAdvice = `Verify total cumulative daily dose across all formulations does not exceed 4,000 mg/day (or < 2,000-3,000 mg/day in chronic hepatic impairment or alcoholism). Monitor LFTs.`;
+    drugClass = 'Analgesic & Antipyretic — Central Prostaglandin Synthesis Inhibitor';
+    establishedUse = 'Symptomatic management of mild-to-moderate pain and reduction of fever.';
+    mechanismOfAction = 'Inhibits central nervous system cyclooxygenase (COX-3 / COX variants), suppressing central Prostaglandin E2 (PGE2) synthesis. Reduces pain impulse generation and lowers hypothalamic thermoregulatory set-point without causing peripheral GI mucosal ulceration.';
+    monitoringAdvice = 'Ensure total daily dose does not exceed 4,000 mg/day (or < 2,000-3,000 mg/day in hepatic impairment). Monitor LFTs.';
   } else if (name.includes('metformin')) {
-    category = 'Biguanide Antihyperglycemic';
-    clinicalImpression = `Decreases hepatic gluconeogenesis, reduces intestinal glucose absorption, and enhances peripheral insulin sensitivity. First-line oral agent for Type 2 Diabetes Mellitus.`;
-    monitoringAdvice = `Monitor eGFR and renal function. Withhold if eGFR < 30 mL/min/1.73m² or prior to iodinated contrast procedures to prevent lactic acidosis. Check long-term Vitamin B12 levels.`;
+    drugClass = 'Biguanide Antihyperglycemic Agent';
+    establishedUse = 'First-line pharmacotherapy for Type 2 Diabetes Mellitus and polycystic ovary syndrome (PCOS).';
+    mechanismOfAction = 'Activates hepatic AMP-activated protein kinase (AMPK), suppressing hepatic gluconeogenesis and glycogenolysis. Increases peripheral insulin receptor sensitivity and GLUT4 glucose uptake in skeletal muscle while reducing intestinal glucose absorption.';
+    monitoringAdvice = 'Monitor eGFR and renal function. Hold before contrast procedures or if eGFR < 30 mL/min to prevent lactic acidosis. Check Vitamin B12 levels.';
   } else if (name.includes('pantoprazole') || name.includes('omeprazole') || name.includes('rabeprazole')) {
-    category = 'Proton Pump Inhibitor (PPI)';
-    clinicalImpression = `Irreversible H+/K+-ATPase gastric pump inhibitor. Indicated for acid peptic disease, GORD, erosive esophagitis, or stress ulcer prophylaxis in hospitalized patients.`;
-    monitoringAdvice = `Re-evaluate ongoing need periodically. Long-term PPI therapy requires monitoring for hypomagnesemia, Vitamin B12 deficiency, bone fracture risk, and enteric infection risk.`;
+    drugClass = 'Proton Pump Inhibitor (PPI) — Irreversible gastric parietal H+/K+-ATPase inhibitor';
+    establishedUse = 'Gastroesophageal Reflux Disease (GORD), peptic ulcer disease, Helicobacter pylori eradication, and stress ulcer prophylaxis.';
+    mechanismOfAction = 'Concentrates in acid canaliculi of gastric parietal cells and binds covalently to SH groups of the H+/K+-ATPase enzyme system, blocking the final transport step of hydrogen ion secretion into gastric lumen.';
+    monitoringAdvice = 'Re-evaluate ongoing indication periodically. Long-term therapy requires monitoring for hypomagnesemia, B12 deficiency, bone fracture risk, and C. difficile.';
   } else if (name.includes('atorvastatin') || name.includes('rosuvastatin')) {
-    category = 'HMG-CoA Reductase Inhibitor (Statin)';
-    clinicalImpression = `Inhibits rate-limiting enzyme in cholesterol synthesis, upregulating hepatic LDL receptors. Indicated for dyslipidemia and primary/secondary cardiovascular risk reduction.`;
-    monitoringAdvice = `Monitor baseline LFTs (ALT/AST) and lipid panel. Instruct patient to report unexplained muscle pain, tenderness, or weakness (myopathy/rhabdomyolysis risk).`;
+    drugClass = 'HMG-CoA Reductase Inhibitor (Statin Lipid-Lowering Agent)';
+    establishedUse = 'Hypercholesterolemia, dyslipidemia, and primary/secondary cardiovascular risk reduction.';
+    mechanismOfAction = 'Competitively inhibits 3-hydroxy-3-methylglutaryl-coenzyme A (HMG-CoA) reductase, preventing mevalonate synthesis. Upregulates hepatic LDL cell-surface receptors, accelerating clearing of LDL-C and VLDL remnants from circulation.';
+    monitoringAdvice = 'Monitor baseline LFTs (ALT/AST) and lipid panel. Instruct patient to report unexplained muscle pain, tenderness, or weakness (myopathy risk).';
   } else if (name.includes('ceftriaxone') || name.includes('cefoperazone') || name.includes('cefixime')) {
-    category = 'Third-Generation Cephalosporin Antibiotic';
-    clinicalImpression = `Beta-lactam bactericidal antibiotic with broad Gram-negative and Gram-positive coverage. Indicated for moderate-to-severe systemic infections, pneumonia, or intra-abdominal sepsis.`;
-    monitoringAdvice = `Monitor clinical signs of infection resolution (fever, WBC count, inflammatory markers CRP/ESR). Watch for hypersensitivity reactions or Clostridioides difficile diarrhea.`;
+    drugClass = 'Third-Generation Cephalosporin Antibiotic';
+    establishedUse = 'Treatment of moderate-to-severe systemic infections, bacterial meningitis, community-acquired pneumonia, and intra-abdominal infections.';
+    mechanismOfAction = 'Binds irreversibly to penicillin-binding proteins (PBPs) on bacterial cell walls, inhibiting peptidoglycan cross-linking during active cell wall synthesis, triggering osmotic bacterial lysis.';
+    monitoringAdvice = 'Monitor infection markers (fever, WBC count, CRP/ESR) and renal clearance. Watch for hypersensitivity or C. difficile diarrhea.';
+  } else if (name.includes('aspirin')) {
+    drugClass = 'Antiplatelet agent — Irreversible cyclooxygenase-1 (COX-1) inhibitor';
+    establishedUse = 'Primary & secondary prevention of acute coronary syndrome, ischemic stroke, and transient ischemic attacks.';
+    mechanismOfAction = 'Irreversibly acetylates Ser-529 residue of platelet COX-1 enzyme, blocking thromboxane A2 (TXA2) synthesis for the entire 7 to 10 day lifespan of the platelet, preventing platelet aggregation.';
+    monitoringAdvice = 'Monitor for GI bleeding, dark stools, epigastric pain, and bleeding risk parameters.';
+  } else if (name.includes('clopidogrel')) {
+    drugClass = 'Antiplatelet agent — Irreversible P2Y12 ADP Receptor Antagonist';
+    establishedUse = 'Prevention of atherothrombotic events in recent MI, ischemic stroke, peripheral arterial disease, or post-PCI stent placement.';
+    mechanismOfAction = 'Hepatic bioactivation via CYP2C19 yields an active metabolite that irreversibly binds to platelet P2Y12 purinergic receptors, blocking ADP-induced activation of the GPIIb/IIIa complex and platelet aggregation.';
+    monitoringAdvice = 'Monitor for bleeding events, hemoglobin/hematocrit levels, and CYP2C19 poor metabolizer status.';
   } else {
-    category = 'Systemic Pharmacotherapeutic Agent';
-    clinicalImpression = `Documented for clinical management of ${indication || patientDiagnosis || 'the patient condition'}.`;
+    drugClass = 'Systemic Pharmacotherapeutic Agent';
+    establishedUse = `Established clinical therapy for ${patientDiagnosis || 'documented patient medical condition'}.`;
+    mechanismOfAction = `Exerts targeted pharmacological action on cellular receptors and enzymatic pathways appropriate for ${trade || generic} to produce therapeutic response.`;
     monitoringAdvice = `Monitor therapeutic response, organ tolerance, and adverse reaction profile appropriate for ${trade || generic}.`;
   }
 
   return {
-    category,
-    clinicalImpression,
-    monitoringAdvice,
-    doseAssessment
+    drugClass,
+    caseIndicationText,
+    establishedUse,
+    mechanismOfAction,
+    monitoringAdvice
   };
 };
 
@@ -155,7 +180,7 @@ const getPairSpecificInteraction = (drug1, drug2) => {
 
 /**
  * Student Role AI Clinical Case Analysis View.
- * Complete 14-Section Individualized Analysis Engine with Fluid Text Wrapping (No Clipping).
+ * Complete 14-Section Individualized Analysis Engine with Structured "Indication & Mechanism" Breakdown.
  */
 export const StudentAiAnalysisView = ({ student, onNavigate }) => {
   const [cases, setCases] = useState([]);
@@ -555,7 +580,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                   )}
                 </div>
 
-                {/* SECTION 3 — INDIVIDUAL MEDICATION ANALYSIS (MEDICATION-SPECIFIC) */}
+                {/* SECTION 3 — INDIVIDUAL MEDICATION ANALYSIS (WITH 3-PART INDICATION & MECHANISM BREAKDOWN) */}
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 min-w-0 w-full">
                   <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
                     <div className="flex items-center gap-2.5">
@@ -576,25 +601,60 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
 
                         return (
                           <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200/70 dark:border-slate-700/70 space-y-3 text-xs min-w-0">
+                            {/* STUDENT'S ORIGINAL UNTOUCHED MEDICATION ENTRY */}
                             <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-700/60 pb-2 flex-wrap gap-2">
                               <span className="font-extrabold text-slate-900 dark:text-white text-sm break-words">
                                 #{d.s_no} {d.trade_name} <span className="font-semibold text-slate-500 dark:text-slate-400">({d.generic_name})</span>
                               </span>
                               <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[10px] shrink-0">
-                                {specificAnalysis.category}
+                                {d.route_of_admin} • {d.frequency}
                               </span>
                             </div>
 
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] bg-white dark:bg-slate-900/60 p-3 rounded-lg border border-slate-200/60 dark:border-slate-800">
-                              <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Dose & Route:</strong> {d.dose || 'Not available in submitted documentation.'} ({d.route_of_admin})</p>
-                              <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Frequency:</strong> {d.frequency || 'OD'}</p>
+                              <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Dose:</strong> {d.dose || 'Not available in submitted documentation.'}</p>
+                              <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Route:</strong> {d.route_of_admin}</p>
                               <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Start Date:</strong> {d.start_date}</p>
                               <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Stop Date:</strong> {d.stop_date}</p>
                             </div>
 
-                            <div className="space-y-1.5 text-[11px] leading-relaxed">
-                              <p><strong className="text-slate-800 dark:text-slate-200">Indication & Mechanism:</strong> <span className="text-slate-600 dark:text-slate-300 break-words">{specificAnalysis.clinicalImpression}</span></p>
-                              <p><strong className="text-slate-800 dark:text-slate-200 font-bold">Specific Monitoring & Safety Considerations:</strong> <span className="text-slate-600 dark:text-slate-300 break-words">{specificAnalysis.monitoringAdvice}</span></p>
+                            {/* IMPROVED 3-PART INDICATION & MECHANISM BREAKDOWN */}
+                            <div className="space-y-2.5 text-[11px] leading-relaxed bg-white dark:bg-slate-900/80 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                              <div className="border-b border-slate-100 dark:border-slate-800 pb-2">
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 block mb-1">
+                                  INDICATION & MECHANISM
+                                </span>
+                                <p className="break-words">
+                                  <strong className="text-slate-900 dark:text-white">Drug Class:</strong>{' '}
+                                  <span className="text-slate-700 dark:text-slate-300 font-semibold">{specificAnalysis.drugClass}</span>
+                                </p>
+                              </div>
+
+                              <div className="space-y-1.5 border-b border-slate-100 dark:border-slate-800 pb-2">
+                                <strong className="text-slate-900 dark:text-white block">Indication / Use:</strong>
+                                <p className="break-words pl-2.5 border-l-2 border-slate-300 dark:border-slate-700">
+                                  <strong className="text-slate-700 dark:text-slate-300">Documented Case Indication:</strong>{' '}
+                                  <span className={specificAnalysis.caseIndicationText.includes('not documented') ? 'text-slate-400 italic' : 'text-slate-800 dark:text-slate-200 font-medium'}>
+                                    {specificAnalysis.caseIndicationText}
+                                  </span>
+                                </p>
+                                <p className="break-words pl-2.5 border-l-2 border-emerald-400 dark:border-emerald-600 mt-1">
+                                  <strong className="text-slate-700 dark:text-slate-300">Established Clinical Use:</strong>{' '}
+                                  <span className="text-slate-700 dark:text-slate-300">{specificAnalysis.establishedUse}</span>
+                                </p>
+                              </div>
+
+                              <div>
+                                <strong className="text-slate-900 dark:text-white block mb-0.5">Mechanism of Action (MOA):</strong>
+                                <p className="text-slate-600 dark:text-slate-300 break-words leading-relaxed">
+                                  {specificAnalysis.mechanismOfAction}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* SPECIFIC MONITORING ADVICE */}
+                            <div className="bg-slate-100/70 dark:bg-slate-800/80 p-2.5 rounded-lg text-[11px] text-slate-700 dark:text-slate-300">
+                              <strong>Monitoring & Clinical Consideration:</strong> {specificAnalysis.monitoringAdvice}
                             </div>
                           </div>
                         );
@@ -637,7 +697,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                   )}
                 </div>
 
-                {/* SECTION 5 — DRUG–DRUG INTERACTION REVIEW (PAIR-SPECIFIC INDIVIDUAL ASSESSMENT) */}
+                {/* SECTION 5 — DRUG–DRUG INTERACTION REVIEW */}
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 min-w-0 w-full">
                   <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
                     <div className="flex items-center gap-2.5">
