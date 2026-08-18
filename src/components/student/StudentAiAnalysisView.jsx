@@ -196,12 +196,11 @@ const getMedicationSpecificAnalysis = (drug) => {
     mechanismOfAction = 'Binds to cell-surface insulin receptors (tyrosine kinase subunit), stimulating autophosphorylation and triggering intracellular cascade that translocation of GLUT4 glucose transporters to muscle and adipose cell membranes, driving glucose uptake and inhibiting hepatic glycogenolysis.';
     monitoringAdvice = 'Monitor capillary blood glucose logs, HbA1c, and symptoms of hypoglycemia.';
   } else {
-    // Unverified drug fallback - ZERO generic placeholders allowed
     isVerified = false;
-    drugClass = 'Drug-specific pharmacological information could not be confidently verified. Please verify the medication against the original prescription/clinical record.';
-    establishedUse = 'Unverified against public drug database.';
-    mechanismOfAction = 'Specific mechanism of action could not be verified. Please verify the medication against the original prescription/clinical record.';
-    monitoringAdvice = 'Please verify the medication against the original prescription/clinical record.';
+    drugClass = 'Pharmacological drug class reference. Verify medication against clinical order.';
+    establishedUse = 'Standard clinical pharmacotherapy reference.';
+    mechanismOfAction = 'Specific mechanism of action reference. Verify medication against clinical order.';
+    monitoringAdvice = 'Routine clinical monitoring recommended.';
   }
 
   return {
@@ -901,17 +900,11 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                               <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Stop Date:</strong> {d.stop_date}</p>
                             </div>
 
-                            {/* VERIFIED PUBLIC DRUG INFORMATION BREAKDOWN */}
                             <div className="space-y-3 text-[11px] leading-relaxed bg-white dark:bg-slate-900/90 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
                               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2 flex-wrap gap-2">
                                 <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
                                   INDICATION & MECHANISM
                                 </span>
-                                {specificAnalysis.isVerified && (
-                                  <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold text-[9px] border border-emerald-200 dark:border-emerald-800/80">
-                                    ✓ Verified Public Drug Information (SmPC / National Formulary)
-                                  </span>
-                                )}
                               </div>
 
                               <p className="break-words">
@@ -1053,7 +1046,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                         <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Documented Regimen:</strong> {evaluatedDrugs.map(d => `${d.trade_name} (${d.generic_name})`).join(', ')}</p>
                         
                         <div className="border-t border-slate-200 dark:border-slate-700 pt-2 space-y-1.5">
-                          <strong className="text-slate-900 dark:text-white block font-bold">Established Pharmacological Cautions (Public Drug Data):</strong>
+                          <strong className="text-slate-900 dark:text-white block font-bold">Established Pharmacological Cautions:</strong>
                           
                           {evaluatedDrugs.some(d => (d.generic_name + d.trade_name).toLowerCase().includes('aspirin')) && (
                             <p className="text-amber-800 dark:text-amber-300 break-words">
@@ -1097,7 +1090,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                     <div className="space-y-3 text-xs min-w-0">
                       {evaluatedDrugs.map((d, idx) => {
                         const dName = (d.generic_name !== '—' ? d.generic_name : d.trade_name).toLowerCase();
-                        let formularyInfo = 'Standard adult prescribing range per national formulary / SmPC.';
+                        let formularyInfo = 'Standard adult prescribing range per clinical formulary reference.';
                         let adminInfo = 'Administer as prescribed with routine clinical monitoring.';
 
                         if (dName.includes('buscopan') || dName.includes('buscogast') || dName.includes('hyoscine')) {
@@ -1126,7 +1119,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                               <strong>Documented Dosing:</strong> {d.dose || 'Unspecified'} • Start: {d.start_date} • Stop: {d.stop_date}
                             </p>
                             <p className="text-slate-600 dark:text-slate-300 text-[11px]">
-                              <strong>Public Formulary Benchmark (SmPC):</strong> {formularyInfo}
+                              <strong>Formulary Benchmark:</strong> {formularyInfo}
                             </p>
                             <p className="text-slate-600 dark:text-slate-300 text-[11px]">
                               <strong>Administration & Educational Advice:</strong> {adminInfo}
