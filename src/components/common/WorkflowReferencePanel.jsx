@@ -3,7 +3,7 @@ import {
   LogIn, PlusCircle, FolderKanban, FileText, ClipboardCheck, Send,
   Eye, CheckCircle2, FileDown, Stethoscope, Users, FileSearch,
   Lock, Building2, LayoutDashboard, Landmark, BarChart3, ShieldCheck,
-  Maximize2, X, Info, AlertCircle, ArrowRight, RotateCcw, Check, Sparkles, Sliders
+  Maximize2, X, Info, AlertCircle, ArrowRight, RotateCcw, Check, Sparkles, Sliders, AlertTriangle
 } from 'lucide-react';
 
 class PanelErrorBoundary extends Component {
@@ -36,16 +36,18 @@ class PanelErrorBoundary extends Component {
 export const WorkflowReferencePanel = ({ role = 'student' }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Student Steps
+  // Student Steps (11 Sequential Steps)
   const studentSteps = [
     { title: 'Student Login', icon: LogIn, bg: 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300' },
     { title: 'Add New Case', icon: PlusCircle, bg: 'bg-blue-500 text-white shadow-xs' },
     { title: 'My Cases', icon: FolderKanban, bg: 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300' },
     { title: 'Clinical Doc', icon: FileText, bg: 'bg-sky-100 text-sky-700 dark:bg-sky-900/60 dark:text-sky-300' },
-    { title: 'Complete Forms', icon: ClipboardCheck, bg: 'bg-teal-100 text-teal-700 dark:bg-teal-900/60 dark:text-teal-300' },
+    { title: 'Save Forms', icon: ClipboardCheck, bg: 'bg-teal-100 text-teal-700 dark:bg-teal-900/60 dark:text-teal-300' },
+    { title: 'AI Case Analysis', icon: Sparkles, bg: 'bg-emerald-500 text-white shadow-xs' },
+    { title: 'Review & Modify', icon: RotateCcw, bg: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300' },
     { title: 'Submit', icon: Send, bg: 'bg-amber-500 text-white shadow-xs' },
     { title: 'Track Status', icon: Eye, bg: 'bg-purple-100 text-purple-700 dark:bg-purple-900/60 dark:text-purple-300' },
-    { title: 'Approved Case', icon: CheckCircle2, bg: 'bg-emerald-500 text-white shadow-xs' },
+    { title: 'Approved Case', icon: CheckCircle2, bg: 'bg-emerald-600 text-white shadow-xs' },
     { title: 'PDF / PPT', icon: FileDown, bg: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300' }
   ];
 
@@ -173,7 +175,7 @@ export const WorkflowReferencePanel = ({ role = 'student' }) => {
       {/* FULL-FEATURED VECTOR INTERACTIVE WORKFLOW MODAL */}
       {isExpanded && (
         <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 lg:p-8 lg:pl-72 lg:pr-8 animate-fadeIn">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-4xl lg:max-w-4xl w-full max-h-[80vh] flex flex-col shadow-2xl overflow-hidden my-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-4xl lg:max-w-4xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden my-auto">
             
             {/* MODAL HEADER */}
             <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/90 shrink-0">
@@ -208,21 +210,21 @@ export const WorkflowReferencePanel = ({ role = 'student' }) => {
                   </span>
                 </div>
 
-                <div className={`grid grid-cols-3 sm:grid-cols-5 ${config.steps.length === 9 ? 'lg:grid-cols-9' : 'lg:grid-cols-7'} gap-3 pt-1 items-start`}>
+                <div className={`grid grid-cols-3 sm:grid-cols-6 ${config.steps.length === 11 ? 'lg:grid-cols-11' : (config.steps.length === 7 ? 'lg:grid-cols-7' : 'lg:grid-cols-9')} gap-2.5 pt-1 items-start`}>
                   {config.steps.map((st, idx) => {
                     const IconComp = st.icon;
                     return (
                       <div key={idx} className="flex flex-col items-center text-center gap-2 relative group">
                         <div className="relative flex items-center justify-center">
-                          <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl ${st.bg} flex items-center justify-center shadow-xs transition-transform group-hover:scale-105`}>
-                            <IconComp className="w-5.5 h-5.5 sm:w-6 sm:h-6" />
+                          <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl ${st.bg} flex items-center justify-center shadow-xs transition-transform group-hover:scale-105`}>
+                            <IconComp className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
                           </div>
-                          <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 text-[10px] font-black flex items-center justify-center shadow-xs border-2 border-white dark:border-slate-900">
+                          <span className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 rounded-full bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 text-[9px] font-black flex items-center justify-center shadow-xs border-2 border-white dark:border-slate-900">
                             {idx + 1}
                           </span>
                         </div>
 
-                        <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200 leading-tight text-center w-full">
+                        <span className="text-[10px] font-extrabold text-slate-800 dark:text-slate-200 leading-tight text-center w-full">
                           {st.title}
                         </span>
                       </div>
@@ -230,6 +232,16 @@ export const WorkflowReferencePanel = ({ role = 'student' }) => {
                   })}
                 </div>
               </div>
+
+              {/* AI EDUCATIONAL DISCLAIMER BANNER (REQUIREMENT 12) */}
+              {role === 'student' && (
+                <div className="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-2xl border border-amber-200 dark:border-amber-800/80 flex items-start gap-3 text-xs leading-relaxed">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <p className="text-amber-800 dark:text-amber-300 font-medium break-words">
+                    <strong>AI Clinical Note:</strong> AI Clinical Case Analysis is an educational reference tool based on currently saved Clinical Documentation. It does not replace professional clinical judgment, preceptor review, diagnosis, prescribing, dispensing, treatment decisions, or direct patient-care decisions.
+                  </p>
+                </div>
+              )}
 
               {/* ROLE SPECIFIC VECTOR DETAILS */}
               {role === 'student' && (
@@ -262,19 +274,35 @@ export const WorkflowReferencePanel = ({ role = 'student' }) => {
                     <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                       <li className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Profile & Counselling forms are required before case submission.</span>
+                        <span>Saved Clinical Documentation can be analysed by AI before final submission.</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Only submitted documentation appears in preceptor review dashboard.</span>
+                        <span>AI analyses only the currently saved information for the selected case (1 or more saved forms).</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>If returned for changes, edit the required fields and resubmit.</span>
+                        <span>Students may review AI findings and manually modify original forms before final submission.</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Approved cases are automatically locked against further edits.</span>
+                        <span>Students can save again and regenerate AI analysis using the latest saved information.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <span>AI does not automatically modify or submit Clinical Documentation.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <span>Only submitted documentation appears in the Preceptor Review dashboard.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <span>If returned for changes, edit required fields, save, review AI analysis again, and resubmit.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <span>Approved cases remain subject to existing approval and locking rules.</span>
                       </li>
                     </ul>
                   </div>
