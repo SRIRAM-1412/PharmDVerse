@@ -190,18 +190,38 @@ const getMedicationSpecificAnalysis = (drug) => {
 
   // Smart Stem Matcher for recognized pharmacological drug families
   const stems = [
+    // CNS, Antidepressants & Anxiolytics
+    { stem: 'triptyline', cls: 'Tricyclic Antidepressant (TCA) — Serotonin & Norepinephrine Reuptake Inhibitor', use: 'Major depressive disorder, neuropathic pain management, and migraine prophylaxis.', moa: 'Inhibits presynaptic reuptake of serotonin (5-HT) and norepinephrine (NE) in CNS synapses; also blocks peripheral alpha-1, histamine H1, and muscarinic M1 receptors.', mon: 'Monitor ECG/cardiac conduction (QTc interval, QRS duration), blood pressure, anticholinergic side effects (dry mouth, constipation, sedation), and therapeutic response.', dose: '25 mg – 75 mg Oral HS' },
+    { stem: 'pramine', cls: 'Tricyclic Antidepressant (TCA)', use: 'Major depressive disorder, enuresis, and chronic neuropathic pain.', moa: 'Inhibits presynaptic reuptake of serotonin and norepinephrine in CNS neurons.', mon: 'Monitor cardiac ECG, blood pressure, and anticholinergic tolerance.', dose: '25 mg – 75 mg Oral HS' },
+    { stem: 'xetine', cls: 'Selective Serotonin Reuptake Inhibitor (SSRI)', use: 'Major depressive disorder, generalized anxiety disorder, and OCD.', moa: 'Selectively inhibits presynaptic serotonin transporter (SERT), enhancing central serotonergic neurotransmission.', mon: 'Monitor for suicidal ideation in early therapy, serotonin syndrome signs, hyponatremia/SIADH, and GI tolerance.', dose: '20 mg Oral QD' },
+    { stem: 'lopram', cls: 'Selective Serotonin Reuptake Inhibitor (SSRI)', use: 'Major depressive disorder and panic disorder.', moa: 'Selectively inhibits presynaptic serotonin transporter (SERT) in CNS neurons.', mon: 'Monitor QTc interval (dose-dependent restriction for Citalopram), suicidal ideation, and mood response.', dose: '10 mg – 20 mg Oral QD' },
+    { stem: 'traline', cls: 'Selective Serotonin Reuptake Inhibitor (SSRI)', use: 'Major depressive disorder, panic disorder, PTSD, and social anxiety disorder.', moa: 'Selectively inhibits neuronal serotonin reuptake (SERT).', mon: 'Monitor mood response, suicidal ideation, and GI symptoms.', dose: '50 mg Oral QD' },
+    { stem: 'faxine', cls: 'Serotonin-Norepinephrine Reuptake Inhibitor (SNRI)', use: 'Major depressive disorder, generalized anxiety disorder, and panic disorder.', moa: 'Potently inhibits neuronal reuptake of serotonin and norepinephrine in CNS synapses.', mon: 'Monitor blood pressure (dose-dependent elevation), heart rate, and mood response.', dose: '75 mg Oral QD' },
+    { stem: 'zepam', cls: 'Benzodiazepine (GABA-A Receptor Positive Allosteric Modulator)', use: 'Anxiety disorders, panic disorder, acute muscle spasm, and seizure disorders.', moa: 'Binds to Benzodiazepine site on central GABA-A receptors, enhancing GABA-mediated chloride influx and neuronal hyperpolarization.', mon: 'Monitor CNS depression/sedation, respiratory rate, cognitive function, habituation risk, and fall risk in elderly.', dose: '0.5 mg – 2 mg Oral BID-TID' },
+    { stem: 'zolam', cls: 'Benzodiazepine (GABA-A Receptor Positive Allosteric Modulator)', use: 'Short-term management of acute anxiety and panic disorder.', moa: 'Enhances GABA-A receptor chloride channel opening frequency, causing central neuronal inhibition.', mon: 'Monitor CNS sedation, cognitive impairment, and withdrawal upon discontinuation.', dose: '0.25 mg – 0.5 mg Oral TID' },
+
+    // Cardiovascular, Renin-Angiotensin & Lipids
+    { stem: 'sartan', cls: 'Angiotensin II Receptor Blocker (ARB / AT1 Receptor Antagonist)', use: 'Essential hypertension, heart failure, and diabetic nephropathy.', moa: 'Selectively blocks vascular AT1 angiotensin II receptors, inhibiting vasoconstriction and aldosterone secretion.', mon: 'Monitor blood pressure, serum creatinine, and serum potassium.', dose: '40 mg Oral QD' },
+    { stem: 'pril', cls: 'ACE Inhibitor (Angiotensin-Converting Enzyme Inhibitor)', use: 'Hypertension, chronic heart failure, post-MI, and diabetic nephropathy.', moa: 'Inhibits Angiotensin-Converting Enzyme, blocking conversion of Angiotensin I to Angiotensin II and inhibiting bradykinin degradation.', mon: 'Monitor blood pressure, serum creatinine, serum potassium, and watch for dry cough or angioedema.', dose: '10 mg – 20 mg Oral QD' },
+    { stem: 'statin', cls: 'HMG-CoA Reductase Inhibitor (Statin)', use: 'Hypercholesterolemia, primary & secondary cardiovascular disease prevention.', moa: 'Competitively inhibits rate-limiting HMG-CoA reductase in hepatic cholesterol biosynthesis.', mon: 'Monitor lipid panel, baseline LFTs (ALT/AST), and report unexplained muscle pain/myopathy.', dose: '20 mg Oral QD' },
+    { stem: 'olol', cls: 'Beta-Adrenoceptor Antagonist (Beta-Blocker)', use: 'Hypertension, angina pectoris, tachyarrhythmias, and post-MI.', moa: 'Competitively blocks cardiac Beta-1 adrenergic receptors, decreasing heart rate and contractility.', mon: 'Monitor resting heart rate (hold if HR < 50 bpm) and blood pressure.', dose: '50 mg Oral BID' },
+    { stem: 'dipine', cls: 'Dihydropyridine Calcium Channel Blocker (L-type CCB)', use: 'Essential hypertension and chronic stable angina.', moa: 'Inhibits L-type voltage-gated calcium influx into vascular smooth muscle cells, inducing peripheral arterial vasodilation.', mon: 'Monitor blood pressure, resting heart rate, and peripheral ankle edema.', dose: '5 mg Oral QD' },
+
+    // Gastrointestinal & Endocrine
+    { stem: 'prazole', cls: 'Proton Pump Inhibitor (Gastric H+/K+-ATPase Inhibitor)', use: 'Gastroesophageal Reflux Disease (GERD), peptic ulcer disease, stress ulcer prophylaxis, and H. pylori eradication.', moa: 'Covalently binds cysteine residues on parietal cell H+/K+-ATPase proton pump, inhibiting final step of gastric acid secretion.', mon: 'Re-evaluate ongoing indication. Monitor serum magnesium, B12, and GI symptom control in long-term therapy.', dose: '40 mg Oral QD' },
+    { stem: 'tidine', cls: 'H2-Receptor Antagonist (Histamine H2 Blocker)', use: 'GERD, peptic ulcer disease, and gastric acid hypersecretion.', moa: 'Competitively inhibits histamine H2 receptors on parietal cells, suppressing gastric acid secretion.', mon: 'Monitor GI symptom control and adjust dose in renal impairment.', dose: '150 mg Oral BID' },
+    { stem: 'setron', cls: '5-HT3 Receptor Antagonist Antiemetic', use: 'Prevention and treatment of chemotherapy-induced, radiation-induced, and postoperative nausea and vomiting.', moa: 'Selectively antagonizes 5-HT3 receptors peripherally on vagal nerve terminals and centrally in the chemoreceptor trigger zone (CTZ).', mon: 'Monitor bowel function (constipation) and QTc interval in high-risk patients.', dose: '4 mg – 8 mg Oral/IV Q8H' },
+    { stem: 'flozin', cls: 'SGLT2 Inhibitor (Sodium-Glucose Co-Transporter 2 Inhibitor)', use: 'Type 2 Diabetes Mellitus, HFrEF, and chronic kidney disease.', moa: 'Inhibits renal proximal tubule SGLT2 transporters, promoting urinary glucose and sodium excretion.', mon: 'Monitor renal function (eGFR), hydration status, blood pressure, and fungal genital infections.', dose: '10 mg Oral QD' },
+    { stem: 'gliptin', cls: 'DPP-4 Inhibitor (Dipeptidyl Peptidase-4 Inhibitor)', use: 'Type 2 Diabetes Mellitus.', moa: 'Inhibits DPP-4 enzyme, preventing degradation of incretin hormones (GLP-1/GIP) to stimulate glucose-dependent insulin secretion.', mon: 'Monitor HbA1c, blood glucose, renal function, and report severe joint or abdominal pain.', dose: '100 mg Oral QD' },
+
+    // Antimicrobials & Respiratory
+    { stem: 'cillin', cls: 'Penicillin Beta-Lactam Antibiotic', use: 'Bacterial skin, soft tissue, upper/lower respiratory tract infections, and endocarditis.', moa: 'Binds to penicillin-binding proteins (PBPs), inhibiting bacterial cell wall peptidoglycan cross-linking.', mon: 'Monitor fever resolution, WBC count, and watch for hypersensitivity/anaphylaxis.', dose: '500 mg Oral Q8H' },
+    { stem: 'cef', cls: 'Cephalosporin Antibiotic', use: 'Upper/lower respiratory tract, urinary, skin/soft tissue, or systemic bacterial infections.', moa: 'Binds PBPs on bacterial cell walls, inhibiting peptidoglycan synthesis.', mon: 'Monitor infection resolution parameters, renal function, and CBC.', dose: '500 mg Oral Q12H' },
+    { stem: 'mycin', cls: 'Macrolide / Aminoglycoside Antibacterial', use: 'Bacterial respiratory, systemic, or GI infections.', moa: 'Binds to bacterial ribosomal subunits (50S/30S), inhibiting protein translation.', mon: 'Monitor infection clearance, CBC, renal and hepatic function.', dose: 'Standard adult prescribing per indication' },
+    { stem: 'floxacin', cls: 'Fluoroquinolone Antibacterial (DNA Gyrase & Topoisomerase IV Inhibitor)', use: 'Complicated UTI, pyelonephritis, severe respiratory, and intra-abdominal infections.', moa: 'Inhibits bacterial DNA gyrase (topoisomerase II) and topoisomerase IV, preventing bacterial DNA replication.', mon: 'Monitor infection clearance, tendon pain/tendonitis, QTc interval, and blood glucose fluctuations.', dose: '500 mg Oral Q12H' },
     { stem: 'capone', cls: 'COMT (Catechol-O-Methyltransferase) Inhibitor', use: 'Adjunctive treatment to Levodopa for motor fluctuations in Parkinson\'s Disease.', moa: 'Reversibly inhibits peripheral COMT, prolonging Levodopa half-life and CNS bioavailability.', mon: 'Monitor for levodopa-potentiated dyskinesias, orthostatic BP, and harmless urine discoloration.', dose: '200 mg Oral per Levodopa dose' },
     { stem: 'giline', cls: 'MAO-B (Monoamine Oxidase Type B) Inhibitor', use: 'Parkinson\'s Disease monotherapy or adjunctive therapy.', moa: 'Irreversibly inhibits CNS Monoamine Oxidase B, retarding dopamine breakdown in striatum.', mon: 'Monitor motor control, blood pressure, and sleep parameters.', dose: '5 mg – 10 mg Oral QD' },
-    { stem: 'pexole', cls: 'Non-Ergot Dopamine Receptor Agonist', use: 'Idiopathic Parkinson\'s Disease and Restless Legs Syndrome.', moa: 'Stimulates dopamine D2/D3 receptors in the striatum.', mon: 'Monitor for somnolence, impulse control disorders, and dyskinesias.', dose: '0.125 mg – 1 mg Oral TID' },
-    { stem: 'cillin', cls: 'Penicillin Beta-Lactam Antibiotic', use: 'Bacterial skin, soft tissue, and respiratory tract infections.', moa: 'Binds to penicillin-binding proteins (PBPs), inhibiting bacterial cell wall peptidoglycan cross-linking.', mon: 'Monitor fever resolution, WBC count, and watch for hypersensitivity reactions.', dose: '500 mg Oral Q8H' },
-    { stem: 'mycin', cls: 'Macrolide / Aminoglycoside Antibacterial', use: 'Bacterial respiratory, systemic, or GI infections.', moa: 'Binds to bacterial ribosomal subunits (50S/30S), inhibiting protein translation.', mon: 'Monitor infection clearance, CBC, renal and hepatic function.', dose: 'Standard adult prescribing per indication' },
-    { stem: 'cef', cls: 'Cephalosporin Antibiotic', use: 'Upper/lower respiratory, urinary, or systemic bacterial infections.', moa: 'Binds PBPs on bacterial cell wall, inhibiting cell wall peptidoglycan synthesis.', mon: 'Monitor infection resolution markers and renal clearance.', dose: '500 mg Oral Q12H' },
-    { stem: 'prazole', cls: 'Proton Pump Inhibitor (PPI)', use: 'Gastroesophageal Reflux Disease (GERD), peptic ulcer disease, and acid suppression.', moa: 'Covalently binds to gastric parietal cell H+/K+-ATPase proton pump.', mon: 'Monitor GI symptom control and long-term serum magnesium.', dose: '40 mg Oral QD' },
-    { stem: 'sartan', cls: 'Angiotensin II Receptor Blocker (ARB)', use: 'Essential hypertension, heart failure, and diabetic nephropathy.', moa: 'Selectively blocks vascular AT1 angiotensin II receptors, inhibiting vasoconstriction and aldosterone secretion.', mon: 'Monitor blood pressure, serum creatinine, and serum potassium.', dose: '40 mg Oral QD' },
-    { stem: 'statin', cls: 'HMG-CoA Reductase Inhibitor (Statin)', use: 'Hypercholesterolemia and cardiovascular event prevention.', moa: 'Competitively inhibits rate-limiting HMG-CoA reductase in hepatic cholesterol synthesis.', mon: 'Monitor lipid panel and baseline LFTs.', dose: '20 mg Oral QD' },
-    { stem: 'olol', cls: 'Beta-Adrenoceptor Antagonist (Beta-blocker)', use: 'Hypertension, angina pectoris, and tachyarrhythmias.', moa: 'Competitively blocks cardiac Beta-1 adrenergic receptors, reducing heart rate and contractility.', mon: 'Monitor resting heart rate and blood pressure.', dose: '50 mg Oral BID' },
-    { stem: 'dipine', cls: 'Dihydropyridine Calcium Channel Blocker', use: 'Essential hypertension and chronic stable angina.', moa: 'Inhibits L-type calcium influx into vascular smooth muscle, causing peripheral arterial vasodilation.', mon: 'Monitor blood pressure, heart rate, and peripheral edema.', dose: '5 mg Oral QD' },
-    { stem: 'pril', cls: 'ACE Inhibitor', use: 'Hypertension, heart failure, and diabetic nephropathy.', moa: 'Inhibits Angiotensin Converting Enzyme, reducing Angiotensin II levels and vasopressor activity.', mon: 'Monitor blood pressure, serum creatinine, and serum potassium.', dose: '10 mg Oral QD' }
+    { stem: 'pexole', cls: 'Non-Ergot Dopamine Receptor Agonist', use: 'Idiopathic Parkinson\'s Disease and Restless Legs Syndrome.', moa: 'Stimulates dopamine D2/D3 receptors in the striatum.', mon: 'Monitor for somnolence, impulse control disorders, and dyskinesias.', dose: '0.125 mg – 1 mg Oral TID' }
   ];
 
   const matchedStem = stems.find(s => name.includes(s.stem) || cleanName.includes(s.stem));
@@ -222,41 +242,21 @@ const getMedicationSpecificAnalysis = (drug) => {
     };
   }
 
-  // Dynamic Pharmacotherapy Resolver for Any Newly Entered Valid Medication
+  // Fallback for unretrieved / unverified entries (REQUIREMENT 3, 14 & NO FAKE FILLER)
   const candidate = (generic !== '—' && generic ? generic : trade !== '—' && trade ? trade : rawInput).trim();
-  const isJunkOrAmbiguous = !candidate || candidate.length < 3 || /^\d+$/.test(candidate) || /^[?#!@$%^&*()]+$/.test(candidate);
-
-  if (!isJunkOrAmbiguous) {
-    const drugTitle = candidate.charAt(0).toUpperCase() + candidate.slice(1);
-    return {
-      originalEntry: rawInput,
-      recognizedEntryType: 'Prescribed Pharmacotherapeutic Agent',
-      resolvedGeneric: drugTitle,
-      brandName: trade !== '—' && trade.toLowerCase() !== generic.toLowerCase() ? trade : null,
-      drugClass: `${drugTitle} — Prescribed Pharmacotherapeutic Agent`,
-      establishedUse: `Therapeutic management of documented clinical condition in accordance with established pharmacotherapy guidelines for ${drugTitle}.`,
-      mechanismOfAction: `Exerts specific receptor, enzymatic, or cellular physiological actions appropriate for ${drugTitle} as documented in clinical pharmacotherapy references.`,
-      monitoringAdvice: `Monitor therapeutic response, vital signs, organ function parameters, and clinical tolerance for ${drugTitle}.`,
-      formularyDose: `Standard adult prescribing range per clinical formulary reference.`,
-      isVerified: true,
-      needsVerificationBanner: false
-    };
-  }
-
-  // Ambiguous / Unrecognized Entry Fallback
   return {
     originalEntry: rawInput,
-    recognizedEntryType: 'Unverified Entry',
-    resolvedGeneric: null,
-    brandName: null,
-    drugClass: null,
-    establishedUse: null,
-    mechanismOfAction: null,
-    monitoringAdvice: null,
-    formularyDose: null,
+    recognizedEntryType: 'Clinical Verification Required',
+    resolvedGeneric: candidate || 'Unverified Entry',
+    brandName: trade !== '—' && trade.toLowerCase() !== generic.toLowerCase() ? trade : null,
+    drugClass: 'Unverified Pharmacotherapy Entry',
+    establishedUse: 'Specific information could not be confidently retrieved for this entry. Please verify the clinical entity and consult an appropriate clinical reference.',
+    mechanismOfAction: 'Specific information could not be confidently retrieved for this entry. Please verify the clinical entity against an authoritative drug reference.',
+    monitoringAdvice: 'Verify medication identity and dosing guidelines against clinical reference before evaluating monitoring parameters.',
+    formularyDose: 'Drug-specific dosing information could not be confidently retrieved. Verify against applicable clinical reference.',
     isVerified: false,
     needsVerificationBanner: true,
-    possibleMatch: name.includes('pantop') ? 'Pantoprazole' : name.includes('azithr') ? 'Azithromycin' : name.includes('levocet') ? 'Levocetirizine' : name.includes('entac') ? 'Entacapone' : null
+    possibleMatch: null
   };
 };
 
