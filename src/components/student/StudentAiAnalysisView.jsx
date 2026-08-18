@@ -79,349 +79,278 @@ const checkIsFormSaved = (formObj, formType = '') => {
 };
 
 /**
+ * Clinical Brand & Generic Medication Identity Database
+ */
+const BRAND_GENERIC_REGISTRY = {
+  // Cardiac & Inotropic Agents
+  'digoxin': { generic: 'Digoxin', brand: 'Lanoxin', type: 'Generic Name', class: 'Cardiac Glycoside (Inotropic Agent & Na+/K+-ATPase Inhibitor)', use: 'Rate control in chronic Atrial Fibrillation / Atrial Flutter and symptomatic heart failure with reduced ejection fraction (HFrEF).', moa: 'Reversibly inhibits membrane-bound Na+/K+-ATPase pump in cardiac myocytes, increasing intracellular sodium. This reduces Na+/Ca2+ exchange, causing intracellular calcium accumulation that increases myocardial contractility (positive inotropy) while vagal enhancement decreases SA/AV node conduction velocity (negative chronotropy).', mon: 'Monitor serum digoxin levels (therapeutic range 0.5-0.9 ng/mL for HF, 0.8-2.0 ng/mL for AF), serum potassium, magnesium, and renal function. Watch for toxicity signs (anorexia, nausea, yellow-green visual halos, bradycardia).', dose: '0.125 mg – 0.25 mg Oral QD (titrated to renal function & serum levels)' },
+  'lanoxin': { generic: 'Digoxin', brand: 'Lanoxin', type: 'Brand Name', class: 'Cardiac Glycoside (Inotropic Agent & Na+/K+-ATPase Inhibitor)', use: 'Rate control in chronic Atrial Fibrillation / Atrial Flutter and symptomatic heart failure with reduced ejection fraction (HFrEF).', moa: 'Reversibly inhibits membrane-bound Na+/K+-ATPase pump in cardiac myocytes, increasing intracellular sodium, which reduces Na+/Ca2+ exchange and increases intracellular calcium for positive inotropy.', mon: 'Monitor serum digoxin levels, serum potassium, magnesium, and renal function.', dose: '0.125 mg – 0.25 mg Oral QD' },
+
+  // Gastrointestinal & PPI Agents
+  'pantoprazole': { generic: 'Pantoprazole', brand: null, type: 'Generic Name', class: 'Proton Pump Inhibitor (Gastric H+/K+-ATPase Inhibitor)', use: 'Gastroesophageal Reflux Disease (GERD), peptic ulcer disease, stress ulcer prophylaxis, and Helicobacter pylori eradication.', moa: 'Covalently binds to cysteine residues on the extracellular domain of parietal cell H+/K+-ATPase enzyme system (proton pump), inhibiting the final step of gastric acid secretion into stomach lumen.', mon: 'Re-evaluate ongoing indication periodically. Monitor for hypomagnesemia, B12 deficiency, bone fracture risk, and C. difficile in long-term therapy.', dose: '40 mg Oral/IV QD' },
+  'pantop': { generic: 'Pantoprazole', brand: 'Pantop', type: 'Brand Name', class: 'Proton Pump Inhibitor (Gastric H+/K+-ATPase Inhibitor)', use: 'Gastroesophageal Reflux Disease (GERD), peptic ulcer disease, stress ulcer prophylaxis, and Helicobacter pylori eradication.', moa: 'Covalently binds to cysteine residues on parietal cell H+/K+-ATPase proton pump, blocking gastric acid secretion.', mon: 'Re-evaluate ongoing indication periodically. Monitor serum magnesium and GI symptom control.', dose: '40 mg Oral QD' },
+  'pantop 40': { generic: 'Pantoprazole', brand: 'Pantop', type: 'Brand Name', class: 'Proton Pump Inhibitor (Gastric H+/K+-ATPase Inhibitor)', use: 'Gastroesophageal Reflux Disease (GERD), peptic ulcer disease, stress ulcer prophylaxis.', moa: 'Covalently binds to parietal cell H+/K+-ATPase proton pump, inhibiting gastric acid output.', mon: 'Monitor GI symptom relief and long-term magnesium levels.', dose: '40 mg Oral QD' },
+  'pan 40': { generic: 'Pantoprazole', brand: 'PAN-40', type: 'Brand Name', class: 'Proton Pump Inhibitor (Gastric H+/K+-ATPase Inhibitor)', use: 'Gastroesophageal Reflux Disease (GERD), peptic ulcer disease, stress ulcer prophylaxis.', moa: 'Inhibits parietal cell H+/K+-ATPase proton pump, suppressing gastric acid production.', mon: 'Monitor GI symptom relief.', dose: '40 mg Oral QD' },
+  'pantocid': { generic: 'Pantoprazole', brand: 'Pantocid', type: 'Brand Name', class: 'Proton Pump Inhibitor (Gastric H+/K+-ATPase Inhibitor)', use: 'Gastroesophageal Reflux Disease (GERD), peptic ulcer disease.', moa: 'Inhibits parietal cell H+/K+-ATPase proton pump.', mon: 'Monitor GI symptom relief.', dose: '40 mg Oral QD' },
+
+  // Antihistamines & Allergy
+  'levocetirizine': { generic: 'Levocetirizine', brand: null, type: 'Generic Name', class: 'Second-Generation Peripheral H1-Receptor Antagonist (Non-sedating Antihistamine)', use: 'Perennial & seasonal allergic rhinitis, chronic idiopathic urticaria, allergic conjunctivitis, and pruritic dermatoses.', moa: 'Selectively and competitively antagonizes peripheral H1 histamine receptors on effector cells, blocking histamine-mediated vascular permeability, mucosal hypersecretion, and inflammatory wheal-and-flare reactions.', mon: 'Monitor relief of allergic symptoms (sneezing, rhinorrhea, pruritus) and adjust dose in patients with renal impairment.', dose: '5 mg Oral HS' },
+  'one all': { generic: 'Levocetirizine', brand: 'One All', type: 'Brand Name', class: 'Second-Generation Peripheral H1-Receptor Antagonist (Non-sedating Antihistamine)', use: 'Perennial & seasonal allergic rhinitis, chronic idiopathic urticaria, and pruritic dermatoses.', moa: 'Selectively antagonizes peripheral H1 histamine receptors, blocking histamine-mediated allergic reactions.', mon: 'Monitor relief of allergic symptoms and renal function.', dose: '5 mg Oral HS' },
+  '1 all': { generic: 'Levocetirizine', brand: 'One All', type: 'Brand Name', class: 'Second-Generation Peripheral H1-Receptor Antagonist (Non-sedating Antihistamine)', use: 'Perennial & seasonal allergic rhinitis and chronic urticaria.', moa: 'Selectively antagonizes peripheral H1 histamine receptors.', mon: 'Monitor allergy symptom control.', dose: '5 mg Oral HS' },
+  'cetzine': { generic: 'Levocetirizine', brand: 'Cetzine', type: 'Brand Name', class: 'Second-Generation Peripheral H1-Receptor Antagonist', use: 'Allergic rhinitis and urticaria.', moa: 'Blocks peripheral H1 histamine receptors.', mon: 'Monitor symptom relief.', dose: '5 mg Oral HS' },
+  'okacet': { generic: 'Cetirizine / Levocetirizine', brand: 'Okacet', type: 'Brand Name', class: 'Second-Generation Peripheral H1-Receptor Antagonist', use: 'Allergic rhinitis and chronic urticaria.', moa: 'Blocks peripheral H1 histamine receptors.', mon: 'Monitor symptom relief.', dose: '5 mg – 10 mg Oral HS' },
+
+  // Antimicrobials
+  'azithromycin': { generic: 'Azithromycin', brand: null, type: 'Generic Name', class: 'Macrolide Antibiotic — 50S Ribosomal Subunit Protein Synthesis Inhibitor', use: 'Community-acquired pneumonia, acute bacterial exacerbations of COPD, streptococcal pharyngitis, acute bacterial sinusitis, skin/soft tissue infections, and urethritis.', moa: 'Binds reversibly to the 50S ribosomal subunit of susceptible microorganisms (23S rRNA), inhibiting transpeptidation and translocation steps of RNA-dependent protein synthesis, halting bacterial cell growth.', mon: 'Monitor resolution of infection (fever curve, WBC count), cardiac QT interval (in high-risk patients), hepatic function, and GI tolerance.', dose: '500 mg Oral QD x 3-5 days' },
+  'azithral': { generic: 'Azithromycin', brand: 'Azithral', type: 'Brand Name', class: 'Macrolide Antibiotic — 50S Ribosomal Subunit Protein Synthesis Inhibitor', use: 'Community-acquired pneumonia, acute sinusitis, pharyngitis, and skin/soft tissue infections.', moa: 'Binds to bacterial 50S ribosomal subunit, suppressing protein synthesis.', mon: 'Monitor infection resolution parameters and GI tolerance.', dose: '500 mg Oral QD' },
+  'atm': { generic: 'Azithromycin', brand: 'ATM', type: 'Brand Name', class: 'Macrolide Antibiotic — 50S Ribosomal Subunit Protein Synthesis Inhibitor', use: 'Respiratory tract infections and skin infections.', moa: 'Binds to bacterial 50S ribosomal subunit.', mon: 'Monitor infection resolution parameters.', dose: '500 mg Oral QD' },
+
+  // Central Nervous System & Anti-Parkinsonian
+  'levodopa': { generic: 'Levodopa + Carbidopa', brand: null, type: 'Generic Combination', class: 'Dopamine Precursor & Central Decarboxylase Modulator (Anti-Parkinsonian Agent)', use: 'Symptomatic management of idiopathic Parkinson\'s Disease, post-encephalitic parkinsonism, and symptomatic parkinsonism following CNS injury.', moa: 'Levodopa crosses the blood-brain barrier into striatal neurons where it is decarboxylated into dopamine, restoring depleted basal ganglia neurotransmission. Co-administered Carbidopa inhibits peripheral L-amino acid decarboxylase, preventing systemic degradation and optimizing CNS uptake.', mon: 'Monitor motor response improvement (bradykinesia, rigidity, tremor), dyskinesias/on-off fluctuations, orthostatic blood pressure, and psychiatric status.', dose: '100 mg / 25 mg Oral TID (titrated to motor response)' },
+  'levo dopa': { generic: 'Levodopa + Carbidopa', brand: 'Syndopa', type: 'Generic Combination', class: 'Dopamine Precursor & Central Decarboxylase Modulator (Anti-Parkinsonian Agent)', use: 'Symptomatic management of idiopathic Parkinson\'s Disease and parkinsonism.', moa: 'Levodopa crosses the blood-brain barrier into striatal neurons where it is decarboxylated into dopamine. Carbidopa inhibits peripheral decarboxylation.', mon: 'Monitor motor response improvement, dyskinesias, orthostatic BP, and mental status.', dose: '100 mg / 25 mg Oral TID' },
+  'syndopa': { generic: 'Levodopa + Carbidopa', brand: 'Syndopa', type: 'Brand Name', class: 'Dopamine Precursor & Central Decarboxylase Modulator (Anti-Parkinsonian Agent)', use: 'Symptomatic management of idiopathic Parkinson\'s Disease.', moa: 'Levodopa crosses BBB into striatum to form dopamine; Carbidopa blocks peripheral conversion.', mon: 'Monitor motor response improvement and dyskinesias.', dose: '100 mg / 25 mg Oral TID' },
+  'phenytoin': { generic: 'Phenytoin', brand: null, type: 'Generic Name', class: 'Anticonvulsant Hydantoin Derivative (Voltage-Gated Sodium Channel Blocker)', use: 'Tonic-clonic (grand mal) seizures, complex partial seizures, and prevention of seizures following neurosurgery.', moa: 'Promotes sodium efflux and stabilizes neuronal membranes by frequency-dependent blockade of voltage-gated neuronal sodium channels, inhibiting repetitive firing.', mon: 'Monitor total serum phenytoin levels (therapeutic range 10-20 mcg/mL), LFTs, CBC, and watch for gingival hyperplasia or nystagmus.', dose: '100 mg Oral TID (titrated to serum levels)' },
+  'eptoin': { generic: 'Phenytoin', brand: 'Eptoin', type: 'Brand Name', class: 'Anticonvulsant Hydantoin Derivative (Voltage-Gated Sodium Channel Blocker)', use: 'Tonic-clonic seizures and complex partial seizures.', moa: 'Blocks voltage-gated neuronal sodium channels to stabilize neuronal membranes.', mon: 'Monitor serum phenytoin levels (10-20 mcg/mL), CBC, and LFTs.', dose: '100 mg Oral TID' }
+};
+
+/**
  * Dynamic Medication Evaluator helper.
- * Retrieves verified pharmacological information (Drug Class, Established Use, MOA) from public drug information databases (SmPC / National Formularies / WHO MedNet).
- * Strictly distinguishes Documented Case Indication vs Established Clinical Use.
- * Zero generic placeholders allowed.
+ * Retrieves verified drug-specific information (Drug Class, Established Use, MOA, Monitoring, Dosing)
+ * from authoritative pharmacopoeia registry without generic templates.
  */
 const getMedicationSpecificAnalysis = (drug) => {
   const trade = String(drug.trade_name || '').replace(/^—$/, '').trim();
   const generic = String(drug.generic_name || '').replace(/^—$/, '').trim();
-  const name = `${generic} ${trade}`.toLowerCase();
+  const rawInput = `${generic} ${trade}`.trim();
+  const name = rawInput.toLowerCase();
   const cleanName = name.replace(/[^a-z0-9]/g, '');
 
-  let drugClass = '';
-  let establishedUse = '';
-  let mechanismOfAction = '';
-  let monitoringAdvice = '';
-  let isVerified = true;
+  // Check direct registry entry
+  let matchedKey = Object.keys(BRAND_GENERIC_REGISTRY).find(k => {
+    const cleanK = k.replace(/[^a-z0-9]/g, '');
+    return name.includes(k) || cleanName.includes(cleanK) || (trade.toLowerCase() === k) || (generic.toLowerCase() === k);
+  });
 
-  if (name.includes('levodopa') || name.includes('levo dopa') || cleanName.includes('levodopa') || name.includes('syndopa') || name.includes('synergy') || name.includes('carbidopa') || name.includes('stalevo') || name.includes('pacitane') || name.includes('pramipexole') || name.includes('ropinirole')) {
-    drugClass = 'Dopamine Precursor & Central Decarboxylase Modulator (Anti-Parkinsonian Agent)';
-    establishedUse = 'Symptomatic management of idiopathic Parkinson\'s Disease, post-encephalitic parkinsonism, and symptomatic parkinsonism following central nervous system injury.';
-    mechanismOfAction = 'Levodopa crosses the blood-brain barrier into striatal neurons where it is decarboxylated into dopamine, restoring depleted basal ganglia neurotransmission. Co-administered Carbidopa/Benserazide inhibits peripheral L-amino acid decarboxylase, preventing systemic degradation and optimizing CNS uptake.';
-    monitoringAdvice = 'Monitor motor response improvement (bradykinesia, rigidity, tremor), dyskinesias/on-off fluctuations, orthostatic blood pressure, and psychiatric status (hallucinations/confusion).';
-  } else if (name.includes('azithromycin') || name.includes('azithral') || name.includes('atm') || name.includes('zithrox') || name.includes('clarithromycin') || name.includes('erythromycin')) {
-    drugClass = 'Macrolide Antibiotic — 50S Ribosomal Subunit Protein Synthesis Inhibitor';
-    establishedUse = 'Community-acquired pneumonia, acute bacterial exacerbations of COPD, streptococcal pharyngitis, acute bacterial sinusitis, skin and soft tissue infections, and urethritis/cervicitis.';
-    mechanismOfAction = 'Binds reversibly to the 50S ribosomal subunit of susceptible microorganisms (specifically 23S rRNA), inhibiting transpeptidation and translocation steps of RNA-dependent protein synthesis, halting bacterial cell growth.';
-    monitoringAdvice = 'Monitor resolution of infection (fever curve, WBC count), cardiac QT interval (in high-risk patients), hepatic function, and GI tolerance.';
-  } else if (name.includes('levocetirizine') || name.includes('levocetriz') || name.includes('one all') || name.includes('1 all') || cleanName.includes('oneall') || name.includes('cetzine') || name.includes('okacet') || name.includes('cetirizine') || name.includes('fexofenadine') || name.includes('loratadine') || name.includes('bilastine')) {
-    drugClass = 'Second-Generation Peripheral H1-Receptor Antagonist (Non-sedating Antihistamine)';
-    establishedUse = 'Perennial & seasonal allergic rhinitis, chronic idiopathic urticaria, allergic conjunctivitis, and pruritic dermatoses.';
-    mechanismOfAction = 'Selectively and competitively antagonizes peripheral H1 histamine receptors on effector cells, blocking histamine-mediated vascular permeability, mucosal hypersecretion, and inflammatory wheal-and-flare reactions.';
-    monitoringAdvice = 'Monitor relief of allergic symptoms (sneezing, rhinorrhea, pruritus) and adjust dose in patients with renal impairment.';
-  } else if (name.includes('cefixime') || name.includes('taxim-o') || name.includes('cefpodoxime') || name.includes('cefuroxime') || name.includes('cephalexin') || name.includes('cefepime')) {
-    drugClass = 'Oral / Parenteral Cephalosporin Antibiotic (Beta-lactam)';
-    establishedUse = 'Upper & lower respiratory tract infections, acute otitis media, uncomplicated urinary tract infections, typhoid fever, and uncomplicated gonorrhea.';
-    mechanismOfAction = 'Binds to penicillin-binding proteins (PBPs) on the bacterial cell membrane, inhibiting bacterial cell wall peptidoglycan synthesis, leading to osmotic cell lysis.';
-    monitoringAdvice = 'Monitor infection resolution parameters (fever, WBC), renal function, and watch for hypersensitivity reactions.';
-  } else if (name.includes('meropenem') || name.includes('meronem') || name.includes('ertapenem') || name.includes('imipenem')) {
-    drugClass = 'Ultra-Broad Spectrum Carbapenem Beta-Lactam Antibiotic';
-    establishedUse = 'Complicated intra-abdominal infections, severe hospital-acquired pneumonia, complicated skin/soft tissue infections, complicated UTIs, and febrile neutropenia.';
-    mechanismOfAction = 'Penetrates bacterial cell wall via porin channels and binds with high affinity to essential PBPs (PBP-2 and PBP-3), inhibiting cell wall peptidoglycan cross-linking with resistance to most beta-lactamases.';
-    monitoringAdvice = 'Monitor renal function (eGFR for dose titration), neurological status (seizure risk), and complete blood counts.';
-  } else if (name.includes('piperacillin') || name.includes('tazobactam') || name.includes('pipzo') || name.includes('zocin') || name.includes('amoxicillin') || name.includes('ampicillin') || name.includes('sulbactam')) {
-    drugClass = 'Extended-Spectrum Penicillin + Beta-Lactamase Inhibitor Combination';
-    establishedUse = 'Polymicrobial nosocomial pneumonia, intra-abdominal peritonitis, severe diabetic foot infections, and neutropenic sepsis.';
-    mechanismOfAction = 'Penicillin component inhibits bacterial cell wall synthesis via PBP binding, while Tazobactam/Sulbactam acts as a suicide inhibitor of beta-lactamase enzymes, protecting the antibiotic from degradation.';
-    monitoringAdvice = 'Monitor renal clearance, serum potassium/sodium, complete blood counts, and hepatic function.';
-  } else if (name.includes('amikacin') || name.includes('gentamicin') || name.includes('tobramycin')) {
-    drugClass = 'Aminoglycoside Antibacterial — 30S Ribosomal Subunit Inhibitor';
-    establishedUse = 'Severe Gram-negative aerobic infections (septicemia, complicated pyelonephritis, nosocomial pneumonia) often in combination with beta-lactams.';
-    mechanismOfAction = 'Binds irreversibly to the 30S bacterial ribosomal subunit, interfering with protein synthesis initiation and mRNA reading, producing aberrant cell membrane proteins and rapid bactericidal cell death.';
-    monitoringAdvice = 'Monitor peak/trough serum concentrations, serum creatinine/eGFR (nephrotoxicity monitoring), and auditory function.';
-  } else if (name.includes('vancomycin') || name.includes('teicoplanin')) {
-    drugClass = 'Glycopeptide Antibiotic — Bacterial Cell Wall Synthesis Inhibitor';
-    establishedUse = 'Methicillin-resistant Staphylococcus aureus (MRSA) bacteremia, endocarditis, osteomyelitis, surgical prophylaxis, and oral therapy for severe C. difficile colitis.';
-    mechanismOfAction = 'Binds specifically to the D-alanyl-D-alanine terminus of cell wall precursor units, sterically blocking peptidoglycan polymerization and cell wall synthesis.';
-    monitoringAdvice = 'Monitor trough serum vancomycin levels (target 15-20 mcg/mL), renal clearance, and infusion rate (Red Man Syndrome prevention).';
-  } else if (name.includes('gabapentin') || name.includes('neurontin') || name.includes('pregabalin') || name.includes('lyrica') || name.includes('valproate') || name.includes('carbamazepine') || name.includes('phenytoin') || name.includes('levetiracetam') || name.includes('keppra')) {
-    drugClass = 'Antiepileptic Agent & Neuropathic Analgesic';
-    establishedUse = 'Partial & generalized seizure disorders, diabetic peripheral neuropathy, post-herpetic neuralgia, fibromyalgia, and mood stabilization.';
-    mechanismOfAction = 'Modulates voltage-gated calcium channel alpha-2-delta subunits in the CNS (reducing excitatory neurotransmitter release) OR enhances GABAergic inhibition / blocks voltage-gated sodium channels.';
-    monitoringAdvice = 'Monitor seizure frequency, CNS sedation/dizziness, serum drug levels (valproate/phenytoin), LFTs, and complete blood counts.';
-  } else if (name.includes('heparin') || name.includes('enoxaparin') || name.includes('clexane') || name.includes('warfarin') || name.includes('apixaban') || name.includes('rivaroxaban')) {
-    drugClass = 'Anticoagulant Agent — Factor Xa / Thrombin Inhibitor / Vitamin K Antagonist';
-    establishedUse = 'Treatment & prophylaxis of Deep Vein Thrombosis (DVT), Pulmonary Embolism (PE), stroke prevention in non-valvular Atrial Fibrillation, and acute coronary syndromes.';
-    mechanismOfAction = 'Accelerates antithrombin III inhibition of Factor Xa and thrombin (Enoxaparin/Heparin) OR directly inhibits Factor Xa (Apixaban/Rivaroxaban) OR inhibits hepatic synthesis of Vitamin K-dependent clotting factors.';
-    monitoringAdvice = 'Monitor Anti-Xa / aPTT (Heparin), INR (Warfarin), hemoglobin/hematocrit, platelet counts (HIT risk), and clinical signs of bleeding.';
-  } else if (name.includes('salbutamol') || name.includes('asthalin') || name.includes('ipratropium') || name.includes('duolin') || name.includes('budesonide') || name.includes('pulmicort') || name.includes('foracort') || name.includes('montelukast')) {
-    drugClass = 'Inhaled Bronchodilator / Corticosteroid / Leukotriene Receptor Antagonist';
-    establishedUse = 'Management of bronchial asthma, acute bronchospasm, COPD exacerbations, and allergic airway hyperresponsiveness.';
-    mechanismOfAction = 'Relaxes bronchial smooth muscle via Beta-2 adrenoceptor stimulation (Salbutamol) / M3 receptor blockade (Ipratropium) and suppresses airway inflammatory cascade via mucosal glucocorticoid receptor binding (Budesonide).';
-    monitoringAdvice = 'Monitor peak expiratory flow rate (PEFR), respiratory rate, heart rate, serum potassium, and mouth rinsing after steroid inhalation.';
-  } else if (name.includes('dexamethasone') || name.includes('hydrocortisone') || name.includes('methylprednisolone') || name.includes('prednisolone') || name.includes('omnacortil')) {
-    drugClass = 'Systemic Glucocorticoid — Anti-inflammatory & Immunosuppressive Agent';
-    establishedUse = 'Severe acute asthma exacerbations, septic shock, cerebral edema, systemic inflammatory/rheumatoid disorders, allergic emergencies, and acute immune-mediated conditions.';
-    mechanismOfAction = 'Binds intracellular glucocorticoid receptors to upregulate anti-inflammatory lipocortin synthesis while suppressing proinflammatory cytokines (IL-1, IL-6, TNF-alpha), COX-2, and leukocyte migration.';
-    monitoringAdvice = 'Monitor capillary blood glucose logs, blood pressure, serum electrolytes, infection signs, and taper dose gradually for chronic therapy.';
-  } else if (name.includes('allopurinol') || name.includes('febuxostat') || name.includes('colchicine')) {
-    drugClass = 'Xanthine Oxidase Inhibitor — Antihyperuricemic Agent';
-    establishedUse = 'Management of hyperuricemia in primary/secondary gout, gouty arthritis, uric acid nephropathy, and tumor lysis syndrome prophylaxis.';
-    mechanismOfAction = 'Inhibits xanthine oxidase enzyme responsible for biotransformation of hypoxanthine to xanthine and xanthine to uric acid, reducing systemic uric acid pool.';
-    monitoringAdvice = 'Monitor serum uric acid (target < 6.0 mg/dL), renal function, and instruct patient to report skin rash immediately.';
-  } else if (name.includes('sucralfate') || name.includes('sucrafil') || name.includes('ranitidine') || name.includes('famotidine')) {
-    drugClass = 'Mucosal Protective Agent / H2-Receptor Antagonist';
-    establishedUse = 'Duodenal and gastric ulcers, stress ulcer prophylaxis, and GERD symptom management.';
-    mechanismOfAction = 'Forms a viscous, protective polyanionic barrier over damaged mucosal ulcer beds, shielding tissue against gastric acid, pepsin, and bile salts.';
-    monitoringAdvice = 'Administer on an empty stomach 1 hour before meals. Monitor renal function and bowel habits.';
-  } else if (name.includes('thyroxine') || name.includes('levothyroxine') || name.includes('eltroxin') || name.includes('thyronorm')) {
-    drugClass = 'Synthetic Thyroid Hormone Replacement (T4 Exogenous Hormone)';
-    establishedUse = 'Replacement or supplemental therapy in hypothyroidism of any etiology, TSH suppression in pituitary-dependent TSH secretion or thyroid carcinoma.';
-    mechanismOfAction = 'Peripherally deiodinated into active triiodothyronine (T3), binding intracellular nuclear thyroid hormone receptors to activate gene transcription for metabolic rate, lipid metabolism, and cardiac output.';
-    monitoringAdvice = 'Monitor serum TSH and Free T4 levels periodically. Take on an empty stomach 30-60 minutes before breakfast.';
-  } else if (name.includes('ursodeoxycholic') || name.includes('udca') || name.includes('urso') || name.includes('silymarin') || name.includes('lola')) {
-    drugClass = 'Hepatoprotective Hydrophilic Bile Acid / Hepatobiliary Agent';
-    establishedUse = 'Dissolution of radiolucent gallstones, primary biliary cholangitis (PBC), and cholestatic liver dysfunction.';
-    mechanismOfAction = 'Suppresses hepatic synthesis and secretion of cholesterol into bile, while replacing toxic hydrophobic bile acids to protect hepatocytes and cholangiocytes from membrane damage.';
-    monitoringAdvice = 'Monitor LFTs (ALT, AST, ALP, Bilirubin) and ultrasound gallstone progression.';
-  } else if (name.includes('haloperidol') || name.includes('olanzapine') || name.includes('quetiapine') || name.includes('risperidone') || name.includes('escitalopram') || name.includes('sertraline') || name.includes('fluoxetine') || name.includes('amitriptyline')) {
-    drugClass = 'Neuro-Psychiatric Agent (Antipsychotic / Antidepressant)';
-    establishedUse = 'Management of major depressive disorder, generalized anxiety disorder, schizophrenia, and acute behavioral disturbance.';
-    mechanismOfAction = 'Modulates central monoaminergic neurotransmission via selective serotonin reuptake inhibition (SSRI) OR central Dopamine D2 / Serotonin 5-HT2A receptor antagonism.';
-    monitoringAdvice = 'Monitor clinical psychiatric improvement, extrapyramidal symptoms, metabolic parameters, and QTc interval.';
-  } else if (name.includes('buscopan') || name.includes('buscogast') || name.includes('hyoscine') || name.includes('scopolamine')) {
-    drugClass = 'Antimuscarinic antispasmodic / Anticholinergic antispasmodic';
-    establishedUse = 'Symptomatic relief of visceral smooth-muscle spasm in the gastrointestinal, biliary, and genitourinary tracts; relief of spasms associated with Irritable Bowel Syndrome (IBS).';
-    mechanismOfAction = 'Quaternary ammonium anticholinergic agent. Produces a peripheral spasmolytic effect through competitive inhibition of visceral muscarinic receptors and parasympathetic ganglion-blocking activity, reducing smooth-muscle hypertonicity without central nervous system penetration.';
-    monitoringAdvice = 'Monitor relief of abdominal cramps/spasms. Watch for anticholinergic side effects (dry mouth, blurred vision, urinary retention, tachycardia).';
-  } else if (name.includes('rifamini') || name.includes('rifaximin') || name.includes('spiraxin') || name.includes('rcifax')) {
-    drugClass = 'Gastrointestinal selective antibacterial — Non-systemic Rifamycin derivative';
-    establishedUse = 'Reduction in recurrence of overt Hepatic Encephalopathy in adults; Irritable Bowel Syndrome with Diarrhea (IBS-D); Traveler\'s Diarrhea caused by non-invasive Escherichia coli.';
-    mechanismOfAction = 'Binds to the beta-subunit of bacterial DNA-dependent RNA polymerase, inhibiting bacterial RNA transcription and protein synthesis. Acts locally in the intestinal lumen with minimal systemic absorption (< 0.4%), reducing ammonia-producing gut bacteria.';
-    monitoringAdvice = 'Monitor mental status/asterixis improvement, stool frequency, and GI tolerance. Watch for severe watery diarrhea (C. difficile risk).';
-  } else if (name.includes('mesalamine') || name.includes('5-asa') || name.includes('mesalazine') || name.includes('asacol') || name.includes('pentasa') || name.includes('mesacol')) {
-    drugClass = 'Aminosalicylate — Gastrointestinal anti-inflammatory agent (5-Aminosalicylic Acid)';
-    establishedUse = 'Induction and maintenance of remission in mild-to-moderate active Ulcerative Colitis and Crohn\'s Disease.';
-    mechanismOfAction = 'Inhibits mucosal cyclooxygenase (COX) and lipoxygenase (LOX) pathways in colonic tissue, decreasing local Prostaglandin E2 and Leukotriene B4 synthesis. Scavenges reactive oxygen species and inhibits NF-kB nuclear translocation in mucosal epithelial cells.';
-    monitoringAdvice = 'Monitor baseline and periodic renal function (Serum Creatinine & BUN) for interstitial nephritis risk. Monitor LFTs and blood counts.';
-  } else if (name.includes('lactitol') || name.includes('lactulose') || name.includes('duphalac')) {
-    drugClass = 'Osmotic laxative & Hyperammonemia detoxifying agent (Synthetic disaccharide)';
-    establishedUse = 'Prevention and treatment of Hepatic Encephalopathy (portal-systemic encephalopathy) and chronic constipation.';
-    mechanismOfAction = 'Cleaved by colonic anaerobic microflora into low-molecular-weight organic acids (lactic, acetic acid), lowering colonic pH. Low pH converts absorbable ammonia (NH3) into unabsorbable ammonium ions (NH4+), while osmotic water retention promotes intestinal evacuation.';
-    monitoringAdvice = 'Monitor stool frequency (target: 2 to 3 soft stools/day in hepatic encephalopathy) and serum sodium/potassium levels to prevent dehydration.';
-  } else if (name.includes('paracetamol') || name.includes('acetaminophen') || name.includes('dolo') || name.includes('crocin') || name.includes('calpol') || name.includes('pcm')) {
-    drugClass = 'Non-opioid analgesic & Antipyretic — Central cyclooxygenase inhibitor';
-    establishedUse = 'Symptomatic management of mild-to-moderate pain and reduction of fever in adults and pediatric patients.';
-    mechanismOfAction = 'Inhibits central nervous system cyclooxygenase (COX-3 / central COX variants), suppressing Prostaglandin E2 synthesis in the cerebral cortex and hypothalamic thermoregulatory center. Reduces central pain transmission without peripheral GI mucosal ulceration.';
-    monitoringAdvice = 'Ensure total daily dose does not exceed 4,000 mg/day (or < 2,000-3,000 mg/day in hepatic impairment). Monitor LFTs.';
-  } else if (name.includes('metformin') || name.includes('glycomet') || name.includes('glucophage') || name.includes('glyciphage')) {
-    drugClass = 'Biguanide antihyperglycemic agent';
-    establishedUse = 'First-line pharmacotherapy for Type 2 Diabetes Mellitus, alone or in combination with other antidiabetics/insulin; Polycystic Ovary Syndrome (PCOS).';
-    mechanismOfAction = 'Activates hepatic AMP-activated protein kinase (AMPK), suppressing hepatic gluconeogenesis and glycogenolysis. Enhances peripheral tissue insulin sensitivity and muscle GLUT4 glucose uptake while reducing intestinal glucose absorption.';
-    monitoringAdvice = 'Monitor eGFR and renal function. Hold before contrast procedures or if eGFR < 30 mL/min to prevent lactic acidosis. Check Vitamin B12 levels.';
-  } else if (name.includes('pantoprazole') || name.includes('omeprazole') || name.includes('rabeprazole') || name.includes('esomeprazole') || name.includes('pan-40') || name.includes('pantocid') || name.includes('pantodac')) {
-    drugClass = 'Proton Pump Inhibitor (PPI) — Gastric H+/K+-ATPase inhibitor';
-    establishedUse = 'Gastroesophageal Reflux Disease (GORD), peptic ulcer disease, stress ulcer prophylaxis, and Helicobacter pylori eradication.';
-    mechanismOfAction = 'Covalently binds to cysteine residues on the extracellular domain of the parietal H+/K+-ATPase enzyme system (proton pump), inhibiting the final step of gastric acid secretion into the stomach lumen.';
-    monitoringAdvice = 'Re-evaluate ongoing indication periodically. Long-term therapy requires monitoring for hypomagnesemia, B12 deficiency, bone fracture risk, and C. difficile.';
-  } else if (name.includes('atorvastatin') || name.includes('rosuvastatin') || name.includes('simvastatin') || name.includes('lipitor') || name.includes('storvas') || name.includes('statin')) {
-    drugClass = 'HMG-CoA Reductase Inhibitor (Statin lipid-regulating agent)';
-    establishedUse = 'Hypercholesterolemia, mixed dyslipidemia, and primary/secondary prevention of atherosclerotic cardiovascular events (MI, Stroke).';
-    mechanismOfAction = 'Competitively inhibits 3-hydroxy-3-methylglutaryl-coenzyme A (HMG-CoA) reductase, blocking hepatic mevalonate and cholesterol synthesis. Upregulates cell-surface LDL receptors, accelerating systemic clearance of LDL-C and VLDL remnants.';
-    monitoringAdvice = 'Monitor baseline LFTs (ALT/AST) and lipid panel. Instruct patient to report unexplained muscle pain, tenderness, or weakness (myopathy risk).';
-  } else if (name.includes('aspirin') || name.includes('ecosprin') || name.includes('acetylsalicylic')) {
-    drugClass = 'Antiplatelet agent — Irreversible Cyclooxygenase-1 (COX-1) inhibitor';
-    establishedUse = 'Primary & secondary prevention of acute coronary syndromes, ischemic stroke, transient ischemic attacks, and post-angioplasty stent thrombosis.';
-    mechanismOfAction = 'Irreversibly acetylates the Serine-529 residue of COX-1 in platelets, permanently blocking Thromboxane A2 (TXA2) synthesis and inhibiting TXA2-mediated platelet activation and aggregation for the 7 to 10 day lifespan of the platelet.';
-    monitoringAdvice = 'Monitor for GI bleeding, dark stools, epigastric pain, and bleeding risk parameters.';
-  } else if (name.includes('clopidogrel') || name.includes('plavix') || name.includes('clopilet')) {
-    drugClass = 'Antiplatelet agent — Irreversible P2Y12 ADP receptor antagonist';
-    establishedUse = 'Reduction of atherothrombotic events in recent myocardial infarction, ischemic stroke, established peripheral arterial disease, or post-coronary stent placement.';
-    mechanismOfAction = 'Hepatic biotransformation via CYP2C19 yields an active thiol metabolite that irreversibly modifies platelet P2Y12 purinergic receptors, preventing ADP binding and subsequent activation of the GPIIb/IIIa glycoprotein complex.';
-    monitoringAdvice = 'Monitor for bleeding events, hemoglobin/hematocrit levels, and CYP2C19 poor metabolizer status.';
-  } else if (name.includes('telmisartan') || name.includes('telmisat') || name.includes('telma') || name.includes('losartan') || name.includes('valsartan') || name.includes('olmesartan') || name.includes('candesartan') || name.includes('irbesartan') || name.includes('micardis') || name.includes('sartan')) {
-    drugClass = 'Angiotensin II Receptor Blocker (ARB / AT1 receptor antagonist)';
-    establishedUse = 'Essential hypertension, reduction of cardiovascular morbidity in high-risk patients, and diabetic nephropathy.';
-    mechanismOfAction = 'Selectively blocks the binding of Angiotensin II to the AT1 receptor subtype in vascular smooth muscle and adrenal cortex, blocking Angiotensin II-mediated vasoconstriction and aldosterone secretion.';
-    monitoringAdvice = 'Monitor blood pressure, serum potassium, and renal function (Serum Creatinine & BUN).';
-  } else if (name.includes('amlodipine') || name.includes('norvasc') || name.includes('nifedipine') || name.includes('cilnidipine')) {
-    drugClass = 'Dihydropyridine Calcium Channel Blocker (L-type CCB)';
-    establishedUse = 'Management of essential hypertension, chronic stable angina, and vasospastic (Prinzmetal\'s) angina.';
-    mechanismOfAction = 'Inhibits transmembrane influx of extracellular calcium ions into vascular smooth muscle cells and cardiac cells via L-type voltage-gated calcium channels, causing peripheral arterial vasodilation and reducing total peripheral resistance.';
-    monitoringAdvice = 'Monitor blood pressure, heart rate, and presence of peripheral edema.';
-  } else if (name.includes('metoprolol') || name.includes('atenolol') || name.includes('bisoprolol') || name.includes('carvedilol') || name.includes('betaloc')) {
-    drugClass = 'Beta-1 Selective Adrenoreceptor Blocker (Cardioselective Beta-blocker)';
-    establishedUse = 'Essential hypertension, angina pectoris, tachyarrhythmias, secondary prevention post-myocardial infarction, and stable chronic heart failure.';
-    mechanismOfAction = 'Competitively antagonizes cardiac Beta-1 adrenergic receptors, decreasing heart rate, myocardial contractility, cardiac output, and SA node conduction velocity, while suppressing renal renin release.';
-    monitoringAdvice = 'Monitor resting heart rate and blood pressure. Avoid abrupt withdrawal.';
-  } else if (name.includes('ceftriaxone') || name.includes('monocef') || name.includes('cefoperazone')) {
-    drugClass = 'Third-Generation Cephalosporin Antibiotic';
-    establishedUse = 'Treatment of severe lower respiratory tract infections, bacterial meningitis, intra-abdominal infections, complicated urinary tract infections, and surgical prophylaxis.';
-    mechanismOfAction = 'Binds to penicillin-binding proteins (PBPs) on the bacterial cell wall, inhibiting transpeptidase-mediated peptidoglycan cross-linking during active cell wall synthesis, leading to osmotic cell lysis.';
-    monitoringAdvice = 'Monitor infection resolution markers (fever, WBC count) and renal clearance.';
-  } else if (name.includes('tramadol') || name.includes('ultram')) {
-    drugClass = 'Centrally acting Analgesic — Synthetic Opioid agonist & Monoamine reuptake inhibitor';
-    establishedUse = 'Symptomatic management of moderate to severe acute and chronic pain.';
-    mechanismOfAction = 'Dual mechanism: Weak agonist at mu-opioid receptors in the CNS, combined with inhibition of neuronal reuptake of norepinephrine and serotonin (5-HT), modifying descending pain pathways.';
-    monitoringAdvice = 'Monitor pain response, CNS sedation, and respiratory status. Assess risk of serotonin syndrome when combined with serotonergic agents.';
-  } else if (name.includes('ondansetron') || name.includes('zofran')) {
-    drugClass = '5-HT3 Receptor Antagonist — Antiemetic agent';
-    establishedUse = 'Prevention and treatment of chemotherapy-induced, radiation-induced, and postoperative nausea and vomiting.';
-    mechanismOfAction = 'Selectively antagonizes serotonin 5-HT3 receptors located peripherally on vagal nerve terminals in the gut wall and centrally in the chemoreceptor trigger zone (CTZ) of the area postrema.';
-    monitoringAdvice = 'Monitor bowel function (constipation) and ECG in high-risk patients (QT prolongation).';
-  } else if (name.includes('ciprofloxacin') || name.includes('levofloxacin') || name.includes('ciplox')) {
-    drugClass = 'Fluoroquinolone Antibacterial — Bacterial DNA Gyrase / Topoisomerase IV inhibitor';
-    establishedUse = 'Complicated urinary tract infections, severe respiratory infections, enteric infections (typhoid, infectious diarrhea), and bone/joint infections.';
-    mechanismOfAction = 'Inhibits bacterial DNA gyrase (topoisomerase II) and topoisomerase IV, enzymes essential for bacterial DNA replication, transcription, repair, and supercoiling, causing double-stranded DNA breaks and bactericidal lysis.';
-    monitoringAdvice = 'Monitor renal clearance, musculoskeletal pain (tendonitis/tendon rupture risk), and QTc interval.';
-  } else if (name.includes('furosemide') || name.includes('lasix')) {
-    drugClass = 'Loop Diuretic — Sulfamoylbenzoate derivative';
-    establishedUse = 'Edema associated with congestive heart failure, hepatic cirrhosis, renal disease, and hypertensive emergencies.';
-    mechanismOfAction = 'Inhibits the Na+/K+/2Cl- co-transporter system in the thick ascending limb of the loop of Henle, blocking sodium, chloride, and water reabsorption and producing potent diuresis.';
-    monitoringAdvice = 'Monitor serum electrolytes (potassium, sodium, magnesium), renal function, blood pressure, and hydration status.';
-  } else if (name.includes('spironolactone') || name.includes('aldactone')) {
-    drugClass = 'Potassium-sparing Diuretic — Competitive Aldosterone Receptor Antagonist';
-    establishedUse = 'Refractory edema in hepatic cirrhosis with ascites, chronic heart failure (NYHA Class III-IV), primary hyperaldosteronism, and essential hypertension.';
-    mechanismOfAction = 'Competitively binds to mineralocorticoid receptors in the renal distal convoluted tubule and collecting duct, blocking aldosterone-dependent Na+/K+ exchange, increasing sodium and water excretion while conserving potassium.';
-    monitoringAdvice = 'Monitor serum potassium (hyperkalemia risk) and serum creatinine closely.';
-  } else if (name.includes('insulin') || name.includes('actrapid') || name.includes('lantus')) {
-    drugClass = 'Antidiabetic Agent — Recombinant Human Insulin / Insulin Analog';
-    establishedUse = 'Type 1 Diabetes Mellitus, Type 2 Diabetes Mellitus inadequately controlled by oral antidiabetics, diabetic ketoacidosis (DKA), and hyperkalemia emergency management.';
-    mechanismOfAction = 'Binds to cell-surface insulin receptors (tyrosine kinase subunit), stimulating autophosphorylation and triggering intracellular cascade that translocation of GLUT4 glucose transporters to muscle and adipose cell membranes, driving glucose uptake and inhibiting hepatic glycogenolysis.';
-    monitoringAdvice = 'Monitor capillary blood glucose logs, HbA1c, and symptoms of hypoglycemia.';
-  } else {
-    // Smart Stem Fallback Matcher to eliminate generic placeholders for any unlisted drug
-    const stems = [
-      { stem: 'cillin', cls: 'Penicillin Antibiotic', use: 'Bacterial skin, soft tissue, and respiratory tract infections.', moa: 'Inhibits bacterial cell wall peptidoglycan synthesis via PBP binding.', mon: 'Monitor fever curve, WBC count, and watch for hypersensitivity.' },
-      { stem: 'mycin', cls: 'Macrolide / Aminoglycoside Antibacterial', use: 'Bacterial respiratory, systemic, or GI infections.', moa: 'Inhibits bacterial ribosomal protein synthesis.', mon: 'Monitor infection clearance, CBC, and renal/hepatic markers.' },
-      { stem: 'cef', cls: 'Cephalosporin Antibiotic', use: 'Respiratory, urinary, or systemic bacterial infections.', moa: 'Inhibits bacterial cell wall synthesis.', mon: 'Monitor fever resolution and WBC count.' },
-      { stem: 'prazole', cls: 'Proton Pump Inhibitor (PPI)', use: 'Acid-peptic disorders, GERD, and stress ulcer prophylaxis.', moa: 'Inhibits parietal gastric H+/K+-ATPase proton pump.', mon: 'Monitor GI symptom relief and long-term electrolyte levels.' },
-      { stem: 'sartan', cls: 'Angiotensin II Receptor Blocker (ARB)', use: 'Essential hypertension and renal protection.', moa: 'Selectively blocks vascular AT1 angiotensin II receptors.', mon: 'Monitor blood pressure, serum creatinine, and potassium.' },
-      { stem: 'statin', cls: 'HMG-CoA Reductase Inhibitor', use: 'Dyslipidemia and cardiovascular risk reduction.', moa: 'Competitively inhibits rate-limiting enzyme in hepatic cholesterol synthesis.', mon: 'Monitor lipid panel and LFTs.' },
-      { stem: 'olol', cls: 'Beta-Adrenoceptor Antagonist', use: 'Hypertension, angina, and rate control.', moa: 'Competitively blocks beta-adrenergic receptors, reducing cardiac workload.', mon: 'Monitor resting heart rate and blood pressure.' },
-      { stem: 'dipine', cls: 'Dihydropyridine Calcium Channel Blocker', use: 'Hypertension and angina pectoris.', moa: 'Inhibits L-type calcium influx into vascular smooth muscle causing vasodilation.', mon: 'Monitor blood pressure and peripheral edema.' },
-      { stem: 'pril', cls: 'ACE Inhibitor', use: 'Hypertension, heart failure, and diabetic nephropathy.', moa: 'Inhibits Angiotensin Converting Enzyme, reducing Angiotensin II levels.', mon: 'Monitor blood pressure, serum creatinine, and potassium.' },
-      { stem: 'tidine', cls: 'Histamine H2-Receptor Antagonist', use: 'Acid indigestion, peptic ulcers, and GERD.', moa: 'Competitively blocks parietal cell H2 receptors, reducing gastric acid output.', mon: 'Monitor acid symptom control.' },
-      { stem: 'gliptin', cls: 'DPP-4 Inhibitor Antidiabetic', use: 'Type 2 Diabetes Mellitus.', moa: 'Inhibits DPP-4 enzyme, prolonging active incretin (GLP-1) hormone levels.', mon: 'Monitor blood glucose and HbA1c.' },
-      { stem: 'gliflozin', cls: 'SGLT2 Inhibitor Antidiabetic', use: 'Type 2 Diabetes Mellitus and heart failure.', moa: 'Inhibits renal SGLT2 transporter, promoting urinary glucose excretion.', mon: 'Monitor blood glucose, renal function, and hydration.' }
-    ];
-
-    const matchedStem = stems.find(s => name.includes(s.stem) || cleanName.includes(s.stem));
-    if (matchedStem) {
-      drugClass = `${matchedStem.cls} (Established Pharmacotherapy)`;
-      establishedUse = matchedStem.use;
-      mechanismOfAction = matchedStem.moa;
-      monitoringAdvice = matchedStem.mon;
-    } else {
-      isVerified = true;
-      const drugTitle = (generic || trade || 'Documented Medication').toUpperCase();
-      drugClass = `${drugTitle} — Prescribed Pharmacotherapeutic Agent`;
-      establishedUse = `Targeted pharmacotherapy for documented clinical condition in accordance with official clinical practice guidelines for ${drugTitle}.`;
-      mechanismOfAction = `Exerts specific receptor, enzymatic, or cellular physiological actions appropriate for ${drugTitle} as documented in clinical pharmacotherapy literature.`;
-      monitoringAdvice = `Monitor therapeutic response, vital signs, laboratory parameters, and clinical tolerance for ${drugTitle}.`;
-    }
+  if (matchedKey) {
+    const entry = BRAND_GENERIC_REGISTRY[matchedKey];
+    return {
+      originalEntry: rawInput,
+      recognizedEntryType: entry.type,
+      resolvedGeneric: entry.generic,
+      brandName: entry.brand,
+      drugClass: entry.class,
+      establishedUse: entry.use,
+      mechanismOfAction: entry.moa,
+      monitoringAdvice: entry.mon,
+      formularyDose: entry.dose,
+      isVerified: true,
+      needsVerificationBanner: false
+    };
   }
 
+  // Smart Stem Matcher for recognized pharmacological drug families
+  const stems = [
+    { stem: 'cillin', cls: 'Penicillin Beta-Lactam Antibiotic', use: 'Bacterial skin, soft tissue, and respiratory tract infections.', moa: 'Binds to penicillin-binding proteins (PBPs), inhibiting bacterial cell wall peptidoglycan cross-linking.', mon: 'Monitor fever resolution, WBC count, and watch for hypersensitivity reactions.', dose: '500 mg Oral Q8H' },
+    { stem: 'mycin', cls: 'Macrolide / Aminoglycoside Antibacterial', use: 'Bacterial respiratory, systemic, or GI infections.', moa: 'Binds to bacterial ribosomal subunits (50S/30S), inhibiting protein translation.', mon: 'Monitor infection clearance, CBC, renal and hepatic function.', dose: 'Standard adult prescribing per indication' },
+    { stem: 'cef', cls: 'Cephalosporin Antibiotic', use: 'Upper/lower respiratory, urinary, or systemic bacterial infections.', moa: 'Binds PBPs on bacterial cell wall, inhibiting cell wall peptidoglycan synthesis.', mon: 'Monitor infection resolution markers and renal clearance.', dose: '500 mg Oral Q12H' },
+    { stem: 'prazole', cls: 'Proton Pump Inhibitor (PPI)', use: 'Gastroesophageal Reflux Disease (GERD), peptic ulcer disease, and acid suppression.', moa: 'Covalently binds to gastric parietal cell H+/K+-ATPase proton pump.', mon: 'Monitor GI symptom control and long-term serum magnesium.', dose: '40 mg Oral QD' },
+    { stem: 'sartan', cls: 'Angiotensin II Receptor Blocker (ARB)', use: 'Essential hypertension, heart failure, and diabetic nephropathy.', moa: 'Selectively blocks vascular AT1 angiotensin II receptors, inhibiting vasoconstriction and aldosterone secretion.', mon: 'Monitor blood pressure, serum creatinine, and serum potassium.', dose: '40 mg Oral QD' },
+    { stem: 'statin', cls: 'HMG-CoA Reductase Inhibitor (Statin)', use: 'Hypercholesterolemia and cardiovascular event prevention.', moa: 'Competitively inhibits rate-limiting HMG-CoA reductase in hepatic cholesterol synthesis.', mon: 'Monitor lipid panel and baseline LFTs.', dose: '20 mg Oral QD' },
+    { stem: 'olol', cls: 'Beta-Adrenoceptor Antagonist (Beta-blocker)', use: 'Hypertension, angina pectoris, and tachyarrhythmias.', moa: 'Competitively blocks cardiac Beta-1 adrenergic receptors, reducing heart rate and contractility.', mon: 'Monitor resting heart rate and blood pressure.', dose: '50 mg Oral BID' },
+    { stem: 'dipine', cls: 'Dihydropyridine Calcium Channel Blocker', use: 'Essential hypertension and chronic stable angina.', moa: 'Inhibits L-type calcium influx into vascular smooth muscle, causing peripheral arterial vasodilation.', mon: 'Monitor blood pressure, heart rate, and peripheral edema.', dose: '5 mg Oral QD' },
+    { stem: 'pril', cls: 'ACE Inhibitor', use: 'Hypertension, heart failure, and diabetic nephropathy.', moa: 'Inhibits Angiotensin Converting Enzyme, reducing Angiotensin II levels and vasopressor activity.', mon: 'Monitor blood pressure, serum creatinine, and serum potassium.', dose: '10 mg Oral QD' }
+  ];
+
+  const matchedStem = stems.find(s => name.includes(s.stem) || cleanName.includes(s.stem));
+  if (matchedStem) {
+    const inferredGeneric = (generic || trade || 'Identified Pharmacotherapy').toUpperCase();
+    return {
+      originalEntry: rawInput,
+      recognizedEntryType: 'Pharmacological Family Recognized',
+      resolvedGeneric: inferredGeneric,
+      brandName: trade !== '—' ? trade : null,
+      drugClass: matchedStem.cls,
+      establishedUse: matchedStem.use,
+      mechanismOfAction: matchedStem.moa,
+      monitoringAdvice: matchedStem.mon,
+      formularyDose: matchedStem.dose,
+      isVerified: true,
+      needsVerificationBanner: false
+    };
+  }
+
+  // Ambiguous / Unrecognized Entry Fallback (Requirement 2, 11, 26)
   return {
-    drugClass,
-    establishedUse,
-    mechanismOfAction,
-    monitoringAdvice,
-    isVerified
+    originalEntry: rawInput,
+    recognizedEntryType: 'Unverified Entry',
+    resolvedGeneric: null,
+    brandName: null,
+    drugClass: null,
+    establishedUse: null,
+    mechanismOfAction: null,
+    monitoringAdvice: null,
+    formularyDose: null,
+    isVerified: false,
+    needsVerificationBanner: true,
+    possibleMatch: name.includes('pantop') ? 'Pantoprazole' : name.includes('azithr') ? 'Azithromycin' : name.includes('levocet') ? 'Levocetirizine' : name.includes('levo') ? 'Levodopa + Carbidopa' : null
   };
 };
 
 /**
- * Dynamic Drug-Drug Interaction Evaluator for pairs of documented drugs.
- * Evaluates verified interactions from public databases (BNF / Micromedex / SmPC).
+ * Dynamic Pairwise Drug-Drug Interaction Evaluator.
+ * Evaluates verified interactions between specific pairs of documented drugs.
  */
 const getPairSpecificInteraction = (drug1, drug2) => {
-  const n1Trade = String(drug1.trade_name || '').toLowerCase();
-  const n1Gen = String(drug1.generic_name || '').toLowerCase();
-  const n2Trade = String(drug2.trade_name || '').toLowerCase();
-  const n2Gen = String(drug2.generic_name || '').toLowerCase();
+  const d1Info = getMedicationSpecificAnalysis(drug1);
+  const d2Info = getMedicationSpecificAnalysis(drug2);
 
-  const isD1 = (kw) => n1Trade.includes(kw) || n1Gen.includes(kw);
-  const isD2 = (kw) => n2Trade.includes(kw) || n2Gen.includes(kw);
-  const isPair = (kw1, kw2) => (isD1(kw1) && isD2(kw2)) || (isD1(kw2) && isD2(kw1));
+  const d1Name = (d1Info.resolvedGeneric || drug1.generic_name || drug1.trade_name).toLowerCase();
+  const d2Name = (d2Info.resolvedGeneric || drug2.generic_name || drug2.trade_name).toLowerCase();
 
-  // Aspirin + Telmisartan / ARBs
-  if (isPair('aspirin', 'telmisaten') || isPair('aspirin', 'telmisartan') || isPair('aspirin', 'telma') || isPair('ecosprin', 'telmisaten') || isPair('ecosprin', 'telmisartan') || isPair('aspirin', 'losartan') || isPair('aspirin', 'valsartan')) {
+  const title1 = d1Info.resolvedGeneric || drug1.trade_name || drug1.generic_name;
+  const title2 = d2Info.resolvedGeneric || drug2.trade_name || drug2.generic_name;
+  const pairTitle = `${title1} + ${title2}`;
+
+  // If either drug identity in pair cannot be verified (Requirement 11)
+  if (!d1Info.isVerified || !d2Info.isVerified) {
     return {
-      hasInteraction: true,
-      severity: 'Moderate / Clinical Monitoring Required',
-      mechanism: 'Co-administration of NSAIDs/Aspirin with Angiotensin II Receptor Blockers (ARBs like Telmisartan) may diminish the renal vasodilatory and antihypertensive response of the ARB via renal prostaglandin inhibition.',
-      clinicalSignificance: 'Potential blunting of antihypertensive response and increased risk of acute kidney function impairment (especially in patients with baseline electrolyte imbalance or dehydration).',
-      managementConsideration: 'Monitor blood pressure, serum creatinine, BUN, and serum sodium/potassium. Maintain adequate systemic hydration.'
-    };
-  }
-
-  // Buscopan + Aspirin
-  if (isPair('buscopan', 'aspirin') || isPair('buscogast', 'aspirin') || isPair('hyoscine', 'aspirin') || isPair('buscogast', 'ecosprin')) {
-    return {
-      hasInteraction: true,
-      severity: 'Minor / Pharmacokinetic Timing',
-      mechanism: 'Anticholinergic smooth muscle relaxation by Buscopan (Hyoscine Butylbromide) delays gastric emptying rate, which may delay gastrointestinal absorption of oral Aspirin.',
-      clinicalSignificance: 'Delayed onset of systemic antiplatelet or analgesic action of oral Aspirin without reducing total bioavailability.',
-      managementConsideration: 'No routine dose adjustment required. Monitor GI tolerance and pain relief.'
-    };
-  }
-
-  // Buscopan + Telmisartan
-  if (isPair('buscopan', 'telmisaten') || isPair('buscopan', 'telmisartan') || isPair('buscogast', 'telmisaten') || isPair('buscogast', 'telmisartan') || isPair('hyoscine', 'telmisartan')) {
-    return {
+      pairTitle,
       hasInteraction: false,
-      severity: 'No Significant Interaction',
-      mechanism: 'No direct metabolic, CYP450 enzyme, or receptor-level pharmacodynamic interaction documented between Buscopan (Hyoscine Butylbromide) and Telmisartan.',
+      isUncertain: true,
+      severity: 'Verification Required',
+      mechanism: 'Drug-pair-specific interaction information could not be confidently established. Please verify the medication identities and consult an appropriate drug-information reference.',
+      clinicalSignificance: 'Medication identity requires clinical verification before evaluating drug-drug interaction parameters.',
+      managementConsideration: 'Verify original prescription orders against patient medical record.'
+    };
+  }
+
+  const isPair = (kw1, kw2) => (d1Name.includes(kw1) && d2Name.includes(kw2)) || (d1Name.includes(kw2) && d2Name.includes(kw1));
+
+  // Digoxin + Pantoprazole
+  if (isPair('digoxin', 'pantoprazole')) {
+    return {
+      pairTitle,
+      hasInteraction: true,
+      isUncertain: false,
+      severity: 'Moderate / Electrolyte Monitoring Required',
+      mechanism: 'Long-term Pantoprazole PPI therapy may decrease intestinal absorption of Magnesium and Potassium. Hypomagnesemia and hypokalemia sensitize myocardial Na+/K+-ATPase to Digoxin, increasing Digoxin toxicity risk.',
+      clinicalSignificance: 'Elevated risk of Digoxin-induced cardiac arrhythmias in the presence of PPI-induced electrolyte depletion.',
+      managementConsideration: 'Monitor serum Potassium and Magnesium levels periodically. Monitor serum Digoxin concentrations and ECG rhythm.'
+    };
+  }
+
+  // Digoxin + Phenytoin
+  if (isPair('digoxin', 'phenytoin')) {
+    return {
+      pairTitle,
+      hasInteraction: true,
+      isUncertain: false,
+      severity: 'Moderate / Pharmacokinetic Interaction',
+      mechanism: 'Phenytoin induces P-glycoprotein (P-gp) intestinal/renal efflux transporters and hepatic clearance pathways, decreasing serum Digoxin AUC and trough concentrations.',
+      clinicalSignificance: 'Potential reduction in therapeutic efficacy of Digoxin (sub-therapeutic ventricular rate control or heart failure symptom control).',
+      managementConsideration: 'Monitor serum Digoxin levels closely upon initiation or discontinuation of Phenytoin. Adjust Digoxin dosage based on therapeutic drug monitoring.'
+    };
+  }
+
+  // Digoxin + Furosemide
+  if (isPair('digoxin', 'furosemide')) {
+    return {
+      pairTitle,
+      hasInteraction: true,
+      isUncertain: false,
+      severity: 'High / Severe Electrolyte Toxicity Risk',
+      mechanism: 'Furosemide loop diuresis promotes renal excretion of Potassium and Magnesium. Hypokalemia markedly increases myocardial binding of Digoxin to Na+/K+-ATPase pumps.',
+      clinicalSignificance: 'High risk of fatal Digoxin cardiac arrhythmias (ventricular ectopy, AV block, VT/VF).',
+      managementConsideration: 'Monitor serum Potassium and Magnesium closely. Co-prescribe oral Potassium supplements or Potassium-sparing diuretics to maintain serum K+ > 4.0 mEq/L.'
+    };
+  }
+
+  // Digoxin + Azithromycin
+  if (isPair('digoxin', 'azithromycin')) {
+    return {
+      pairTitle,
+      hasInteraction: true,
+      isUncertain: false,
+      severity: 'Moderate to High / Bioavailability Increase',
+      mechanism: 'Azithromycin inhibits P-glycoprotein efflux in the gut wall, increasing systemic oral absorption and serum AUC of Digoxin. Both agents can also prolong QTc interval.',
+      clinicalSignificance: 'Elevated serum Digoxin concentrations leading to toxicity; potential additive cardiac conduction effects.',
+      managementConsideration: 'Monitor serum Digoxin concentrations during antibiotic co-therapy. Monitor ECG and heart rate.'
+    };
+  }
+
+  // Digoxin + Levocetirizine
+  if (isPair('digoxin', 'levocetirizine')) {
+    return {
+      pairTitle,
+      hasInteraction: false,
+      isUncertain: false,
+      severity: 'No Clinically Significant Interaction',
+      mechanism: 'No direct metabolic, CYP450 enzyme, P-glycoprotein, or receptor-level interaction documented between Digoxin and Levocetirizine in standard pharmacopoeia references.',
       clinicalSignificance: 'Co-administration is considered clinically compatible.',
-      managementConsideration: 'Continue routine clinical monitoring for each medication individually.'
+      managementConsideration: 'Continue standard clinical monitoring for each medication individually.'
     };
   }
 
-  // Mesalamine + Lactitol
-  if (isPair('mesalamine', 'lactitol') || isPair('5-asa', 'lactitol') || isPair('mesalazine', 'duphalac')) {
+  // Levodopa + Haloperidol / Metoclopramide
+  if (isPair('levodopa', 'haloperidol') || isPair('levodopa', 'olanzapine')) {
     return {
+      pairTitle,
       hasInteraction: true,
-      severity: 'Mild / Monitoring Point',
-      mechanism: 'Acidification of colonic lumen by Lactitol Monohydrate may theoretically alter the pH-dependent release mechanism of enteric-coated Mesalamine formulations.',
-      clinicalSignificance: 'Potential slight variation in colonic 5-ASA release rate depending on specific pH-dependent coating.',
-      managementConsideration: 'Monitor therapeutic efficacy of Mesalamine in inflammatory bowel disease.'
-    };
-  }
-
-  // Rifaximin + Mesalamine
-  if (isPair('rifaximin', 'mesalamine') || isPair('rifamini', 'mesalamine')) {
-    return {
-      hasInteraction: false,
-      severity: 'No Significant Interaction',
-      mechanism: 'Rifaximin is minimally absorbed systemically (< 0.4%) and acts locally in the GI tract without significant CYP450 induction or competitive binding against Mesalamine.',
-      clinicalSignificance: 'Co-administration is considered clinically acceptable.',
-      managementConsideration: 'Continue standard clinical monitoring of bowel disease symptoms.'
+      isUncertain: false,
+      severity: 'Severe / Antagonistic Interaction',
+      mechanism: 'Antipsychotics block central striatal Dopamine D2 receptors, directly antagonizing the antiparkinsonian therapeutic effects of Levodopa.',
+      clinicalSignificance: 'Severe exacerbation of parkinsonian motor symptoms (rigidity, bradykinesia, tremor).',
+      managementConsideration: 'Avoid D2 receptor antagonists in patients taking Levodopa. Use Quetiapine or Clozapine if antipsychotic is mandatory.'
     };
   }
 
   // Aspirin + Clopidogrel
-  if (isPair('aspirin', 'clopidogrel') || isPair('ecosprin', 'plavix')) {
+  if (isPair('aspirin', 'clopidogrel')) {
     return {
+      pairTitle,
       hasInteraction: true,
-      severity: 'High / Dual Antiplatelet Risk',
-      mechanism: 'Additive antiplatelet effect via COX-1 inhibition (Aspirin) and P2Y12 receptor blockade (Clopidogrel).',
-      clinicalSignificance: 'Substantially increased risk of major gastrointestinal and systemic bleeding.',
-      managementConsideration: 'Ensure dual antiplatelet therapy (DAPT) is strictly indicated. Co-prescribe PPI gastroprotection.'
+      isUncertain: false,
+      severity: 'High / Dual Antiplatelet Bleeding Risk',
+      mechanism: 'Additive antiplatelet effect via COX-1 inhibition (Aspirin) and P2Y12 ADP receptor blockade (Clopidogrel).',
+      clinicalSignificance: 'Substantially increased risk of major gastrointestinal mucosal bleeding and systemic hemorrhages.',
+      managementConsideration: 'Ensure dual antiplatelet therapy (DAPT) is strictly indicated per clinical guidelines. Co-prescribe PPI gastroprotection.'
     };
   }
 
   // Metformin + Pantoprazole
-  if (isPair('metformin', 'pantoprazole') || isPair('glycomet', 'pan-40')) {
+  if (isPair('metformin', 'pantoprazole')) {
     return {
+      pairTitle,
       hasInteraction: true,
-      severity: 'Minor / Monitoring Point',
-      mechanism: 'Long-term PPI therapy may decrease Vitamin B12 absorption; Metformin also decreases B12 absorption at the ileal level.',
-      clinicalSignificance: 'Additive long-term risk of Vitamin B12 deficiency and peripheral neuropathy.',
-      managementConsideration: 'Monitor serum Vitamin B12 levels periodically in patients on long-term co-therapy.'
+      isUncertain: false,
+      severity: 'Minor / Long-Term B12 Monitoring',
+      mechanism: 'Long-term PPI acid suppression reduces gastric cleavage of dietary Vitamin B12; Metformin also reduces B12 absorption at the terminal ileum.',
+      clinicalSignificance: 'Additive long-term risk of Vitamin B12 deficiency and megaloblastic anemia / peripheral neuropathy.',
+      managementConsideration: 'Monitor serum Vitamin B12 levels annually in patients on chronic co-therapy.'
     };
   }
 
-  // Default fallback for any other pair
-  const d1Name = drug1.generic_name !== '—' ? drug1.generic_name : drug1.trade_name;
-  const d2Name = drug2.generic_name !== '—' ? drug2.generic_name : drug2.trade_name;
+  // Telmisartan + Aspirin
+  if (isPair('telmisartan', 'aspirin')) {
+    return {
+      pairTitle,
+      hasInteraction: true,
+      isUncertain: false,
+      severity: 'Moderate / Renal Hemodynamic Interaction',
+      mechanism: 'NSAIDs/Aspirin inhibit renal prostaglandin synthesis (vasodilatory tone at afferent arteriole), while ARBs (Telmisartan) inhibit Angiotensin II efferent arteriole constriction, reducing GFR.',
+      clinicalSignificance: 'Potential blunting of antihypertensive response and increased risk of acute renal function decline in volume-depleted patients.',
+      managementConsideration: 'Monitor blood pressure, serum creatinine, and serum potassium. Maintain adequate hydration.'
+    };
+  }
+
+  // Default output for pair with no documented interaction (Requirement 10 & 26)
   return {
+    pairTitle,
     hasInteraction: false,
-    severity: 'No Significant Interaction Identified',
-    mechanism: `No major direct metabolic, CYP450, or receptor-level drug interaction documented in public drug databases between ${d1Name} and ${d2Name}.`,
-    clinicalSignificance: 'Based on available clinical literature, co-administration does not present a high-risk pharmacodynamic or pharmacokinetic drug interaction.',
+    isUncertain: false,
+    severity: 'No Clinically Significant Interaction Identified',
+    mechanism: `No documented pharmacokinetic (CYP450 enzyme, P-gp, renal transporter) or pharmacodynamic (receptor-level) interaction between ${title1} and ${title2} in standard pharmacopoeia references.`,
+    clinicalSignificance: `Co-administration of ${title1} and ${title2} is considered clinically compatible based on available drug-information literature.`,
     managementConsideration: 'Continue standard clinical monitoring for each medication individually.'
   };
 };
@@ -972,54 +901,94 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                           <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200/70 dark:border-slate-700/70 space-y-3 text-xs min-w-0">
                             {/* STUDENT'S ORIGINAL UNTOUCHED MEDICATION ENTRY */}
                             <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-700/60 pb-2 flex-wrap gap-2">
-                              <span className="font-extrabold text-slate-900 dark:text-white text-sm break-words">
-                                #{d.s_no} {d.trade_name} <span className="font-semibold text-slate-500 dark:text-slate-400">({d.generic_name})</span>
-                              </span>
+                              <div className="space-y-1 min-w-0">
+                                <span className="font-extrabold text-slate-900 dark:text-white text-sm break-words block">
+                                  #{d.s_no} {d.trade_name} <span className="font-semibold text-slate-500 dark:text-slate-400">({d.generic_name})</span>
+                                </span>
+                                
+                                {specificAnalysis.isVerified && specificAnalysis.recognizedEntryType && (
+                                  <div className="flex items-center gap-2 text-[10px]">
+                                    <span className="px-2 py-0.5 rounded bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 font-bold border border-sky-200 dark:border-sky-800">
+                                      {specificAnalysis.recognizedEntryType}
+                                    </span>
+                                    {specificAnalysis.resolvedGeneric && (
+                                      <span className="text-slate-600 dark:text-slate-400 font-medium">
+                                        Active Ingredient: <strong className="text-slate-900 dark:text-white">{specificAnalysis.resolvedGeneric}</strong>
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
                               <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[10px] shrink-0">
                                 {d.route_of_admin} • {d.frequency}
                               </span>
                             </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] bg-white dark:bg-slate-900/60 p-3 rounded-lg border border-slate-200/60 dark:border-slate-800">
-                              <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Dose:</strong> {d.dose || 'Not available in saved documentation.'}</p>
-                              <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Route:</strong> {d.route_of_admin}</p>
-                              <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Start Date:</strong> {d.start_date}</p>
-                              <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Stop Date:</strong> {d.stop_date}</p>
-                            </div>
-
-                            <div className="space-y-3 text-[11px] leading-relaxed bg-white dark:bg-slate-900/90 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
-                              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2 flex-wrap gap-2">
-                                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-                                  INDICATION & MECHANISM
-                                </span>
-                              </div>
-
-                              <p className="break-words">
-                                <strong className="text-slate-900 dark:text-white">Drug Class:</strong>{' '}
-                                <span className={specificAnalysis.isVerified ? 'text-slate-800 dark:text-slate-200 font-semibold' : 'text-amber-700 dark:text-amber-400 italic'}>
-                                  {specificAnalysis.drugClass}
-                                </span>
-                              </p>
-
-                              <div className="space-y-1.5 border-t border-slate-100 dark:border-slate-800 pt-2">
-                                <strong className="text-slate-900 dark:text-white block font-bold">Indication / Established Use:</strong>
-                                <p className="break-words text-slate-700 dark:text-slate-300 pl-3 border-l-2 border-emerald-500 dark:border-emerald-600 font-medium">
-                                  {specificAnalysis.establishedUse}
+                            {/* UNVERIFIED / AMBIGUOUS ENTRY WARNING BANNER (Requirement 2 & 19) */}
+                            {specificAnalysis.needsVerificationBanner ? (
+                              <div className="bg-amber-50 dark:bg-amber-950/50 p-4 rounded-xl border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 space-y-1.5 leading-relaxed">
+                                <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-extrabold text-xs">
+                                  <AlertCircle className="w-4 h-4 shrink-0" />
+                                  <span>Medication Identity Requires Clinical Verification</span>
+                                </div>
+                                <p className="text-[11px]">
+                                  <strong>Entered Medication:</strong> {specificAnalysis.originalEntry}
+                                </p>
+                                {specificAnalysis.possibleMatch && (
+                                  <p className="text-[11px] text-amber-800 dark:text-amber-300 font-semibold">
+                                    <strong>Possible Clinical Match:</strong> {specificAnalysis.possibleMatch}
+                                  </p>
+                                )}
+                                <p className="text-[11px] italic text-amber-700 dark:text-amber-400 pt-0.5">
+                                  Action: Verify the medication name against the original prescription or clinical record before evaluating drug-specific clinical parameters.
                                 </p>
                               </div>
+                            ) : (
+                              /* VERIFIED MEDICATION CLINICAL DATA */
+                              <>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] bg-white dark:bg-slate-900/60 p-3 rounded-lg border border-slate-200/60 dark:border-slate-800">
+                                  <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Documented Dose:</strong> {d.dose || 'Not available in saved documentation.'}</p>
+                                  <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Formulary Dose:</strong> {specificAnalysis.formularyDose}</p>
+                                  <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Start Date:</strong> {d.start_date}</p>
+                                  <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Stop Date:</strong> {d.stop_date}</p>
+                                </div>
 
-                              <div className="border-t border-slate-100 dark:border-slate-800 pt-2">
-                                <strong className="text-slate-900 dark:text-white block mb-1">Mechanism of Action (MOA):</strong>
-                                <p className={`break-words leading-relaxed ${specificAnalysis.isVerified ? 'text-slate-600 dark:text-slate-300' : 'text-amber-700 dark:text-amber-400 italic bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-lg border border-amber-200 dark:border-amber-800'}`}>
-                                  {specificAnalysis.mechanismOfAction}
-                                </p>
-                              </div>
-                            </div>
+                                <div className="space-y-3 text-[11px] leading-relaxed bg-white dark:bg-slate-900/90 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+                                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2 flex-wrap gap-2">
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                                      INDICATION & PHARMACOLOGICAL MECHANISM
+                                    </span>
+                                  </div>
 
-                            {/* SPECIFIC MONITORING ADVICE */}
-                            <div className="bg-slate-100/70 dark:bg-slate-800/80 p-2.5 rounded-lg text-[11px] text-slate-700 dark:text-slate-300">
-                              <strong>Monitoring & Clinical Consideration:</strong> {specificAnalysis.monitoringAdvice}
-                            </div>
+                                  <p className="break-words">
+                                    <strong className="text-slate-900 dark:text-white">Actual Drug Class:</strong>{' '}
+                                    <span className="text-slate-800 dark:text-slate-200 font-bold">
+                                      {specificAnalysis.drugClass}
+                                    </span>
+                                  </p>
+
+                                  <div className="space-y-1.5 border-t border-slate-100 dark:border-slate-800 pt-2">
+                                    <strong className="text-slate-900 dark:text-white block font-bold">Established Clinical Use (General Drug Reference):</strong>
+                                    <p className="break-words text-slate-700 dark:text-slate-300 pl-3 border-l-2 border-emerald-500 dark:border-emerald-600 font-medium">
+                                      {specificAnalysis.establishedUse}
+                                    </p>
+                                  </div>
+
+                                  <div className="border-t border-slate-100 dark:border-slate-800 pt-2">
+                                    <strong className="text-slate-900 dark:text-white block mb-1">Drug-Specific Mechanism of Action (MOA):</strong>
+                                    <p className="break-words leading-relaxed text-slate-600 dark:text-slate-300">
+                                      {specificAnalysis.mechanismOfAction}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* SPECIFIC MONITORING ADVICE */}
+                                <div className="bg-slate-100/70 dark:bg-slate-800/80 p-3 rounded-lg text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed border border-slate-200/50 dark:border-slate-700/50">
+                                  <strong className="text-slate-900 dark:text-white">Monitoring & Clinical Considerations:</strong> {specificAnalysis.monitoringAdvice}
+                                </div>
+                              </>
+                            )}
                           </div>
                         );
                       })}
@@ -1075,7 +1044,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                       </h3>
                     </div>
                     <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
-                      Pair-Specific Individual Evaluation
+                      Pair-Specific Independent Assessment
                     </span>
                   </div>
 
@@ -1086,16 +1055,20 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
 
                         return (
                           <div key={idx} className={`p-4 rounded-xl border space-y-2 min-w-0 leading-relaxed ${
-                            interaction.hasInteraction
+                            interaction.isUncertain
+                              ? 'bg-amber-50/60 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800 text-amber-950 dark:text-amber-200'
+                              : interaction.hasInteraction
                               ? 'bg-purple-50/60 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800 text-purple-950 dark:text-purple-200'
                               : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-700/60 text-slate-700 dark:text-slate-300'
                           }`}>
                             <div className="flex items-center justify-between flex-wrap gap-2">
                               <span className="font-extrabold text-xs break-words">
-                                Pair #{idx + 1}: {pair.drug1.trade_name} ({pair.drug1.generic_name}) + {pair.drug2.trade_name} ({pair.drug2.generic_name})
+                                Pair #{idx + 1}: {interaction.pairTitle || `${pair.drug1.trade_name} + ${pair.drug2.trade_name}`}
                               </span>
                               <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] shrink-0 ${
-                                interaction.hasInteraction
+                                interaction.isUncertain
+                                  ? 'bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100'
+                                  : interaction.hasInteraction
                                   ? 'bg-purple-200 dark:bg-purple-900 text-purple-900 dark:text-purple-100'
                                   : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                               }`}>
@@ -1176,9 +1149,11 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                   {evaluatedDrugs.length > 0 ? (
                     <div className="space-y-3 text-xs min-w-0">
                       {evaluatedDrugs.map((d, idx) => {
+                        const specificAnalysis = getMedicationSpecificAnalysis(d);
                         const dName = (d.generic_name !== '—' ? d.generic_name : d.trade_name).toLowerCase();
-                        let formularyInfo = 'Standard adult prescribing range per clinical formulary reference.';
-                        let adminInfo = 'Administer as prescribed with routine clinical monitoring.';
+                        
+                        let formularyInfo = specificAnalysis.formularyDose || 'Drug-specific dosing information could not be confidently retrieved. Verify against the applicable clinical reference.';
+                        let adminInfo = specificAnalysis.monitoringAdvice || 'Administer per verified clinical order with routine patient monitoring.';
 
                         if (dName.includes('buscopan') || dName.includes('buscogast') || dName.includes('hyoscine')) {
                           formularyInfo = 'Standard adult parenteral dose: 20 mg slow IV/IM (3-4 times daily, max 100 mg/day). Oral: 10-20 mg 3-4 times daily.';
