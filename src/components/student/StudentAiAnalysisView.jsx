@@ -9,10 +9,10 @@ import { buildNormalizedApprovedCaseData } from '../../utils/buildNormalizedAppr
 
 /**
  * Helper to determine if a form object has SAVED/PERSISTED data in Supabase for the selected case.
- * Returns true if the form record exists with saved data or any saved status ('draft', 'saved', 'in_progress', 'submitted', 'approved').
+ * Returns true if the form record exists with non-empty clinical fields.
  * Returns false if no form record exists or the form is completely empty/unsaved.
  */
-const checkIsFormSaved = (formObj, isProfile = false) => {
+const checkIsFormSaved = (formObj, formType = '') => {
   if (!formObj || typeof formObj !== 'object' || Object.keys(formObj).length === 0) return false;
   
   const status = String(formObj.status || formObj.form_status || formObj.approval_status || formObj.status_label || '').toLowerCase().trim();
@@ -21,28 +21,61 @@ const checkIsFormSaved = (formObj, isProfile = false) => {
     return false;
   }
 
-  if (isProfile) {
+  if (formType === 'profile' || formType === true) {
     return Boolean(
-      formObj.id ||
       formObj.patient_name ||
       formObj.chief_complaints ||
       formObj.provisional_diagnosis ||
-      formObj.final_diagnosis ||
-      Object.keys(formObj).length > 2
+      (formObj.final_diagnosis && formObj.final_diagnosis !== 'N/A')
     );
   }
 
-  if (formObj.id || formObj.created_at) return true;
-  if (formObj.disease_counselled || formObj.medications_counselled || formObj.topics_covered) return true;
-  if (formObj.identified_issue || formObj.action_taken || formObj.intervention_description) return true;
-  if (formObj.enquirer_name || formObj.question_asked || formObj.background_info) return true;
-  if (formObj.suspected_medication || formObj.reaction_title || formObj.adverse_event_description) return true;
-
-  if (status.includes('draft') || status.includes('save') || status.includes('progress') || status.includes('submitted') || status.includes('approved') || status.includes('reviewed') || status.includes('completed')) {
-    return true;
+  if (formType === 'counselling') {
+    return Boolean(
+      formObj.disease_counselled ||
+      formObj.medications_counselled ||
+      formObj.topics_covered ||
+      formObj.counselling_points ||
+      formObj.points_covered
+    );
   }
 
-  return Object.keys(formObj).length > 2;
+  if (formType === 'intervention') {
+    return Boolean(
+      formObj.description_of_problem ||
+      formObj.problem_identified ||
+      formObj.prescription_problems ||
+      formObj.action_taken ||
+      formObj.recommendations ||
+      formObj.actions_taken
+    );
+  }
+
+  if (formType === 'dir') {
+    return Boolean(
+      formObj.details_of_enquiry ||
+      formObj.query ||
+      formObj.question_asked ||
+      formObj.information_provided ||
+      formObj.response
+    );
+  }
+
+  if (formType === 'adr') {
+    const suspectedArr = Array.isArray(formObj.suspected_meds) ? formObj.suspected_meds : (Array.isArray(formObj.suspected_drugs) ? formObj.suspected_drugs : []);
+    const hasSuspectedMeds = suspectedArr.length > 0 || Boolean(formObj.suspected_medication || formObj.suspected_drug || formObj.suspected_med);
+    
+    const reactionTitle = String(formObj.reaction_title || formObj.reactionTitle || '').trim();
+    const reactionDesc = String(formObj.reaction_description || '').trim();
+    const hasReaction = Boolean(
+      (reactionTitle && reactionTitle !== 'N/A' && reactionTitle !== '—') ||
+      (reactionDesc && reactionDesc !== 'N/A' && reactionDesc !== '—')
+    );
+    
+    return Boolean(hasReaction || hasSuspectedMeds);
+  }
+
+  return false;
 };
 
 /**
@@ -299,11 +332,11 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
   const dirRecord = modulesData?.dir || {};
   const adrRecord = modulesData?.adr || {};
 
-  const isProfileSaved = checkIsFormSaved(profileRecord, true);
-  const isCounsellingSaved = checkIsFormSaved(counsellingRecord, false);
-  const isInterventionSaved = checkIsFormSaved(interventionRecord, false);
-  const isDirSaved = checkIsFormSaved(dirRecord, false);
-  const isAdrSaved = checkIsFormSaved(adrRecord, false);
+  const isProfileSaved = checkIsFormSaved(profileRecord, 'profile');
+  const isCounsellingSaved = checkIsFormSaved(counsellingRecord, 'counselling');
+  const isInterventionSaved = checkIsFormSaved(interventionRecord, 'intervention');
+  const isDirSaved = checkIsFormSaved(dirRecord, 'dir');
+  const isAdrSaved = checkIsFormSaved(adrRecord, 'adr');
 
   const savedCount = [
     isProfileSaved,
@@ -954,12 +987,12 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                     </div>
                   </div>
 
-                  {isAdrSaved ? (
+                  {isAdrSaved && (norm.adr.reactionTitle || norm.adr.suspectedMed) ? (
                     <div className="bg-rose-50/50 dark:bg-rose-950/30 p-4 rounded-xl border border-rose-200/80 dark:border-rose-800/80 text-xs text-rose-950 dark:text-rose-200 space-y-1.5 min-w-0 leading-relaxed">
-                      <p className="break-words"><strong>Suspected Medication:</strong> {norm.adr.suspectedMed}</p>
-                      <p className="break-words"><strong>Documented Reaction Title:</strong> {norm.adr.reactionTitle}</p>
-                      <p className="break-words"><strong>Severity & Seriousness:</strong> {norm.adr.severity} / {norm.adr.seriousness}</p>
-                      <p className="break-words"><strong>Causality (Naranjo/WHO):</strong> {norm.adr.causalityOpinion || 'Probable'}</p>
+                      <p className="break-words"><strong>Suspected Medication:</strong> {norm.adr.suspectedMed || 'Documented in ADR Log'}</p>
+                      <p className="break-words"><strong>Documented Reaction Title:</strong> {norm.adr.reactionTitle || 'Documented'}</p>
+                      <p className="break-words"><strong>Severity & Seriousness:</strong> {[norm.adr.severity, norm.adr.seriousness].filter(Boolean).join(' / ') || 'Documented'}</p>
+                      <p className="break-words"><strong>Causality (Naranjo/WHO):</strong> {norm.adr.causalityOpinion || 'Evaluated'}</p>
                     </div>
                   ) : (
                     <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60 break-words">

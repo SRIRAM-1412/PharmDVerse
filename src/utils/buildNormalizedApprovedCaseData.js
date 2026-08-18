@@ -311,6 +311,10 @@ export const buildNormalizedApprovedCaseData = ({
   };
 
   // Detailed ADR Map
+  const suspectedMedName = safeArray(adr.suspected_meds || adr.suspected_drugs)[0]?.brand_name ||
+                           safeArray(adr.suspected_meds || adr.suspected_drugs)[0]?.generic_name ||
+                           adr.suspected_medication || adr.suspected_drug || adr.suspected_med || '';
+
   const adrMap = {
     adrNumber: adr.adr_number || adr.adrNumber || 'ADR-LOG-001',
     reportingDate: dates.adrReportingDate,
@@ -322,12 +326,13 @@ export const buildNormalizedApprovedCaseData = ({
     gender: adr.gender || demographics.gender,
     weight: adr.weight || demographics.weight,
     department: adr.department || demographics.department,
-    reactionTitle: adr.reaction_title || adr.reactionTitle || 'N/A',
-    reactionCategory: adr.reaction_category || 'Dermatological',
-    reactionDescription: adr.reaction_description || adr.reaction_title || 'N/A',
+    suspectedMed: suspectedMedName,
+    reactionTitle: adr.reaction_title || adr.reactionTitle || (suspectedMedName ? 'Adverse Reaction' : ''),
+    reactionCategory: adr.reaction_category || '',
+    reactionDescription: adr.reaction_description || adr.reaction_title || '',
     reactionDuration: adr.reaction_duration || '',
     clinicalManagement: adr.clinical_management || '',
-    currentCondition: adr.current_patient_condition || adr.reaction_outcome || 'Recovering',
+    currentCondition: adr.current_patient_condition || adr.reaction_outcome || '',
     suspectedMeds: safeArray(adr.suspected_meds || adr.suspected_drugs).map(m => ({
       ...m,
       start_date: formatDisplayDate(m.start_date),
@@ -346,13 +351,16 @@ export const buildNormalizedApprovedCaseData = ({
     hepaticStatus: adr.hepatic_status || 'Normal',
     lifestyleFactors: adr.lifestyle_factors || demographics.socialHistory,
     additionalNotes: adr.additional_clinical_notes || '',
-    reactionSeverity: adr.reaction_severity || 'Moderate',
-    reactionSeriousness: adr.reaction_seriousness || 'Hospitalization',
-    patientOutcome: adr.patient_outcome || 'Recovered',
-    actionTakenOnDrug: adr.action_taken_on_suspected_drug || 'Drug Withdrawn',
-    rechallengeInfo: adr.rechallenge_information || 'Not Done',
-    dechallengeInfo: adr.dechallenge_information || 'Positive',
-    naranjoCausality: adr.initial_causality_opinion || adr.naranjo_causality || 'Probable',
+    reactionSeverity: adr.reaction_severity || adr.severity || '',
+    reactionSeriousness: adr.reaction_seriousness || adr.seriousness || '',
+    severity: adr.reaction_severity || adr.severity || '',
+    seriousness: adr.reaction_seriousness || adr.seriousness || '',
+    patientOutcome: adr.patient_outcome || '',
+    actionTakenOnDrug: adr.action_taken_on_suspected_drug || '',
+    rechallengeInfo: adr.rechallenge_information || '',
+    dechallengeInfo: adr.dechallenge_information || '',
+    naranjoCausality: adr.initial_causality_opinion || adr.naranjo_causality || adr.causality || (suspectedMedName || adr.reaction_title ? 'Probable' : ''),
+    causalityOpinion: adr.initial_causality_opinion || adr.naranjo_causality || adr.causality || (suspectedMedName || adr.reaction_title ? 'Probable' : ''),
     causalityScore: adr.causality_score || adr.naranjo_score || '',
     clinicalRemarks: adr.clinical_remarks || ''
   };
