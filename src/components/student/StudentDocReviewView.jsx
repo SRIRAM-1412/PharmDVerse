@@ -249,12 +249,89 @@ const COMMON_SPELLING_CORRECTIONS = {
   // Symptoms
   'feverr': 'Fever',
   'nauseaa': 'Nausea',
-  'vomitting': 'Vomiting',
+  'vomitting': 'Vomiting'
+};
 
-  // Diagnostic tests
-  'echocardiogramm': 'Echocardiogram',
-  'electrocardiogramm': 'Electrocardiogram',
-  'ultrasond': 'Ultrasound'
+/**
+ * Official Clinical Pharmacopoeia Drug & Benchmark Dosage Reference (USP / BP / IP)
+ */
+const STANDARD_PHARMACOPOEIA_DOSES = {
+  // Anticonvulsants
+  'phenytoin': { stdDose: '100 mg TID or 300 mg QD (Adult Oral)', min: 100, max: 600, unit: 'mg' },
+  'carbamazepine': { stdDose: '200 mg BID (Range: 400 - 1200 mg/day)', min: 100, max: 1200, unit: 'mg' },
+  'sodium valproate': { stdDose: '500 mg BID or 15 mg/kg/day', min: 250, max: 2500, unit: 'mg' },
+  'valproate': { stdDose: '500 mg BID or 15 mg/kg/day', min: 250, max: 2500, unit: 'mg' },
+  'levetiracetam': { stdDose: '500 mg BID (Max: 3000 mg/day)', min: 250, max: 3000, unit: 'mg' },
+
+  // Acid-Peptic & GI
+  'pantoprazole': { stdDose: '40 mg QD (Oral/IV)', min: 20, max: 80, unit: 'mg' },
+  'omeprazole': { stdDose: '20 mg QD (Oral)', min: 10, max: 40, unit: 'mg' },
+  'rabeprazole': { stdDose: '20 mg QD (Oral)', min: 10, max: 40, unit: 'mg' },
+  'esomeprazole': { stdDose: '40 mg QD (Oral/IV)', min: 20, max: 80, unit: 'mg' },
+  'ranitidine': { stdDose: '150 mg BID or 300 mg HS', min: 75, max: 300, unit: 'mg' },
+  'famotidine': { stdDose: '20 mg BID or 40 mg HS', min: 10, max: 40, unit: 'mg' },
+  'sucralfate': { stdDose: '1 g QID (1 hour before meals)', min: 1, max: 4, unit: 'g' },
+  'ondansetron': { stdDose: '4 mg - 8 mg IV/Oral', min: 4, max: 24, unit: 'mg' },
+  'buscopan': { stdDose: '10 mg - 20 mg TID/QID', min: 10, max: 80, unit: 'mg' },
+  'hyoscine': { stdDose: '10 mg - 20 mg TID/QID', min: 10, max: 80, unit: 'mg' },
+  'mesalamine': { stdDose: '800 mg TID or 2.4g - 4.8g/day', min: 800, max: 4800, unit: 'mg' },
+
+  // Analgesics & Anti-inflammatories
+  'paracetamol': { stdDose: '500 mg - 650 mg QID (Max: 4000 mg/day)', min: 250, max: 4000, unit: 'mg' },
+  'acetaminophen': { stdDose: '500 mg - 650 mg QID (Max: 4000 mg/day)', min: 250, max: 4000, unit: 'mg' },
+  'dolo': { stdDose: '650 mg TID/QID (Max: 4000 mg/day)', min: 250, max: 4000, unit: 'mg' },
+  'ibuprofen': { stdDose: '400 mg TID (Max: 2400 mg/day)', min: 200, max: 2400, unit: 'mg' },
+  'diclofenac': { stdDose: '50 mg BID/TID or 75 mg IM', min: 25, max: 150, unit: 'mg' },
+  'aceclofenac': { stdDose: '100 mg BID', min: 50, max: 200, unit: 'mg' },
+  'tramadol': { stdDose: '50 mg - 100 mg q4-6h (Max: 400 mg/day)', min: 25, max: 400, unit: 'mg' },
+
+  // Antibiotics & Antimicrobials
+  'azithromycin': { stdDose: '500 mg QD x 3-5 days', min: 250, max: 500, unit: 'mg' },
+  'amoxicillin': { stdDose: '500 mg TID or 875 mg BID', min: 250, max: 3000, unit: 'mg' },
+  'augmentin': { stdDose: '625 mg TID or 1000 mg BID', min: 375, max: 2000, unit: 'mg' },
+  'ceftriaxone': { stdDose: '1 g - 2 g IV QD', min: 1, max: 4, unit: 'g' },
+  'cefixime': { stdDose: '200 mg BID or 400 mg QD', min: 100, max: 400, unit: 'mg' },
+  'cefpodoxime': { stdDose: '200 mg BID', min: 100, max: 400, unit: 'mg' },
+  'ciprofloxacin': { stdDose: '500 mg BID (Oral) / 400 mg IV BID', min: 250, max: 1500, unit: 'mg' },
+  'levofloxacin': { stdDose: '500 mg QD or 750 mg QD', min: 250, max: 750, unit: 'mg' },
+  'amikacin': { stdDose: '15 mg/kg/day IV divided q8-12h', min: 500, max: 1500, unit: 'mg' },
+  'meropenem': { stdDose: '1 g IV TID', min: 1, max: 3, unit: 'g' },
+  'vancomycin': { stdDose: '15-20 mg/kg IV q8-12h', min: 500, max: 2000, unit: 'mg' },
+  'metronidazole': { stdDose: '400 mg TID (Oral) or 500 mg IV TID', min: 200, max: 1500, unit: 'mg' },
+
+  // Cardiovascular & Antihypertensives
+  'telmisartan': { stdDose: '40 mg - 80 mg QD', min: 20, max: 80, unit: 'mg' },
+  'losartan': { stdDose: '50 mg - 100 mg QD', min: 25, max: 100, unit: 'mg' },
+  'amlodipine': { stdDose: '5 mg - 10 mg QD', min: 2.5, max: 10, unit: 'mg' },
+  'atenolol': { stdDose: '50 mg - 100 mg QD', min: 25, max: 100, unit: 'mg' },
+  'metoprolol': { stdDose: '50 mg - 100 mg BID', min: 25, max: 400, unit: 'mg' },
+  'ramipril': { stdDose: '2.5 mg - 10 mg QD', min: 1.25, max: 10, unit: 'mg' },
+  'aspirin': { stdDose: '75 mg - 150 mg QD (Antiplatelet)', min: 75, max: 325, unit: 'mg' },
+  'ecosprin': { stdDose: '75 mg - 150 mg QD', min: 75, max: 150, unit: 'mg' },
+  'clopidogrel': { stdDose: '75 mg QD', min: 75, max: 300, unit: 'mg' },
+  'atorvastatin': { stdDose: '10 mg - 40 mg HS (Max: 80 mg)', min: 10, max: 80, unit: 'mg' },
+  'rosuvastatin': { stdDose: '10 mg - 20 mg HS (Max: 40 mg)', min: 5, max: 40, unit: 'mg' },
+
+  // Diuretics
+  'furosemide': { stdDose: '20 mg - 40 mg QD/BID', min: 20, max: 160, unit: 'mg' },
+  'lasix': { stdDose: '20 mg - 40 mg QD/BID', min: 20, max: 160, unit: 'mg' },
+  'spironolactone': { stdDose: '25 mg - 100 mg QD', min: 25, max: 400, unit: 'mg' },
+
+  // Antidiabetics
+  'metformin': { stdDose: '500 mg BID or 850 mg BID (Max: 2550 mg)', min: 500, max: 2550, unit: 'mg' },
+  'glimepiride': { stdDose: '1 mg - 2 mg QD (Max: 8 mg)', min: 1, max: 8, unit: 'mg' },
+  'teneligliptin': { stdDose: '20 mg QD', min: 20, max: 40, unit: 'mg' },
+
+  // Antihistamines & Respiratory
+  'levocetirizine': { stdDose: '5 mg HS', min: 2.5, max: 5, unit: 'mg' },
+  'one all': { stdDose: '5 mg HS', min: 2.5, max: 5, unit: 'mg' },
+  'salbutamol': { stdDose: '2 mg - 4 mg TID (Oral) or 100-200 mcg Inhalation', min: 100, max: 4, unit: 'mg' },
+  'budesonide': { stdDose: '200 mcg - 400 mcg BID Inhalation', min: 100, max: 800, unit: 'mcg' },
+
+  // Corticosteroids
+  'dexamethasone': { stdDose: '0.5 mg - 8 mg/day', min: 0.5, max: 16, unit: 'mg' },
+  'hydrocortisone': { stdDose: '100 mg IV q6-8h', min: 20, max: 400, unit: 'mg' },
+  'prednisolone': { stdDose: '5 mg - 60 mg/day', min: 5, max: 60, unit: 'mg' }
 };
 
 /**
@@ -454,6 +531,33 @@ const generatePreSubmissionReview = (norm, caseModulesData) => {
           'Document exact dose (e.g. 40 mg, 500 mg, 20 mg/mL).',
           'Enter dosage details in Patient Profile.'
         );
+      } else {
+        // Pharmacopoeial Dosage Range & Threshold Verification
+        const rawDoseStr = d.dose.trim();
+        const numVal = parseFloat(rawDoseStr);
+
+        if (!isNaN(numVal) && numVal > 0) {
+          const matchedDrugKey = Object.keys(STANDARD_PHARMACOPOEIA_DOSES).find(k => 
+            lowerCombined.includes(k)
+          );
+
+          if (matchedDrugKey) {
+            const ref = STANDARD_PHARMACOPOEIA_DOSES[matchedDrugKey];
+            if (numVal > ref.max) {
+              addIssue(
+                'PLEASE_VERIFY',
+                'Patient Profile',
+                'patient-profile',
+                `Medication #${idx + 1} (${trade || generic}) Dosage`,
+                d.dose,
+                `Documented dosage strength (${d.dose}) exceeds the standard pharmacopoeial adult daily limit.`,
+                `Benchmark Adult Dose: ${ref.stdDose}`,
+                'Verify dosage strength against physician order and clinical pharmacopoeia.',
+                `field-med-name-${idx}`
+              );
+            }
+          }
+        }
       }
     });
 
