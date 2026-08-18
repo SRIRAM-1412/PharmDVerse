@@ -698,12 +698,70 @@ const generatePreSubmissionReview = (norm, caseModulesData) => {
       addIssue(
         'DOCUMENTATION_GAP',
         'ADR Documentation Log',
-        'adr-documentation',
-        'Reaction Title',
+        'adr-log',
+        'ADR Reaction Title',
         'Blank / Unspecified',
-        'ADR documentation form is saved but adverse reaction title is missing.',
-        'Specify the documented adverse drug reaction title (e.g. Maculopapular rash, Dry cough).',
-        'Enter reaction title in ADR form.'
+        'ADR Documentation Log is saved but specific reaction title or suspected drug is empty.',
+        'Document specific adverse drug reaction symptoms and causality evaluation.',
+        'Fill reaction details in ADR Log.'
+      );
+    }
+  }
+
+  // ==========================================
+  // 6. ADVANCED CLINICAL PHARMACOTHERAPY KNOWLEDGE REVIEW
+  // ==========================================
+  if (isProfileSaved) {
+    const profile = caseModulesData?.profile || {};
+    const drugs = caseModulesData?.drugs || [];
+    const diagStr = `${profile.final_diagnosis || ''} ${profile.provisional_diagnosis || ''} ${profile.chief_complaints || ''}`.toLowerCase();
+    const drugNames = drugs.map(d => `${d.trade_name || ''} ${d.generic_name || ''}`.toLowerCase());
+
+    // A. Indication vs Prescribed Drug Matching (Educational Knowledge)
+    if ((diagStr.includes('hypertension') || diagStr.includes('htn')) && 
+        !drugNames.some(d => ['telmisartan', 'telma', 'losartan', 'amlodipine', 'atenolol', 'metoprolol', 'ramipril', 'enalapril', 'nifedipine'].some(k => d.includes(k)))) {
+      addIssue(
+        'PLEASE_VERIFY',
+        'Clinical Knowledge / Indication Match',
+        'patient-profile',
+        'Hypertension Pharmacotherapy',
+        'No Antihypertensive Listed',
+        'Clinical Indication Notice: Patient has documented Hypertension, but no standard antihypertensive agent (ARB, CCB, Beta-blocker, ACEi) was identified in the prescription.',
+        'Review treatment regimen with preceptor to confirm if antihypertensive therapy is prescribed or withheld.',
+        'Verify prescription in Patient Profile.',
+        'field-diagnosis'
+      );
+    }
+
+    if ((diagStr.includes('diabetes') || diagStr.includes('dm') || diagStr.includes('t2dm')) && 
+        !drugNames.some(d => ['metformin', 'glycomet', 'glimepiride', 'gliclazide', 'insulin', 'teneligliptin', 'vildagliptin', 'dapagliflozin', 'empagliflozin'].some(k => d.includes(k)))) {
+      addIssue(
+        'PLEASE_VERIFY',
+        'Clinical Knowledge / Indication Match',
+        'patient-profile',
+        'Diabetes Mellitus Pharmacotherapy',
+        'No Antidiabetic Listed',
+        'Clinical Indication Notice: Patient has documented Diabetes Mellitus, but no glycemic control agent (Metformin, Sulfonylurea, Insulin, DPP-4i) was listed.',
+        'Verify capillary blood glucose logs and confirm if antidiabetic therapy is indicated.',
+        'Verify prescription in Patient Profile.',
+        'field-diagnosis'
+      );
+    }
+
+    // B. High-Risk Polypharmacy & Bleeding Alert (Aspirin / Clopidogrel + Heparin / Warfarin)
+    const hasAntiplatelet = drugNames.some(d => d.includes('aspirin') || d.includes('ecosprin') || d.includes('clopidogrel') || d.includes('plavix'));
+    const hasAnticoagulant = drugNames.some(d => d.includes('heparin') || d.includes('enoxaparin') || d.includes('clexane') || d.includes('warfarin'));
+    if (hasAntiplatelet && hasAnticoagulant) {
+      addIssue(
+        'PLEASE_VERIFY',
+        'Clinical Knowledge / Medication Safety',
+        'patient-profile',
+        'Dual Antiplatelet / Anticoagulant Therapy',
+        'Combination Prescribed',
+        'High Bleeding Risk Alert: Combination of antiplatelet agent (Aspirin/Clopidogrel) with systemic anticoagulant (Enoxaparin/Heparin/Warfarin) significantly increases GI and systemic hemorrhage risk.',
+        'Ensure close monitoring of hemoglobin, hematocrit, stool color, and clinical bleeding parameters.',
+        'Verify indication and monitoring plan during preceptor review.',
+        'field-med-name-0'
       );
     }
   }
