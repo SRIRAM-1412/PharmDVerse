@@ -1,16 +1,41 @@
-# React + Vite
+# PharmDVerse — Clinical Case Management Platform for Pharmacy Colleges
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+PharmDVerse is a cloud-based ERP platform built exclusively for Pharm.D / Pharmacy colleges to streamline clinical case documentation, academic management, preceptor collaboration, and institutional workflows.
 
-Currently, two official plugins are available:
+## Technology Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Frontend Framework**: React 19 + Vite 8
+- **Styling**: Tailwind CSS v4
+- **Database & Backend**: Supabase PostgreSQL (Auth, Row Level Security, RPC Functions)
+- **Document Generation**: High-Precision PDF (`jspdf`) & PPT Presentation (`pptxgenjs`)
+- **ORMs & Utilities**: Prisma ORM Schema (`prisma/`)
 
-## React Compiler
+## Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 1. Install Dependencies
+```bash
+npm install
+```
 
-## Expanding the Oxlint configuration
+### 2. Environment Variables
+Copy `.env.example` to `.env` and fill in your Supabase project credentials:
+```env
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+### 3. Local Development Server
+```bash
+npm run dev
+```
+
+### 4. Build Production Bundle
+```bash
+npm run build
+```
+
+## Vercel Deployment
+This repository is configured to deploy directly on Vercel as a Vite Single Page Application (SPA).
+- **Framework Preset**: Vite
+- **Build Command**: `npm run build`
+- **Output Directory**: `dist`
