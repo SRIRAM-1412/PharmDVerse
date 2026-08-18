@@ -8,33 +8,41 @@ import { fetchStudentCasesFromSupabase, fetchCaseModuleStatusesFromSupabase } fr
 import { buildNormalizedApprovedCaseData } from '../../utils/buildNormalizedApprovedCaseData';
 
 /**
- * Helper to determine if a form object has reached SUBMITTED or APPROVED status.
- * Strictly returns false for DRAFT, INCOMPLETE, RETURNED, or UNSUBMITTED states.
+ * Helper to determine if a form object has SAVED/PERSISTED data in Supabase for the selected case.
+ * Returns true if the form record exists with saved data or any saved status ('draft', 'saved', 'in_progress', 'submitted', 'approved').
+ * Returns false if no form record exists or the form is completely empty/unsaved.
  */
-const checkIsFormSubmitted = (formObj, isProfile = false) => {
+const checkIsFormSaved = (formObj, isProfile = false) => {
   if (!formObj || typeof formObj !== 'object' || Object.keys(formObj).length === 0) return false;
   
   const status = String(formObj.status || formObj.form_status || formObj.approval_status || formObj.status_label || '').toLowerCase().trim();
   
-  if (status === 'draft' || status === 'incomplete' || status === 'not_submitted' || status === 'not started' || status === 'not added' || status === 'in progress' || status === 'returned' || status === 'rejected') {
+  if (status === 'not_created' || status === 'uncreated' || status === 'not added') {
     return false;
-  }
-  if (formObj.is_draft === true || formObj.draft === true) {
-    return false;
-  }
-
-  if (status.includes('submitted') || status.includes('approved') || status.includes('reviewed') || status.includes('completed')) {
-    return true;
-  }
-  if (formObj.is_submitted === true || formObj.is_approved === true || formObj.approved === true || formObj.preceptor_approved === true || formObj.is_completed === true) {
-    return true;
   }
 
   if (isProfile) {
-    return Boolean(formObj.patient_name || formObj.chief_complaints || Object.keys(formObj).length > 3);
+    return Boolean(
+      formObj.id ||
+      formObj.patient_name ||
+      formObj.chief_complaints ||
+      formObj.provisional_diagnosis ||
+      formObj.final_diagnosis ||
+      Object.keys(formObj).length > 2
+    );
   }
 
-  return false;
+  if (formObj.id || formObj.created_at) return true;
+  if (formObj.disease_counselled || formObj.medications_counselled || formObj.topics_covered) return true;
+  if (formObj.identified_issue || formObj.action_taken || formObj.intervention_description) return true;
+  if (formObj.enquirer_name || formObj.question_asked || formObj.background_info) return true;
+  if (formObj.suspected_medication || formObj.reaction_title || formObj.adverse_event_description) return true;
+
+  if (status.includes('draft') || status.includes('save') || status.includes('progress') || status.includes('submitted') || status.includes('approved') || status.includes('reviewed') || status.includes('completed')) {
+    return true;
+  }
+
+  return Object.keys(formObj).length > 2;
 };
 
 /**
@@ -232,7 +240,7 @@ const getPairSpecificInteraction = (drug1, drug2) => {
 
 /**
  * Student Role AI Clinical Case Analysis View.
- * Complete 14-Section Submission-Based Educational Analysis Engine with Verified Public Drug Data & Field-Specific Evidence Framework across All 14 Sections.
+ * Complete 14-Section Educational Analysis Engine Triggered by SAVED Form Data.
  */
 export const StudentAiAnalysisView = ({ student, onNavigate }) => {
   const [cases, setCases] = useState([]);
@@ -284,48 +292,48 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
 
   const selectedCase = cases.find(c => String(c.id) === String(selectedCaseId)) || cases[0];
 
-  // Detect form submission statuses dynamically
+  // Detect form SAVED statuses dynamically (NEW TRIGGER RULE: SAVED DATA)
   const profileRecord = modulesData?.profile || {};
   const counsellingRecord = modulesData?.counselling || {};
   const interventionRecord = modulesData?.intervention || {};
   const dirRecord = modulesData?.dir || {};
   const adrRecord = modulesData?.adr || {};
 
-  const isProfileSubmitted = checkIsFormSubmitted(profileRecord, true);
-  const isCounsellingSubmitted = checkIsFormSubmitted(counsellingRecord, false);
-  const isInterventionSubmitted = checkIsFormSubmitted(interventionRecord, false);
-  const isDirSubmitted = checkIsFormSubmitted(dirRecord, false);
-  const isAdrSubmitted = checkIsFormSubmitted(adrRecord, false);
+  const isProfileSaved = checkIsFormSaved(profileRecord, true);
+  const isCounsellingSaved = checkIsFormSaved(counsellingRecord, false);
+  const isInterventionSaved = checkIsFormSaved(interventionRecord, false);
+  const isDirSaved = checkIsFormSaved(dirRecord, false);
+  const isAdrSaved = checkIsFormSaved(adrRecord, false);
 
-  const submittedCount = [
-    isProfileSubmitted,
-    isCounsellingSubmitted,
-    isInterventionSubmitted,
-    isDirSubmitted,
-    isAdrSubmitted
+  const savedCount = [
+    isProfileSaved,
+    isCounsellingSaved,
+    isInterventionSaved,
+    isDirSaved,
+    isAdrSaved
   ].filter(Boolean).length;
 
   const isAnyFormApproved = [
     profileRecord, counsellingRecord, interventionRecord, dirRecord, adrRecord
   ].some(f => String(f?.status || f?.approval_status || '').toLowerCase().includes('approved') || f?.is_approved === true);
 
-  // Normalize only SUBMITTED modules for safe, accurate clinical extraction
+  // Normalize only SAVED modules for safe, accurate clinical extraction
   const norm = buildNormalizedApprovedCaseData({
     clinicalCase: selectedCase || {},
     student,
     caseModulesData: {
-      profile: isProfileSubmitted ? profileRecord : {},
-      counselling: isCounsellingSubmitted ? counsellingRecord : {},
-      intervention: isInterventionSubmitted ? interventionRecord : {},
-      dir: isDirSubmitted ? dirRecord : {},
-      adr: isAdrSubmitted ? adrRecord : {},
-      vitals: isProfileSubmitted ? (modulesData?.vitals || []) : [],
-      labs: isProfileSubmitted ? (modulesData?.labs || []) : [],
-      drugs: isProfileSubmitted ? (modulesData?.drugs || []) : []
+      profile: isProfileSaved ? profileRecord : {},
+      counselling: isCounsellingSaved ? counsellingRecord : {},
+      intervention: isInterventionSaved ? interventionRecord : {},
+      dir: isDirSaved ? dirRecord : {},
+      adr: isAdrSaved ? adrRecord : {},
+      vitals: isProfileSaved ? (modulesData?.vitals || []) : [],
+      labs: isProfileSaved ? (modulesData?.labs || []) : [],
+      drugs: isProfileSaved ? (modulesData?.drugs || []) : []
     }
   });
 
-  const evaluatedDrugs = isProfileSubmitted ? norm.drugs : [];
+  const evaluatedDrugs = isProfileSaved ? norm.drugs : [];
 
   // Calculate pairs of documented drugs for individual pair analysis
   const drugPairs = [];
@@ -351,11 +359,11 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-xl font-extrabold text-slate-900 dark:text-white">AI Clinical Case Analysis</h1>
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                Student Reference
+                Saved Form Reference
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-normal">
-              Field-Specific Evidence-Based Analysis across All 14 Clinical Sections
+              Field-Specific Evidence-Based Analysis of Saved Clinical Documentation
             </p>
           </div>
         </div>
@@ -405,7 +413,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
           <div>
             <h3 className="text-base font-extrabold text-slate-900 dark:text-white">No Clinical Cases Found</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto leading-relaxed">
-              You do not have any active clinical cases created yet. Create a case and submit clinical documentation to enable AI analysis.
+              You do not have any active clinical cases created yet. Create a case and save clinical documentation to enable AI analysis.
             </p>
           </div>
           <div className="pt-2">
@@ -440,108 +448,134 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
             </select>
           </div>
 
-          {/* FORM SUBMISSION DETECTOR GRID */}
+          {/* FORM SAVED STATUS DETECTOR GRID */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 min-w-0 w-full">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Form Submission Detector ({submittedCount}/5 Submitted & Eligible)
+                Form Saved Status Detector ({savedCount}/5 Saved & Eligible)
               </h3>
               <span className="text-[11px] font-bold text-slate-400">
-                Drafts & Unsubmitted forms are strictly excluded
+                Unsaved form data is excluded until persisted
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-              <div className={`p-3 rounded-xl border transition-all min-w-0 ${isProfileSubmitted ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60'}`}>
+              <div className={`p-3 rounded-xl border transition-all min-w-0 ${isProfileSaved ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60'}`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Form 1</span>
-                  {isProfileSubmitted ? <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" /> : <Clock className="w-4 h-4 text-slate-400 shrink-0" />}
+                  {isProfileSaved ? <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" /> : <Clock className="w-4 h-4 text-slate-400 shrink-0" />}
                 </div>
                 <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">Patient Profile</h4>
-                <p className={`text-[10px] font-semibold mt-1 truncate ${isProfileSubmitted ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400'}`}>
-                  {isProfileSubmitted ? 'Submitted & Eligible' : 'Draft / Unsubmitted'}
+                <p className={`text-[10px] font-semibold mt-1 truncate ${isProfileSaved ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400'}`}>
+                  {isProfileSaved ? '✓ Saved & Eligible' : '✗ Not Saved'}
                 </p>
               </div>
 
-              <div className={`p-3 rounded-xl border transition-all min-w-0 ${isCounsellingSubmitted ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60'}`}>
+              <div className={`p-3 rounded-xl border transition-all min-w-0 ${isCounsellingSaved ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60'}`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Form 2</span>
-                  {isCounsellingSubmitted ? <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" /> : <Clock className="w-4 h-4 text-slate-400 shrink-0" />}
+                  {isCounsellingSaved ? <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" /> : <Clock className="w-4 h-4 text-slate-400 shrink-0" />}
                 </div>
                 <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">Counselling</h4>
-                <p className={`text-[10px] font-semibold mt-1 truncate ${isCounsellingSubmitted ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400'}`}>
-                  {isCounsellingSubmitted ? 'Submitted & Eligible' : 'Draft / Unsubmitted'}
+                <p className={`text-[10px] font-semibold mt-1 truncate ${isCounsellingSaved ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400'}`}>
+                  {isCounsellingSaved ? '✓ Saved & Eligible' : '✗ Not Saved'}
                 </p>
               </div>
 
-              <div className={`p-3 rounded-xl border transition-all min-w-0 ${isInterventionSubmitted ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60'}`}>
+              <div className={`p-3 rounded-xl border transition-all min-w-0 ${isInterventionSaved ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60'}`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Form 3</span>
-                  {isInterventionSubmitted ? <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" /> : <Clock className="w-4 h-4 text-slate-400 shrink-0" />}
+                  {isInterventionSaved ? <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" /> : <Clock className="w-4 h-4 text-slate-400 shrink-0" />}
                 </div>
                 <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">Intervention</h4>
-                <p className={`text-[10px] font-semibold mt-1 truncate ${isInterventionSubmitted ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400'}`}>
-                  {isInterventionSubmitted ? 'Submitted & Eligible' : 'Draft / Unsubmitted'}
+                <p className={`text-[10px] font-semibold mt-1 truncate ${isInterventionSaved ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400'}`}>
+                  {isInterventionSaved ? '✓ Saved & Eligible' : '✗ Not Saved'}
                 </p>
               </div>
 
-              <div className={`p-3 rounded-xl border transition-all min-w-0 ${isDirSubmitted ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60'}`}>
+              <div className={`p-3 rounded-xl border transition-all min-w-0 ${isDirSaved ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60'}`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Form 4</span>
-                  {isDirSubmitted ? <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" /> : <Clock className="w-4 h-4 text-slate-400 shrink-0" />}
+                  {isDirSaved ? <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" /> : <Clock className="w-4 h-4 text-slate-400 shrink-0" />}
                 </div>
                 <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">Drug Information</h4>
-                <p className={`text-[10px] font-semibold mt-1 truncate ${isDirSubmitted ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400'}`}>
-                  {isDirSubmitted ? 'Submitted & Eligible' : 'Draft / Unsubmitted'}
+                <p className={`text-[10px] font-semibold mt-1 truncate ${isDirSaved ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400'}`}>
+                  {isDirSaved ? '✓ Saved & Eligible' : '✗ Not Saved'}
                 </p>
               </div>
 
-              <div className={`p-3 rounded-xl border transition-all min-w-0 ${isAdrSubmitted ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60'}`}>
+              <div className={`p-3 rounded-xl border transition-all min-w-0 ${isAdrSaved ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60'}`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Form 5</span>
-                  {isAdrSubmitted ? <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" /> : <Clock className="w-4 h-4 text-slate-400 shrink-0" />}
+                  {isAdrSaved ? <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" /> : <Clock className="w-4 h-4 text-slate-400 shrink-0" />}
                 </div>
                 <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">ADR Documentation</h4>
-                <p className={`text-[10px] font-semibold mt-1 truncate ${isAdrSubmitted ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400'}`}>
-                  {isAdrSubmitted ? 'Submitted & Eligible' : 'Draft / Unsubmitted'}
+                <p className={`text-[10px] font-semibold mt-1 truncate ${isAdrSaved ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400'}`}>
+                  {isAdrSaved ? '✓ Saved & Eligible' : '✗ Not Saved'}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* IF NO SUBMITTED FORMS AVAILABLE (REQUIREMENT 15) */}
-          {submittedCount === 0 ? (
+          {/* IF NO SAVED FORMS AVAILABLE */}
+          {savedCount === 0 ? (
             <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 border border-slate-200/80 dark:border-slate-800 text-center space-y-3">
               <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
               <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                No Submitted Clinical Documentation Available for AI Analysis
+                No Saved Clinical Documentation Available for AI Analysis
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-lg mx-auto leading-relaxed">
-                This case currently has no submitted forms. Please complete and submit at least one clinical documentation form (Patient Profile, Counselling, Intervention, DIR, or ADR) to enable AI Clinical Case Analysis.
+                This case currently has no saved forms. Please complete and save at least one clinical documentation form (Patient Profile, Counselling, Intervention, DIR, or ADR) to enable AI Clinical Case Analysis.
               </p>
             </div>
           ) : (
-            /* FULL 14-SECTION AI ANALYSIS PANEL WITH FIELD-SPECIFIC EVIDENCE FRAMEWORK */
+            /* FULL 14-SECTION AI ANALYSIS PANEL WITH SAVED FORM TRIGGER DATA */
             <div className="space-y-6 min-w-0 w-full">
-              {/* STATUS INDICATOR (REQUIREMENT 12) */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between flex-wrap gap-3 min-w-0 w-full">
-                <div className="flex items-center gap-3 min-w-0">
-                  <Brain className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <div className="min-w-0">
-                    <h3 className="text-xs font-extrabold text-slate-900 dark:text-white leading-snug break-words">
-                      {isAnyFormApproved
-                        ? 'AI Clinical Case Analysis — Based on Approved Clinical Documentation'
-                        : 'AI Clinical Case Analysis — Based on Student-Submitted Data'}
-                    </h3>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono break-words mt-0.5">
-                      CASE ID: {norm.caseId} • Patient: {norm.demographics.patientName}
-                    </p>
+              {/* STATUS INDICATOR (REQUIREMENTS 10 & 11) */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3 min-w-0 w-full">
+                <div className="flex items-center justify-between flex-wrap gap-3 min-w-0 w-full">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Brain className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <div className="min-w-0">
+                      <h3 className="text-xs font-extrabold text-slate-900 dark:text-white leading-snug break-words">
+                        {isAnyFormApproved
+                          ? 'AI Clinical Case Analysis — Based on Approved Clinical Documentation'
+                          : 'AI Clinical Case Analysis — Based on Saved Clinical Documentation'}
+                      </h3>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono break-words mt-0.5">
+                        CASE ID: {norm.caseId} • Patient: {norm.demographics.patientName}
+                      </p>
+                    </div>
                   </div>
+
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase shrink-0 ${isAnyFormApproved ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'}`}>
+                    {isAnyFormApproved ? 'Approved Data' : 'Saved Clinical Data'}
+                  </span>
                 </div>
 
-                <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase shrink-0 ${isAnyFormApproved ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' : 'bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 border border-sky-300 dark:border-sky-800'}`}>
-                  {isAnyFormApproved ? 'Approved Data' : 'Student Submitted Data'}
-                </span>
+                {/* ANALYSIS SOURCE SUMMARY CARD (REQUIREMENT 11) */}
+                <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 text-xs space-y-2">
+                  <span className="font-extrabold uppercase text-slate-500 dark:text-slate-400 text-[10px] tracking-wider block">
+                    ANALYSIS SOURCE FORM STATUS
+                  </span>
+                  <div className="flex flex-wrap gap-2 text-[11px]">
+                    <span className={`px-2.5 py-1 rounded-md font-bold ${isProfileSaved ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
+                      {isProfileSaved ? '✓ Patient Profile — Saved' : '✗ Patient Profile — Not Saved'}
+                    </span>
+                    <span className={`px-2.5 py-1 rounded-md font-bold ${isCounsellingSaved ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
+                      {isCounsellingSaved ? '✓ Patient Counselling — Saved' : '✗ Patient Counselling — Not Saved'}
+                    </span>
+                    <span className={`px-2.5 py-1 rounded-md font-bold ${isInterventionSaved ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
+                      {isInterventionSaved ? '✓ Pharmacist Intervention — Saved' : '✗ Pharmacist Intervention — Not Saved'}
+                    </span>
+                    <span className={`px-2.5 py-1 rounded-md font-bold ${isDirSaved ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
+                      {isDirSaved ? '✓ Drug Information — Saved' : '✗ Drug Information — Not Saved'}
+                    </span>
+                    <span className={`px-2.5 py-1 rounded-md font-bold ${isAdrSaved ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
+                      {isAdrSaved ? '✓ ADR Documentation — Saved' : '✗ ADR Documentation — Not Saved'}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {/* 14 SECTIONS RENDERER WITH 100% FLUID WRAPPING & EVIDENCE FRAMEWORK */}
@@ -590,7 +624,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
 
                     <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl space-y-2 min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800">
                       <span className="text-[10px] font-black uppercase text-slate-400 block">DOCUMENTED DIAGNOSIS & ALLERGIES</span>
-                      <p><strong className="text-slate-800 dark:text-slate-200">Provisional Diagnosis:</strong> <span className="break-words text-slate-700 dark:text-slate-300">{norm.diagnosis.provisional || 'Not available in submitted documentation.'}</span></p>
+                      <p><strong className="text-slate-800 dark:text-slate-200">Provisional Diagnosis:</strong> <span className="break-words text-slate-700 dark:text-slate-300">{norm.diagnosis.provisional || 'Not available in saved documentation.'}</span></p>
                       <p><strong className="text-slate-800 dark:text-slate-200">Official Final Diagnosis:</strong> <span className="text-emerald-700 dark:text-emerald-400 font-extrabold break-words">{norm.diagnosis.final}</span></p>
                       <p><strong className="text-slate-800 dark:text-slate-200">Documented Allergies:</strong> <span className="break-words text-slate-700 dark:text-slate-300">{norm.demographics.allergyDrugs}</span></p>
                     </div>
@@ -599,7 +633,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                   <div className="bg-emerald-50/60 dark:bg-emerald-950/30 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800/80 text-xs space-y-1.5 min-w-0 text-emerald-950 dark:text-emerald-200 leading-relaxed">
                     <span className="text-[10px] font-extrabold uppercase text-emerald-700 dark:text-emerald-300 block">AI CASE SYNTHESIS & CLINICAL CONTEXT</span>
                     <p className="break-words">
-                      Case overview integrates documented presentation for {norm.diagnosis.final}. Pharmacotherapeutic evaluation must focus on active disease control, symptom resolution, organ function monitoring, and prevention of medication-related problems.
+                      Case overview integrates saved presentation for {norm.diagnosis.final}. Pharmacotherapeutic evaluation focuses on active disease control, symptom resolution, organ function monitoring, and prevention of medication-related problems.
                     </p>
                   </div>
                 </div>
@@ -618,7 +652,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                     </span>
                   </div>
 
-                  {isProfileSubmitted ? (
+                  {isProfileSaved ? (
                     <div className="space-y-3 text-xs min-w-0">
                       <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200/60 dark:border-slate-700/60 space-y-2 min-w-0">
                         <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-extrabold text-[10px]">
@@ -645,11 +679,11 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-400 italic">Patient Profile documentation is not available in submitted documentation.</p>
+                    <p className="text-xs text-slate-400 italic">Patient Profile documentation is not available in saved documentation.</p>
                   )}
                 </div>
 
-                {/* SECTION 3 — INDIVIDUAL MEDICATION ANALYSIS (WITH VERIFIED PUBLIC DRUG INFO & ZERO GENERIC PLACEHOLDERS) */}
+                {/* SECTION 3 — INDIVIDUAL MEDICATION ANALYSIS */}
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 min-w-0 w-full">
                   <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
                     <div className="flex items-center gap-2.5">
@@ -663,7 +697,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                     </span>
                   </div>
 
-                  {isProfileSubmitted && evaluatedDrugs.length > 0 ? (
+                  {isProfileSaved && evaluatedDrugs.length > 0 ? (
                     <div className="space-y-4 min-w-0">
                       {evaluatedDrugs.map((d, idx) => {
                         const specificAnalysis = getMedicationSpecificAnalysis(d);
@@ -681,7 +715,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                             </div>
 
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] bg-white dark:bg-slate-900/60 p-3 rounded-lg border border-slate-200/60 dark:border-slate-800">
-                              <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Dose:</strong> {d.dose || 'Not available in submitted documentation.'}</p>
+                              <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Dose:</strong> {d.dose || 'Not available in saved documentation.'}</p>
                               <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Route:</strong> {d.route_of_admin}</p>
                               <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Start Date:</strong> {d.start_date}</p>
                               <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Stop Date:</strong> {d.stop_date}</p>
@@ -742,7 +776,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                       })}
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-400 italic">No prescribed medications available in submitted documentation.</p>
+                    <p className="text-xs text-slate-400 italic">No prescribed medications available in saved documentation.</p>
                   )}
                 </div>
 
@@ -775,7 +809,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-400 italic">No medication records available in submitted documentation to evaluate MRPs.</p>
+                    <p className="text-xs text-slate-400 italic">No medication records available in saved documentation to evaluate MRPs.</p>
                   )}
                 </div>
 
@@ -825,7 +859,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                       })}
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-400 italic">Insufficient medication records in submitted documentation to evaluate drug-drug interactions.</p>
+                    <p className="text-xs text-slate-400 italic">Insufficient medication records in saved documentation to evaluate drug-drug interactions.</p>
                   )}
                 </div>
 
@@ -840,7 +874,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                     </div>
                   </div>
 
-                  {isProfileSubmitted && norm.diagnosis.final !== 'N/A' && evaluatedDrugs.length > 0 ? (
+                  {isProfileSaved && norm.diagnosis.final !== 'N/A' && evaluatedDrugs.length > 0 ? (
                     <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl text-xs space-y-2 min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800">
                       <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Documented Condition:</strong> {norm.diagnosis.final}</p>
                       <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Documented Regimen:</strong> {evaluatedDrugs.map(d => d.generic_name || d.trade_name).join(', ')}</p>
@@ -848,7 +882,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                       <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Preceptor Discussion Point:</strong> Discuss target therapeutic response duration and renal parameter monitoring schedule with faculty preceptor.</p>
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-400 italic">Documented disease/condition data not available in submitted documentation.</p>
+                    <p className="text-xs text-slate-400 italic">Documented disease/condition data not available in saved documentation.</p>
                   )}
                 </div>
 
@@ -868,7 +902,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                       {evaluatedDrugs.map((d, idx) => (
                         <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800">
                           <p className="break-words font-extrabold text-slate-900 dark:text-white">{d.trade_name} ({d.generic_name})</p>
-                          <p className="break-words text-slate-700 dark:text-slate-300">Dose: {d.dose || 'Not available in submitted documentation.'} • Route: {d.route_of_admin} • Frequency: {d.frequency}</p>
+                          <p className="break-words text-slate-700 dark:text-slate-300">Dose: {d.dose || 'Not available in saved documentation.'} • Route: {d.route_of_admin} • Frequency: {d.frequency}</p>
                           <p className="text-slate-600 dark:text-slate-300 text-[11px] pt-1.5 break-words">
                             <strong>Educational Evaluation:</strong> Verify whether the documented dose ({d.dose || 'Unspecified'}) and frequency ({d.frequency}) are appropriate for the patient's indication ({d.indication || norm.diagnosis.final}) and clinical renal/hepatic status.
                           </p>
@@ -876,7 +910,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-400 italic">Dosing and administration details not available in submitted documentation.</p>
+                    <p className="text-xs text-slate-400 italic">Dosing and administration details not available in saved documentation.</p>
                   )}
                 </div>
 
@@ -891,7 +925,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                     </div>
                   </div>
 
-                  {isProfileSubmitted && norm.labs.length > 0 ? (
+                  {isProfileSaved && norm.labs.length > 0 ? (
                     <div className="space-y-2 text-xs min-w-0">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
                         {norm.labs.map((lab, idx) => (
@@ -904,7 +938,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                     </div>
                   ) : (
                     <p className="text-xs text-slate-400 italic font-semibold bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
-                      Not documented in the submitted case.
+                      Not documented in the saved case.
                     </p>
                   )}
                 </div>
@@ -920,7 +954,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                     </div>
                   </div>
 
-                  {isAdrSubmitted ? (
+                  {isAdrSaved ? (
                     <div className="bg-rose-50/50 dark:bg-rose-950/30 p-4 rounded-xl border border-rose-200/80 dark:border-rose-800/80 text-xs text-rose-950 dark:text-rose-200 space-y-1.5 min-w-0 leading-relaxed">
                       <p className="break-words"><strong>Suspected Medication:</strong> {norm.adr.suspectedMed}</p>
                       <p className="break-words"><strong>Documented Reaction Title:</strong> {norm.adr.reactionTitle}</p>
@@ -945,7 +979,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                     </div>
                   </div>
 
-                  {isInterventionSubmitted ? (
+                  {isInterventionSaved ? (
                     <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl text-xs space-y-1.5 min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800">
                       <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Identified Issue:</strong> {norm.intervention.problem || 'Documented'}</p>
                       <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Intervention & Action Taken:</strong> {norm.intervention.action || 'Documented'}</p>
@@ -969,7 +1003,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                     </div>
                   </div>
 
-                  {isCounsellingSubmitted ? (
+                  {isCounsellingSaved ? (
                     <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl text-xs space-y-1.5 min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800">
                       <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Disease Condition Counselled:</strong> {norm.counselling.diseaseCounselled || 'Documented'}</p>
                       <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Medications Counselled:</strong> {norm.counselling.medicationsCounselled || 'Documented'}</p>
@@ -977,7 +1011,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                     </div>
                   ) : (
                     <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60 break-words">
-                      Patient Counselling documentation is not available in the submitted case.
+                      Patient Counselling documentation is not available in the saved case.
                     </p>
                   )}
                 </div>
@@ -994,14 +1028,14 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                   </div>
 
                   <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl text-xs space-y-2 min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800">
-                    <p className="font-extrabold text-slate-800 dark:text-slate-200">Clinically Relevant Missing Case Data:</p>
+                    <p className="font-extrabold text-slate-800 dark:text-slate-200">Clinically Relevant Missing Saved Case Data:</p>
                     <ul className="list-disc pl-4 space-y-1.5 text-slate-600 dark:text-slate-400">
-                      {!isProfileSubmitted && <li className="break-words">Patient Profile documentation not available in submitted documentation.</li>}
-                      {!isCounsellingSubmitted && <li className="break-words">Patient Counselling documentation not available in submitted documentation.</li>}
-                      {!isInterventionSubmitted && <li className="break-words">Pharmacist Intervention documentation not available in submitted documentation.</li>}
-                      {!isDirSubmitted && <li className="break-words">Drug Information Request documentation not available in submitted documentation.</li>}
-                      {!isAdrSubmitted && <li className="break-words">ADR Documentation Log not available in submitted documentation.</li>}
-                      {norm.labs.length === 0 && <li className="break-words">Baseline laboratory parameters (renal & hepatic function) not documented in submitted case.</li>}
+                      {!isProfileSaved && <li className="break-words">Patient Profile documentation not available in saved documentation.</li>}
+                      {!isCounsellingSaved && <li className="break-words">Patient Counselling documentation not available in saved documentation.</li>}
+                      {!isInterventionSaved && <li className="break-words">Pharmacist Intervention documentation not available in saved documentation.</li>}
+                      {!isDirSaved && <li className="break-words">Drug Information Request documentation not available in saved documentation.</li>}
+                      {!isAdrSaved && <li className="break-words">ADR Documentation Log not available in saved documentation.</li>}
+                      {norm.labs.length === 0 && <li className="break-words">Baseline laboratory parameters (renal & hepatic function) not documented in saved case.</li>}
                     </ul>
                   </div>
                 </div>
