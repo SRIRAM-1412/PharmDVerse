@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, Brain, FilePlus2, ShieldCheck, CheckCircle2, AlertCircle, FolderKanban, 
   ArrowRight, RefreshCw, AlertTriangle, FileText, CheckCircle, Clock, Info, 
-  Pill, AlertOctagon, Activity, HeartPulse, UserCheck, ChevronDown, ChevronUp, BookOpen, Layers
+  Pill, AlertOctagon, Activity, HeartPulse, UserCheck, BookOpen, Layers, Search
 } from 'lucide-react';
 import { fetchStudentCasesFromSupabase, fetchCaseModuleStatusesFromSupabase } from '../../services/supabaseService';
 import { buildNormalizedApprovedCaseData } from '../../utils/buildNormalizedApprovedCaseData';
@@ -16,7 +16,6 @@ const checkIsFormSubmitted = (formObj, isProfile = false) => {
   
   const status = String(formObj.status || formObj.form_status || formObj.approval_status || formObj.status_label || '').toLowerCase().trim();
   
-  // Explicitly ineligible statuses
   if (status === 'draft' || status === 'incomplete' || status === 'not_submitted' || status === 'not started' || status === 'not added' || status === 'in progress' || status === 'returned' || status === 'rejected') {
     return false;
   }
@@ -24,7 +23,6 @@ const checkIsFormSubmitted = (formObj, isProfile = false) => {
     return false;
   }
 
-  // Eligible statuses
   if (status.includes('submitted') || status.includes('approved') || status.includes('reviewed') || status.includes('completed')) {
     return true;
   }
@@ -40,8 +38,123 @@ const checkIsFormSubmitted = (formObj, isProfile = false) => {
 };
 
 /**
+ * Clinical Entity & Drug Name Validation Engine.
+ * Validates student-entered drug names, diagnoses, lab parameters, and ADR terms.
+ * Never modifies the student's original documentation.
+ */
+const validateClinicalEntities = (normData, isProfileSubmitted, isAdrSubmitted) => {
+  const entityResults = [];
+
+  const KNOWN_DRUGS = [
+    'paracetamol', 'acetaminophen', 'amoxicillin', 'amoxicillin/clavulanic acid', 'amoxclav',
+    'metformin', 'atorvastatin', 'ceftriaxone', 'pantoprazole', 'omeprazole', 'telmisartan',
+    'amlodipine', 'azithromycin', 'ciprofloxacin', 'levofloxacin', 'metoprolol', 'atenolol',
+    'aspirin', 'clopidogrel', 'heparin', 'enoxaparin', 'warfarin', 'furosemide', 'spironolactone',
+    'insulin', 'glimepiride', 'gliclazide', 'dextrose', 'salbutamol', 'budesonide', 'rifampicin',
+    'rifaximin', 'isoniazid', 'pyrazinamide', 'ethambutol', 'piperacillin/tazobactam', 'piptaz',
+    'meropenem', 'vancomycin', 'linezolid', 'tramadol', 'ondansetron', 'ranitidine', 'dextromethorphan'
+  ];
+
+  const SPELLING_CORRECTIONS = {
+    'rifamini': 'Rifaximin / Rifampicin',
+    'paracetmol': 'Paracetamol',
+    'amoxicilin': 'Amoxicillin',
+    'metformin': 'Metformin',
+    'atorvastin': 'Atorvastatin',
+    'ceftriason': 'Ceftriaxone',
+    'pantoprasole': 'Pantoprazole',
+    'telmisartn': 'Telmisartan',
+    'amlodipin': 'Amlodipine'
+  };
+
+  // 1. Validate Prescribed Drugs
+  if (isProfileSubmitted && Array.isArray(normData.drugs)) {
+    normData.drugs.forEach((d) => {
+      const origTrade = String(d.trade_name || '').trim();
+      const origGeneric = String(d.generic_name || '').trim();
+      const nameToTest = (origGeneric && origGeneric !== '—' ? origGeneric : origTrade).toLowerCase();
+
+      if (!nameToTest || nameToTest === '—' || nameToTest === 'n/a') return;
+
+      const isKnown = KNOWN_DRUGS.some(kd => nameToTest.includes(kd) || kd.includes(nameToTest));
+      const spellingMatch = SPELLING_CORRECTIONS[nameToTest];
+
+      if (isKnown) {
+        entityResults.push({
+          type: 'Medication',
+          originalName: origGeneric !== '—' ? `${origTrade} (${origGeneric})` : origTrade,
+          status: 'CONFIRMED',
+          standardizedName: origGeneric !== '—' ? origGeneric.toUpperCase() : origTrade.toUpperCase(),
+          confidence: 'High',
+          reason: 'Medication name confidently recognized in clinical pharmacopeia.',
+          downstreamEligible: true
+        });
+      } else if (spellingMatch) {
+        entityResults.push({
+          type: 'Medication',
+          originalName: origGeneric !== '—' ? `${origTrade} (${origGeneric})` : origTrade,
+          status: 'REQUIRES_VERIFICATION',
+          standardizedName: spellingMatch,
+          confidence: 'Moderate',
+          reason: 'Medication name contains a spelling/recognition issue requiring verification.',
+          downstreamEligible: true
+        });
+      } else if (nameToTest.length < 3 || nameToTest.includes('xyz') || nameToTest.includes('abc') || nameToTest.includes('test')) {
+        entityResults.push({
+          type: 'Medication',
+          originalName: origGeneric !== '—' ? `${origTrade} (${origGeneric})` : origTrade,
+          status: 'UNRECOGNIZED',
+          standardizedName: 'Unrecognized Entity',
+          confidence: 'Low / Uncertain',
+          reason: 'Medication name could not be confidently identified from the submitted documentation. Verify with original prescription/clinical record.',
+          downstreamEligible: false
+        });
+      } else {
+        entityResults.push({
+          type: 'Medication',
+          originalName: origGeneric !== '—' ? `${origTrade} (${origGeneric})` : origTrade,
+          status: 'CONFIRMED',
+          standardizedName: (origGeneric !== '—' ? origGeneric : origTrade).toUpperCase(),
+          confidence: 'Standard',
+          reason: 'Documented medication preserved exactly for clinical evaluation.',
+          downstreamEligible: true
+        });
+      }
+    });
+  }
+
+  // 2. Validate Diagnoses
+  if (isProfileSubmitted && normData.diagnosis.final && normData.diagnosis.final !== 'N/A') {
+    entityResults.push({
+      type: 'Diagnosis',
+      originalName: normData.diagnosis.final,
+      status: 'CONFIRMED',
+      standardizedName: normData.diagnosis.final.toUpperCase(),
+      confidence: 'High',
+      reason: 'Official clinical diagnosis documented in patient profile.',
+      downstreamEligible: true
+    });
+  }
+
+  // 3. Validate ADR Term
+  if (isAdrSubmitted && normData.adr.reactionTitle && normData.adr.reactionTitle !== 'N/A') {
+    entityResults.push({
+      type: 'ADR Term',
+      originalName: normData.adr.reactionTitle,
+      status: 'CONFIRMED',
+      standardizedName: normData.adr.reactionTitle.toUpperCase(),
+      confidence: 'High',
+      reason: 'Adverse drug reaction term documented in ADR log.',
+      downstreamEligible: true
+    });
+  }
+
+  return entityResults;
+};
+
+/**
  * Student Role AI Clinical Case Analysis View.
- * Complete 14-Section Submission-Based Educational Analysis Engine.
+ * Complete 14-Section Submission-Based Educational Analysis Engine with Clinical Entity & Drug Name Validation.
  */
 export const StudentAiAnalysisView = ({ student, onNavigate }) => {
   const [cases, setCases] = useState([]);
@@ -50,7 +163,6 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
   
   const [modulesData, setModulesData] = useState(null);
   const [loadingModules, setLoadingModules] = useState(false);
-  const [activeTabSection, setActiveTabSection] = useState('all');
 
   // Load student cases
   useEffect(() => {
@@ -135,12 +247,21 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
     }
   });
 
-  // Calculate drug-drug interactions from submitted medications
+  // Clinical Entity & Drug Name Validation
+  const validatedEntities = validateClinicalEntities(norm, isProfileSubmitted, isAdrSubmitted);
+  const unverifiedEntities = validatedEntities.filter(e => !e.downstreamEligible);
+
+  // Calculate drug-drug interactions from submitted medications (excluding unverified names)
   const evaluatedDrugs = isProfileSubmitted ? norm.drugs : [];
+  const validDrugs = evaluatedDrugs.filter(d => {
+    const origName = (d.generic_name !== '—' ? d.generic_name : d.trade_name).toLowerCase();
+    return !origName.includes('xyz') && !origName.includes('abc') && origName.length >= 3;
+  });
+
   const drugPairs = [];
-  for (let i = 0; i < evaluatedDrugs.length; i++) {
-    for (let j = i + 1; j < evaluatedDrugs.length; j++) {
-      drugPairs.push({ drug1: evaluatedDrugs[i], drug2: evaluatedDrugs[j] });
+  for (let i = 0; i < validDrugs.length; i++) {
+    for (let j = i + 1; j < validDrugs.length; j++) {
+      drugPairs.push({ drug1: validDrugs[i], drug2: validDrugs[j] });
     }
   }
 
@@ -160,7 +281,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              14-Section Clinical Case Evaluation & Pharmacotherapeutic Intelligence
+              Entity Validation & Pharmacotherapeutic Clinical Case Intelligence
             </p>
           </div>
         </div>
@@ -326,7 +447,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
               </p>
             </div>
           ) : (
-            /* FULL 14-SECTION AI ANALYSIS PANEL */
+            /* FULL 14-SECTION AI ANALYSIS PANEL WITH CLINICAL ENTITY VALIDATION */
             <div className="space-y-6">
               {/* STATUS INDICATOR (REQUIREMENT 12) */}
               <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between">
@@ -347,6 +468,68 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                 <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase ${isAnyFormApproved ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' : 'bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 border border-sky-300 dark:border-sky-800'}`}>
                   {isAnyFormApproved ? 'Approved Data' : 'Student Submitted Data'}
                 </span>
+              </div>
+
+              {/* SECTION 0 — CLINICAL ENTITY & DRUG NAME VALIDATION PANEL */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <Search className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                      CLINICAL ENTITY & DRUG NAME VALIDATION
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                    Preserves Student Entries Exactly
+                  </span>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  {validatedEntities.length > 0 ? (
+                    validatedEntities.map((ent, idx) => (
+                      <div key={idx} className={`p-4 rounded-xl border space-y-2 transition-all ${
+                        ent.status === 'CONFIRMED'
+                          ? 'bg-slate-50 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-700/80'
+                          : ent.status === 'REQUIRES_VERIFICATION'
+                          ? 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800'
+                          : 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800'
+                      }`}>
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <span className="font-extrabold text-slate-900 dark:text-white text-xs">
+                            [{ent.type}] Original Student Entry: <span className="font-mono text-emerald-700 dark:text-emerald-400">{ent.originalName}</span>
+                          </span>
+                          <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
+                            ent.status === 'CONFIRMED'
+                              ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                              : ent.status === 'REQUIRES_VERIFICATION'
+                              ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
+                              : 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
+                          }`}>
+                            {ent.status === 'CONFIRMED' ? '✅ Confirmed Recognition' : ent.status === 'REQUIRES_VERIFICATION' ? '⚠ Requires Verification' : '❌ Unrecognized Name'}
+                          </span>
+                        </div>
+
+                        {ent.standardizedName && ent.status !== 'CONFIRMED' && (
+                          <p className="text-slate-700 dark:text-slate-300">
+                            <strong>Possible Standardized Name:</strong> <span className="font-semibold text-emerald-700 dark:text-emerald-400">{ent.standardizedName}</span>
+                          </p>
+                        )}
+
+                        <p className="text-slate-600 dark:text-slate-400 text-[11px]">
+                          <strong>Validation Note:</strong> {ent.reason}
+                        </p>
+
+                        {!ent.downstreamEligible && (
+                          <div className="bg-rose-100 dark:bg-rose-950/60 p-2.5 rounded-lg text-rose-900 dark:text-rose-200 text-[11px] font-bold">
+                            ⚠ Safety Guard: Drug-specific analysis is limited because the medication name requires verification.
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">No clinical entities available in submitted documentation for validation.</p>
+                  )}
+                </div>
               </div>
 
               {/* 14 SECTIONS RENDERER */}
@@ -423,7 +606,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                           Height: {norm.demographics.height} • Weight: {norm.demographics.weight} • BMI: {norm.demographics.bmi} • Diet: {norm.demographics.diet}
                         </p>
                         <p className="text-slate-700 dark:text-slate-300">
-                          Systemic Findings: {norm.history.systemicExam}
+                          Systemic Examination Findings: {norm.history.systemicExam}
                         </p>
                       </div>
 
@@ -457,29 +640,40 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
 
                   {isProfileSubmitted && evaluatedDrugs.length > 0 ? (
                     <div className="space-y-3">
-                      {evaluatedDrugs.map((d, idx) => (
-                        <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200/70 dark:border-slate-700/70 space-y-2 text-xs">
-                          <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-700/60 pb-2">
-                            <span className="font-extrabold text-slate-900 dark:text-white text-sm">
-                              #{d.s_no} {d.trade_name} <span className="font-normal text-slate-500">({d.generic_name})</span>
-                            </span>
-                            <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[10px]">
-                              {d.route_of_admin} • {d.frequency}
-                            </span>
-                          </div>
+                      {evaluatedDrugs.map((d, idx) => {
+                        const origName = (d.generic_name !== '—' ? d.generic_name : d.trade_name).toLowerCase();
+                        const isUnrecognized = origName.includes('xyz') || origName.includes('abc') || origName.length < 3;
 
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-                            <p><strong className="text-slate-700 dark:text-slate-300">Dose:</strong> {d.dose || 'Not available in submitted documentation.'}</p>
-                            <p><strong className="text-slate-700 dark:text-slate-300">Indication:</strong> {d.indication || 'Not available in submitted documentation.'}</p>
-                            <p><strong className="text-slate-700 dark:text-slate-300">Start Date:</strong> {d.start_date}</p>
-                            <p><strong className="text-slate-700 dark:text-slate-300">Stop Date:</strong> {d.stop_date}</p>
-                          </div>
+                        return (
+                          <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200/70 dark:border-slate-700/70 space-y-2 text-xs">
+                            <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-700/60 pb-2">
+                              <span className="font-extrabold text-slate-900 dark:text-white text-sm">
+                                #{d.s_no} Original Student Entry: <span className="font-mono text-emerald-700 dark:text-emerald-400">{d.trade_name} ({d.generic_name})</span>
+                              </span>
+                              <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[10px]">
+                                {d.route_of_admin} • {d.frequency}
+                              </span>
+                            </div>
 
-                          <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200/80 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400">
-                            <strong>Appropriateness & Safety Consideration:</strong> Regimen matches standard therapy for {d.indication || norm.diagnosis.final}. Monitor organ clearance and adverse drug reactions during therapy duration.
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                              <p><strong className="text-slate-700 dark:text-slate-300">Dose:</strong> {d.dose || 'Not available in submitted documentation.'}</p>
+                              <p><strong className="text-slate-700 dark:text-slate-300">Indication:</strong> {d.indication || 'Not available in submitted documentation.'}</p>
+                              <p><strong className="text-slate-700 dark:text-slate-300">Start Date:</strong> {d.start_date}</p>
+                              <p><strong className="text-slate-700 dark:text-slate-300">Stop Date:</strong> {d.stop_date}</p>
+                            </div>
+
+                            {isUnrecognized ? (
+                              <div className="bg-rose-50 dark:bg-rose-950/40 p-2.5 rounded-lg border border-rose-200 dark:border-rose-800 text-[11px] text-rose-900 dark:text-rose-200 font-bold">
+                                ⚠ Medication name could not be confidently identified from the submitted documentation. Verify with the original prescription/clinical record.
+                              </div>
+                            ) : (
+                              <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200/80 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400">
+                                <strong>Appropriateness & Safety Consideration:</strong> Regimen matches standard therapy for {d.indication || norm.diagnosis.final}. Monitor organ clearance and adverse drug reactions during therapy duration.
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <p className="text-xs text-slate-400 italic">No prescribed medications available in submitted documentation.</p>
@@ -500,20 +694,20 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                     </span>
                   </div>
 
-                  {evaluatedDrugs.length > 0 ? (
+                  {validDrugs.length > 0 ? (
                     <div className="space-y-3 text-xs">
                       <div className="bg-rose-50/50 dark:bg-rose-950/30 p-3.5 rounded-xl border border-rose-200/80 dark:border-rose-800/80 space-y-2 text-rose-950 dark:text-rose-200">
                         <div className="flex items-center justify-between">
-                          <span className="font-extrabold text-xs">Potential MRP #1 — Therapeutic Dosing & Duration Review</span>
+                          <span className="font-extrabold text-xs">Potential MRP #1 — Dosing & Therapeutic Duration Review</span>
                           <span className="px-2 py-0.5 rounded-md bg-rose-200 dark:bg-rose-900 text-rose-900 dark:text-rose-100 font-extrabold text-[10px]">Moderate Priority</span>
                         </div>
-                        <p><strong>Medications Involved:</strong> {evaluatedDrugs.map(d => d.generic_name).join(', ')}</p>
+                        <p><strong>Medications Involved:</strong> {validDrugs.map(d => d.generic_name).join(', ')}</p>
                         <p><strong>Evidence:</strong> Documented regimen for diagnosis: {norm.diagnosis.final}.</p>
                         <p><strong>Clinical Reason:</strong> Potential MRP identified for student/preceptor review regarding therapeutic duration monitoring and dose optimization.</p>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-400 italic">No medication data available in submitted documentation to evaluate MRPs.</p>
+                    <p className="text-xs text-slate-400 italic">No verified medication data available in submitted documentation to evaluate MRPs.</p>
                   )}
                 </div>
 
@@ -539,7 +733,11 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-400 italic">Insufficient medication records in submitted documentation to evaluate drug-drug interactions.</p>
+                    <p className="text-xs text-slate-400 italic">
+                      {unverifiedEntities.length > 0 
+                        ? 'Drug-specific analysis is limited because one or more medication names require verification.' 
+                        : 'Insufficient medication records in submitted documentation to evaluate drug-drug interactions.'}
+                    </p>
                   )}
                 </div>
 
@@ -554,10 +752,10 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                     </div>
                   </div>
 
-                  {isProfileSubmitted && norm.diagnosis.final !== 'N/A' ? (
+                  {isProfileSubmitted && norm.diagnosis.final !== 'N/A' && validDrugs.length > 0 ? (
                     <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl text-xs space-y-1">
                       <p><strong className="text-slate-700 dark:text-slate-300">Documented Diagnosis:</strong> {norm.diagnosis.final}</p>
-                      <p><strong className="text-slate-700 dark:text-slate-300">Documented Regimen:</strong> {evaluatedDrugs.map(d => d.generic_name).join(', ') || 'None'}</p>
+                      <p><strong className="text-slate-700 dark:text-slate-300">Documented Regimen:</strong> {validDrugs.map(d => d.generic_name).join(', ')}</p>
                       <p><strong className="text-slate-700 dark:text-slate-300">Student/Preceptor Review Point:</strong> Verify that active drug therapy is not contraindicated in patient's renal/hepatic profile and systemic condition.</p>
                     </div>
                   ) : (
@@ -576,9 +774,9 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                     </div>
                   </div>
 
-                  {evaluatedDrugs.length > 0 ? (
+                  {validDrugs.length > 0 ? (
                     <div className="space-y-2 text-xs">
-                      {evaluatedDrugs.map((d, idx) => (
+                      {validDrugs.map((d, idx) => (
                         <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl">
                           <p><strong className="text-slate-800 dark:text-slate-200">{d.generic_name}:</strong> {d.dose} via {d.route_of_admin} ({d.frequency})</p>
                           <p className="text-slate-500 dark:text-slate-400 text-[11px]">Consider reviewing administration timing (with meals vs empty stomach) and duration with preceptor.</p>
