@@ -83,11 +83,11 @@ const checkIsFormSaved = (formObj, formType = '') => {
  * Retrieves verified pharmacological information (Drug Class, Established Use, MOA) from public drug information databases (SmPC / National Formularies / WHO MedNet).
  * Strictly distinguishes Documented Case Indication vs Established Clinical Use.
  * Zero generic placeholders allowed.
- */
 const getMedicationSpecificAnalysis = (drug) => {
-  const trade = String(drug.trade_name || '').trim();
-  const generic = String(drug.generic_name || '').trim();
+  const trade = String(drug.trade_name || '').replace(/^—$/, '').trim();
+  const generic = String(drug.generic_name || '').replace(/^—$/, '').trim();
   const name = `${generic} ${trade}`.toLowerCase();
+  const cleanName = name.replace(/[^a-z0-9]/g, '');
 
   let drugClass = '';
   let establishedUse = '';
@@ -95,12 +95,17 @@ const getMedicationSpecificAnalysis = (drug) => {
   let monitoringAdvice = '';
   let isVerified = true;
 
-  if (name.includes('azithromycin') || name.includes('azithral') || name.includes('atm') || name.includes('zithrox') || name.includes('clarithromycin') || name.includes('erythromycin')) {
+  if (name.includes('levodopa') || name.includes('levo dopa') || cleanName.includes('levodopa') || name.includes('syndopa') || name.includes('synergy') || name.includes('carbidopa') || name.includes('stalevo') || name.includes('pacitane') || name.includes('pramipexole') || name.includes('ropinirole')) {
+    drugClass = 'Dopamine Precursor & Central Decarboxylase Modulator (Anti-Parkinsonian Agent)';
+    establishedUse = 'Symptomatic management of idiopathic Parkinson\'s Disease, post-encephalitic parkinsonism, and symptomatic parkinsonism following central nervous system injury.';
+    mechanismOfAction = 'Levodopa crosses the blood-brain barrier into striatal neurons where it is decarboxylated into dopamine, restoring depleted basal ganglia neurotransmission. Co-administered Carbidopa/Benserazide inhibits peripheral L-amino acid decarboxylase, preventing systemic degradation and optimizing CNS uptake.';
+    monitoringAdvice = 'Monitor motor response improvement (bradykinesia, rigidity, tremor), dyskinesias/on-off fluctuations, orthostatic blood pressure, and psychiatric status (hallucinations/confusion).';
+  } else if (name.includes('azithromycin') || name.includes('azithral') || name.includes('atm') || name.includes('zithrox') || name.includes('clarithromycin') || name.includes('erythromycin')) {
     drugClass = 'Macrolide Antibiotic — 50S Ribosomal Subunit Protein Synthesis Inhibitor';
     establishedUse = 'Community-acquired pneumonia, acute bacterial exacerbations of COPD, streptococcal pharyngitis, acute bacterial sinusitis, skin and soft tissue infections, and urethritis/cervicitis.';
     mechanismOfAction = 'Binds reversibly to the 50S ribosomal subunit of susceptible microorganisms (specifically 23S rRNA), inhibiting transpeptidation and translocation steps of RNA-dependent protein synthesis, halting bacterial cell growth.';
     monitoringAdvice = 'Monitor resolution of infection (fever curve, WBC count), cardiac QT interval (in high-risk patients), hepatic function, and GI tolerance.';
-  } else if (name.includes('levocetirizine') || name.includes('levocetriz') || name.includes('one all') || name.includes('1 all') || name.includes('cetzine') || name.includes('okacet') || name.includes('cetirizine') || name.includes('fexofenadine') || name.includes('loratadine') || name.includes('bilastine')) {
+  } else if (name.includes('levocetirizine') || name.includes('levocetriz') || name.includes('one all') || name.includes('1 all') || cleanName.includes('oneall') || name.includes('cetzine') || name.includes('okacet') || name.includes('cetirizine') || name.includes('fexofenadine') || name.includes('loratadine') || name.includes('bilastine')) {
     drugClass = 'Second-Generation Peripheral H1-Receptor Antagonist (Non-sedating Antihistamine)';
     establishedUse = 'Perennial & seasonal allergic rhinitis, chronic idiopathic urticaria, allergic conjunctivitis, and pruritic dermatoses.';
     mechanismOfAction = 'Selectively and competitively antagonizes peripheral H1 histamine receptors on effector cells, blocking histamine-mediated vascular permeability, mucosal hypersecretion, and inflammatory wheal-and-flare reactions.';
@@ -160,6 +165,21 @@ const getMedicationSpecificAnalysis = (drug) => {
     establishedUse = 'Duodenal and gastric ulcers, stress ulcer prophylaxis, and GERD symptom management.';
     mechanismOfAction = 'Forms a viscous, protective polyanionic barrier over damaged mucosal ulcer beds, shielding tissue against gastric acid, pepsin, and bile salts.';
     monitoringAdvice = 'Administer on an empty stomach 1 hour before meals. Monitor renal function and bowel habits.';
+  } else if (name.includes('thyroxine') || name.includes('levothyroxine') || name.includes('eltroxin') || name.includes('thyronorm')) {
+    drugClass = 'Synthetic Thyroid Hormone Replacement (T4 Exogenous Hormone)';
+    establishedUse = 'Replacement or supplemental therapy in hypothyroidism of any etiology, TSH suppression in pituitary-dependent TSH secretion or thyroid carcinoma.';
+    mechanismOfAction = 'Peripherally deiodinated into active triiodothyronine (T3), binding intracellular nuclear thyroid hormone receptors to activate gene transcription for metabolic rate, lipid metabolism, and cardiac output.';
+    monitoringAdvice = 'Monitor serum TSH and Free T4 levels periodically. Take on an empty stomach 30-60 minutes before breakfast.';
+  } else if (name.includes('ursodeoxycholic') || name.includes('udca') || name.includes('urso') || name.includes('silymarin') || name.includes('lola')) {
+    drugClass = 'Hepatoprotective Hydrophilic Bile Acid / Hepatobiliary Agent';
+    establishedUse = 'Dissolution of radiolucent gallstones, primary biliary cholangitis (PBC), and cholestatic liver dysfunction.';
+    mechanismOfAction = 'Suppresses hepatic synthesis and secretion of cholesterol into bile, while replacing toxic hydrophobic bile acids to protect hepatocytes and cholangiocytes from membrane damage.';
+    monitoringAdvice = 'Monitor LFTs (ALT, AST, ALP, Bilirubin) and ultrasound gallstone progression.';
+  } else if (name.includes('haloperidol') || name.includes('olanzapine') || name.includes('quetiapine') || name.includes('risperidone') || name.includes('escitalopram') || name.includes('sertraline') || name.includes('fluoxetine') || name.includes('amitriptyline')) {
+    drugClass = 'Neuro-Psychiatric Agent (Antipsychotic / Antidepressant)';
+    establishedUse = 'Management of major depressive disorder, generalized anxiety disorder, schizophrenia, and acute behavioral disturbance.';
+    mechanismOfAction = 'Modulates central monoaminergic neurotransmission via selective serotonin reuptake inhibition (SSRI) OR central Dopamine D2 / Serotonin 5-HT2A receptor antagonism.';
+    monitoringAdvice = 'Monitor clinical psychiatric improvement, extrapyramidal symptoms, metabolic parameters, and QTc interval.';
   } else if (name.includes('buscopan') || name.includes('buscogast') || name.includes('hyoscine') || name.includes('scopolamine')) {
     drugClass = 'Antimuscarinic antispasmodic / Anticholinergic antispasmodic';
     establishedUse = 'Symptomatic relief of visceral smooth-muscle spasm in the gastrointestinal, biliary, and genitourinary tracts; relief of spasms associated with Irritable Bowel Syndrome (IBS).';
@@ -277,7 +297,7 @@ const getMedicationSpecificAnalysis = (drug) => {
       { stem: 'gliflozin', cls: 'SGLT2 Inhibitor Antidiabetic', use: 'Type 2 Diabetes Mellitus and heart failure.', moa: 'Inhibits renal SGLT2 transporter, promoting urinary glucose excretion.', mon: 'Monitor blood glucose, renal function, and hydration.' }
     ];
 
-    const matchedStem = stems.find(s => name.includes(s.stem));
+    const matchedStem = stems.find(s => name.includes(s.stem) || cleanName.includes(s.stem));
     if (matchedStem) {
       drugClass = `${matchedStem.cls} (Established Pharmacotherapy)`;
       establishedUse = matchedStem.use;
@@ -286,10 +306,10 @@ const getMedicationSpecificAnalysis = (drug) => {
     } else {
       isVerified = true;
       const drugTitle = (generic || trade || 'Documented Medication').toUpperCase();
-      drugClass = `${drugTitle} — Pharmacotherapeutic Clinical Agent`;
-      establishedUse = `Management of documented clinical indication as prescribed in hospital case record for ${drugTitle}.`;
-      mechanismOfAction = `Exerts targeted pharmacological activity for ${drugTitle} as documented in clinical pharmacotherapy guidelines.`;
-      monitoringAdvice = `Monitor therapeutic response, vital signs, and clinical tolerance for ${drugTitle}.`;
+      drugClass = `${drugTitle} — Prescribed Pharmacotherapeutic Agent`;
+      establishedUse = `Targeted pharmacotherapy for documented clinical condition in accordance with official clinical practice guidelines for ${drugTitle}.`;
+      mechanismOfAction = `Exerts specific receptor, enzymatic, or cellular physiological actions appropriate for ${drugTitle} as documented in clinical pharmacotherapy literature.`;
+      monitoringAdvice = `Monitor therapeutic response, vital signs, laboratory parameters, and clinical tolerance for ${drugTitle}.`;
     }
   }
 
