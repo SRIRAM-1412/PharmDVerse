@@ -627,14 +627,14 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
             </select>
           </div>
 
-          {/* FORM SAVED STATUS DETECTOR GRID */}
+          {/* SAVED FORM STATUS GRID */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 min-w-0 w-full">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Form Saved Status Detector ({savedCount}/5 Saved & Eligible)
+                SAVED FORM STATUS ({savedCount}/5 Saved & Eligible)
               </h3>
               <span className="text-[11px] font-bold text-slate-400">
-                Unsaved form data is excluded until persisted
+                Only saved and persisted form data is eligible for AI analysis.
               </span>
             </div>
 
@@ -710,8 +710,8 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
           ) : (
             /* FULL 14-SECTION AI ANALYSIS PANEL WITH SAVED FORM TRIGGER DATA */
             <div className="space-y-6 min-w-0 w-full">
-              {/* STATUS INDICATOR (REQUIREMENTS 10 & 11) */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3 min-w-0 w-full">
+              {/* STATUS INDICATOR */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm min-w-0 w-full">
                 <div className="flex items-center justify-between flex-wrap gap-3 min-w-0 w-full">
                   <div className="flex items-center gap-3 min-w-0">
                     <Brain className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
@@ -730,30 +730,6 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                   <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase shrink-0 ${isAnyFormApproved ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'}`}>
                     {isAnyFormApproved ? 'Approved Data' : 'Saved Clinical Data'}
                   </span>
-                </div>
-
-                {/* ANALYSIS SOURCE SUMMARY CARD (REQUIREMENT 11) */}
-                <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 text-xs space-y-2">
-                  <span className="font-extrabold uppercase text-slate-500 dark:text-slate-400 text-[10px] tracking-wider block">
-                    ANALYSIS SOURCE FORM STATUS
-                  </span>
-                  <div className="flex flex-wrap gap-2 text-[11px]">
-                    <span className={`px-2.5 py-1 rounded-md font-bold ${isProfileSaved ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
-                      {isProfileSaved ? '✓ Patient Profile — Saved' : '✗ Patient Profile — Not Saved'}
-                    </span>
-                    <span className={`px-2.5 py-1 rounded-md font-bold ${isCounsellingSaved ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
-                      {isCounsellingSaved ? '✓ Patient Counselling — Saved' : '✗ Patient Counselling — Not Saved'}
-                    </span>
-                    <span className={`px-2.5 py-1 rounded-md font-bold ${isInterventionSaved ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
-                      {isInterventionSaved ? '✓ Pharmacist Intervention — Saved' : '✗ Pharmacist Intervention — Not Saved'}
-                    </span>
-                    <span className={`px-2.5 py-1 rounded-md font-bold ${isDirSaved ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
-                      {isDirSaved ? '✓ Drug Information — Saved' : '✗ Drug Information — Not Saved'}
-                    </span>
-                    <span className={`px-2.5 py-1 rounded-md font-bold ${isAdrSaved ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
-                      {isAdrSaved ? '✓ ADR Documentation — Saved' : '✗ ADR Documentation — Not Saved'}
-                    </span>
-                  </div>
                 </div>
               </div>
 
