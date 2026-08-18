@@ -83,6 +83,7 @@ const checkIsFormSaved = (formObj, formType = '') => {
  * Retrieves verified pharmacological information (Drug Class, Established Use, MOA) from public drug information databases (SmPC / National Formularies / WHO MedNet).
  * Strictly distinguishes Documented Case Indication vs Established Clinical Use.
  * Zero generic placeholders allowed.
+ */
 const getMedicationSpecificAnalysis = (drug) => {
   const trade = String(drug.trade_name || '').replace(/^—$/, '').trim();
   const generic = String(drug.generic_name || '').replace(/^—$/, '').trim();
