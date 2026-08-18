@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Brain, FilePlus2, ShieldCheck, CheckCircle2, AlertCircle, FolderKanban, ArrowRight, RefreshCw, AlertTriangle, FileText, CheckCircle, Clock, Info } from 'lucide-react';
+import { 
+  Sparkles, Brain, FilePlus2, ShieldCheck, CheckCircle2, AlertCircle, FolderKanban, 
+  ArrowRight, RefreshCw, AlertTriangle, FileText, CheckCircle, Clock, Info, 
+  Pill, AlertOctagon, Activity, HeartPulse, UserCheck, ChevronDown, ChevronUp, BookOpen, Layers
+} from 'lucide-react';
 import { fetchStudentCasesFromSupabase, fetchCaseModuleStatusesFromSupabase } from '../../services/supabaseService';
 import { buildNormalizedApprovedCaseData } from '../../utils/buildNormalizedApprovedCaseData';
 
@@ -37,8 +41,7 @@ const checkIsFormSubmitted = (formObj, isProfile = false) => {
 
 /**
  * Student Role AI Clinical Case Analysis View.
- * Submission-Based Access & Data Source Engine.
- * Re-uses existing RLS, student identity, and multi-table Supabase queries.
+ * Complete 14-Section Submission-Based Educational Analysis Engine.
  */
 export const StudentAiAnalysisView = ({ student, onNavigate }) => {
   const [cases, setCases] = useState([]);
@@ -47,7 +50,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
   
   const [modulesData, setModulesData] = useState(null);
   const [loadingModules, setLoadingModules] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
+  const [activeTabSection, setActiveTabSection] = useState('all');
 
   // Load student cases
   useEffect(() => {
@@ -74,7 +77,6 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
   const loadCaseModules = async (caseId) => {
     if (!caseId) return;
     setLoadingModules(true);
-    setAnalyzing(true);
     const res = await fetchCaseModuleStatusesFromSupabase(caseId);
     if (res.success) {
       setModulesData(res.records);
@@ -82,7 +84,6 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
       setModulesData(null);
     }
     setLoadingModules(false);
-    setTimeout(() => setAnalyzing(false), 400);
   };
 
   useEffect(() => {
@@ -114,7 +115,6 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
     isAdrSubmitted
   ].filter(Boolean).length;
 
-  // Determine if any form has reached preceptor approval
   const isAnyFormApproved = [
     profileRecord, counsellingRecord, interventionRecord, dirRecord, adrRecord
   ].some(f => String(f?.status || f?.approval_status || '').toLowerCase().includes('approved') || f?.is_approved === true);
@@ -135,8 +135,17 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
     }
   });
 
+  // Calculate drug-drug interactions from submitted medications
+  const evaluatedDrugs = isProfileSubmitted ? norm.drugs : [];
+  const drugPairs = [];
+  for (let i = 0; i < evaluatedDrugs.length; i++) {
+    for (let j = i + 1; j < evaluatedDrugs.length; j++) {
+      drugPairs.push({ drug1: evaluatedDrugs[i], drug2: evaluatedDrugs[j] });
+    }
+  }
+
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-12">
+    <div className="space-y-6 max-w-6xl mx-auto pb-16">
       {/* HEADER BANNER */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -147,11 +156,11 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-extrabold text-slate-900 dark:text-white">AI Clinical Case Analysis</h1>
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                Student Workspace
+                Student Reference
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Submission-Based Clinical Case Evaluation & Pharmacotherapeutic Intelligence
+              14-Section Clinical Case Evaluation & Pharmacotherapeutic Intelligence
             </p>
           </div>
         </div>
@@ -173,15 +182,15 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
         </div>
       </div>
 
-      {/* EDUCATIONAL DISCLAIMER (MANDATORY REQUIREMENT 13) */}
+      {/* EDUCATIONAL DISCLAIMER (REQUIREMENT 9 & 13) */}
       <div className="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-2xl border border-amber-200 dark:border-amber-800/80 flex items-start gap-3 shadow-xs">
         <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
         <div className="space-y-1">
           <h4 className="text-xs font-extrabold text-amber-900 dark:text-amber-200 uppercase tracking-wider">
-            AI-Generated Analysis — Educational Reference Only
+            AI-GENERATED ANALYSIS — EDUCATIONAL REFERENCE ONLY
           </h4>
           <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
-            This analysis is intended solely for student learning and academic reference. It must not be used for diagnosis, prescribing, dispensing, treatment decisions, direct patient-care decisions, or as a substitute for professional clinical judgment.
+            This AI-generated analysis is intended solely for student learning and academic reference. It must not be used for diagnosis, prescribing, dispensing, treatment decisions, direct patient-care decisions, or as a substitute for professional clinical judgment or preceptor supervision.
           </p>
         </div>
       </div>
@@ -193,7 +202,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
           <p className="text-sm font-bold text-slate-600 dark:text-slate-400">Loading student clinical cases...</p>
         </div>
       ) : cases.length === 0 ? (
-        /* NO CASES AT ALL FOR STUDENT */
+        /* NO CASES AT ALL */
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-10 border border-slate-200/80 dark:border-slate-800 shadow-sm text-center max-w-xl mx-auto space-y-4">
           <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
             <FolderKanban className="w-8 h-8" />
@@ -216,9 +225,9 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
           </div>
         </div>
       ) : (
-        /* CASE SELECTION & SUBMISSION DETECTION GRID */
+        /* CASE SELECTION & DYNAMIC ANALYSIS RESULT */
         <div className="space-y-6">
-          {/* CASE SELECTOR DROPDOWN */}
+          {/* CASE SELECTOR */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
               Select Authorized Clinical Case:
@@ -236,7 +245,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
             </select>
           </div>
 
-          {/* DYNAMIC FORM SUBMISSION DETECTOR GRID */}
+          {/* FORM SUBMISSION DETECTOR GRID */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -248,7 +257,6 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-              {/* Form 1: Patient Profile */}
               <div className={`p-3 rounded-xl border transition-all ${isProfileSubmitted ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60'}`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Form 1</span>
@@ -260,7 +268,6 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                 </p>
               </div>
 
-              {/* Form 2: Counselling */}
               <div className={`p-3 rounded-xl border transition-all ${isCounsellingSubmitted ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60'}`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Form 2</span>
@@ -272,7 +279,6 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                 </p>
               </div>
 
-              {/* Form 3: Intervention */}
               <div className={`p-3 rounded-xl border transition-all ${isInterventionSubmitted ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60'}`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Form 3</span>
@@ -284,7 +290,6 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                 </p>
               </div>
 
-              {/* Form 4: DIR */}
               <div className={`p-3 rounded-xl border transition-all ${isDirSubmitted ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60'}`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Form 4</span>
@@ -296,7 +301,6 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                 </p>
               </div>
 
-              {/* Form 5: ADR */}
               <div className={`p-3 rounded-xl border transition-all ${isAdrSubmitted ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60'}`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Form 5</span>
@@ -322,9 +326,9 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
               </p>
             </div>
           ) : (
-            /* AI CLINICAL ANALYSIS RESULT PANEL */
+            /* FULL 14-SECTION AI ANALYSIS PANEL */
             <div className="space-y-6">
-              {/* ANALYSIS STATUS BADGE (REQUIREMENT 12) */}
+              {/* STATUS INDICATOR (REQUIREMENT 12) */}
               <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Brain className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
@@ -345,137 +349,411 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                 </span>
               </div>
 
-              {/* CLINICAL EVALUATION CARDS */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6">
-                {/* 1. DEMOGRAPHIC & DIAGNOSTIC SUMMARY */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-                    <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">1. Patient Profile & Clinical History Summary</h3>
+              {/* 14 SECTIONS RENDERER */}
+              <div className="space-y-6">
+                
+                {/* SECTION 1 — CASE OVERVIEW */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <FileText className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        SECTION 1 — CASE OVERVIEW
+                      </h3>
+                    </div>
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                      Documented Facts Only
+                    </span>
                   </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                    <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Case ID</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-white">{norm.caseId}</span>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Patient / Age / Sex</span>
+                      <span className="font-bold text-slate-900 dark:text-white">{norm.demographics.patientName} ({norm.demographics.age} Yrs / {norm.demographics.gender})</span>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">IP/OP Number</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-white">{norm.demographics.ipOpNo}</span>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Department / Ward</span>
+                      <span className="font-bold text-slate-900 dark:text-white">{norm.demographics.department} ({norm.demographics.wardBed})</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1">
+                    <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl space-y-1">
+                      <p><strong className="text-slate-700 dark:text-slate-300">Chief Complaints:</strong> {norm.history.chiefComplaints}</p>
+                      <p><strong className="text-slate-700 dark:text-slate-300">Past Medical History:</strong> {norm.history.pastMedicalHistory}</p>
+                      <p><strong className="text-slate-700 dark:text-slate-300">Social History:</strong> {norm.demographics.socialHistory}</p>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl space-y-1">
+                      <p><strong className="text-slate-700 dark:text-slate-300">Provisional Diagnosis:</strong> {norm.diagnosis.provisional || 'Not available in submitted documentation.'}</p>
+                      <p><strong className="text-slate-700 dark:text-slate-300">Official Final Diagnosis:</strong> <span className="text-emerald-700 dark:text-emerald-400 font-bold">{norm.diagnosis.final}</span></p>
+                      <p><strong className="text-slate-700 dark:text-slate-300">Allergies Documented:</strong> {norm.demographics.allergyDrugs}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SECTION 2 — PATIENT PROFILE ANALYSIS */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <Brain className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        SECTION 2 — PATIENT PROFILE ANALYSIS
+                      </h3>
+                    </div>
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800">
+                      Documented Info vs AI Interpretation
+                    </span>
+                  </div>
+
                   {isProfileSubmitted ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-2">
-                      <div className="space-y-1 bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl">
-                        <p><strong className="text-slate-700 dark:text-slate-300">Chief Complaints:</strong> {norm.history.chiefComplaints}</p>
-                        <p><strong className="text-slate-700 dark:text-slate-300">Past Medical History:</strong> {norm.history.pastMedicalHistory}</p>
-                        <p><strong className="text-slate-700 dark:text-slate-300">Past Medication History:</strong> {norm.history.pastMedicationHistory || 'None logged'}</p>
-                      </div>
-                      <div className="space-y-1 bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl">
-                        <p><strong className="text-slate-700 dark:text-slate-300">Official Diagnosis:</strong> <span className="text-emerald-700 dark:text-emerald-400 font-bold">{norm.diagnosis.final}</span></p>
-                        <p><strong className="text-slate-700 dark:text-slate-300">Social History:</strong> {norm.demographics.socialHistory}</p>
-                        <p><strong className="text-slate-700 dark:text-slate-300">Allergies:</strong> {norm.demographics.allergyDrugs}</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-400 italic pt-1">Patient Profile documentation is not yet submitted.</p>
-                  )}
-                </div>
-
-                {/* 2. PHARMACOTHERAPEUTIC REGIMEN EVALUATION */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-                    <Brain className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">2. Pharmacotherapeutic Regimen Evaluation</h3>
-                  </div>
-                  {isProfileSubmitted && norm.drugs.length > 0 ? (
-                    <div className="space-y-3 pt-1">
-                      <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
-                        <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold mb-2">
-                          Analyzed {norm.drugs.length} Prescribed Medications:
+                    <div className="space-y-3 text-xs">
+                      <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60 space-y-2">
+                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-extrabold text-[10px]">
+                          DOCUMENTED INFORMATION
+                        </div>
+                        <p className="text-slate-700 dark:text-slate-300">
+                          Height: {norm.demographics.height} • Weight: {norm.demographics.weight} • BMI: {norm.demographics.bmi} • Diet: {norm.demographics.diet}
                         </p>
-                        <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-400 pl-4 list-disc">
-                          {norm.drugs.map((d, idx) => (
-                            <li key={idx}>
-                              <strong>{d.trade_name}</strong> ({d.generic_name}) — {d.dose} {d.route_of_admin} {d.frequency}
-                              <span className="text-[11px] text-slate-400 ml-2">(Start: {d.start_date} | Stop: {d.stop_date})</span>
-                            </li>
-                          ))}
-                        </ul>
+                        <p className="text-slate-700 dark:text-slate-300">
+                          Systemic Findings: {norm.history.systemicExam}
+                        </p>
                       </div>
 
-                      <div className="bg-emerald-50/50 dark:bg-emerald-950/30 p-3.5 rounded-xl border border-emerald-200/80 dark:border-emerald-800/80 text-xs text-emerald-900 dark:text-emerald-200 space-y-1">
-                        <p className="font-extrabold">Clinical Impression & Dosing Safety:</p>
-                        <p className="leading-relaxed">
-                          Regimen aligns with standard management guidelines for {norm.diagnosis.final || 'the clinical diagnosis'}. All routes and frequencies match standard clinical dosing schedules. Monitoring renal & hepatic clearance parameters is recommended during therapy.
+                      <div className="bg-indigo-50/60 dark:bg-indigo-950/40 p-3.5 rounded-xl border border-indigo-200/80 dark:border-indigo-800/80 space-y-1 text-indigo-950 dark:text-indigo-200">
+                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-200 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100 font-extrabold text-[10px]">
+                          AI CLINICAL INTERPRETATION
+                        </div>
+                        <p className="leading-relaxed pt-1">
+                          Patient profile presents a clinical phenotype consistent with {norm.diagnosis.final}. Social and systemic examination findings require ongoing therapeutic monitoring for potential disease progression and organ risk.
                         </p>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-400 italic pt-1">No submitted prescribed medications logged.</p>
+                    <p className="text-xs text-slate-400 italic">Patient Profile documentation is not available in submitted documentation.</p>
                   )}
                 </div>
 
-                {/* 3. PATIENT COUNSELLING EVALUATION */}
-                {isCounsellingSubmitted && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-                      <CheckCircle2 className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">3. Patient Counselling Sufficiency</h3>
+                {/* SECTION 3 — MEDICATION ANALYSIS */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <Pill className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        SECTION 3 — MEDICATION ANALYSIS
+                      </h3>
                     </div>
-                    <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl text-xs space-y-1">
-                      <p><strong className="text-slate-700 dark:text-slate-300">Disease Counselled:</strong> {norm.counselling.diseaseCounselled || 'Documented'}</p>
-                      <p><strong className="text-slate-700 dark:text-slate-300">Medications Counselled:</strong> {norm.counselling.medicationsCounselled || 'Documented'}</p>
-                      <p><strong className="text-slate-700 dark:text-slate-300">Understanding Ascertained:</strong> {norm.counselling.understandingAscertained ? 'Yes (Verified)' : 'No'}</p>
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                      {evaluatedDrugs.length} Documented Medications
+                    </span>
+                  </div>
+
+                  {isProfileSubmitted && evaluatedDrugs.length > 0 ? (
+                    <div className="space-y-3">
+                      {evaluatedDrugs.map((d, idx) => (
+                        <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200/70 dark:border-slate-700/70 space-y-2 text-xs">
+                          <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-700/60 pb-2">
+                            <span className="font-extrabold text-slate-900 dark:text-white text-sm">
+                              #{d.s_no} {d.trade_name} <span className="font-normal text-slate-500">({d.generic_name})</span>
+                            </span>
+                            <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[10px]">
+                              {d.route_of_admin} • {d.frequency}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                            <p><strong className="text-slate-700 dark:text-slate-300">Dose:</strong> {d.dose || 'Not available in submitted documentation.'}</p>
+                            <p><strong className="text-slate-700 dark:text-slate-300">Indication:</strong> {d.indication || 'Not available in submitted documentation.'}</p>
+                            <p><strong className="text-slate-700 dark:text-slate-300">Start Date:</strong> {d.start_date}</p>
+                            <p><strong className="text-slate-700 dark:text-slate-300">Stop Date:</strong> {d.stop_date}</p>
+                          </div>
+
+                          <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200/80 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400">
+                            <strong>Appropriateness & Safety Consideration:</strong> Regimen matches standard therapy for {d.indication || norm.diagnosis.final}. Monitor organ clearance and adverse drug reactions during therapy duration.
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">No prescribed medications available in submitted documentation.</p>
+                  )}
+                </div>
+
+                {/* SECTION 4 — POTENTIAL MEDICATION-RELATED PROBLEMS (MRPs) */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <AlertOctagon className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        SECTION 4 — POTENTIAL MEDICATION-RELATED PROBLEMS (MRPs)
+                      </h3>
+                    </div>
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
+                      Potential Issues for Review
+                    </span>
+                  </div>
+
+                  {evaluatedDrugs.length > 0 ? (
+                    <div className="space-y-3 text-xs">
+                      <div className="bg-rose-50/50 dark:bg-rose-950/30 p-3.5 rounded-xl border border-rose-200/80 dark:border-rose-800/80 space-y-2 text-rose-950 dark:text-rose-200">
+                        <div className="flex items-center justify-between">
+                          <span className="font-extrabold text-xs">Potential MRP #1 — Therapeutic Dosing & Duration Review</span>
+                          <span className="px-2 py-0.5 rounded-md bg-rose-200 dark:bg-rose-900 text-rose-900 dark:text-rose-100 font-extrabold text-[10px]">Moderate Priority</span>
+                        </div>
+                        <p><strong>Medications Involved:</strong> {evaluatedDrugs.map(d => d.generic_name).join(', ')}</p>
+                        <p><strong>Evidence:</strong> Documented regimen for diagnosis: {norm.diagnosis.final}.</p>
+                        <p><strong>Clinical Reason:</strong> Potential MRP identified for student/preceptor review regarding therapeutic duration monitoring and dose optimization.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">No medication data available in submitted documentation to evaluate MRPs.</p>
+                  )}
+                </div>
+
+                {/* SECTION 5 — DRUG–DRUG INTERACTION REVIEW */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <Layers className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        SECTION 5 — DRUG–DRUG INTERACTION REVIEW
+                      </h3>
                     </div>
                   </div>
-                )}
 
-                {/* 4. PHARMACIST INTERVENTION EVALUATION */}
-                {isInterventionSubmitted && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-                      <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">4. Pharmacist Intervention Analysis</h3>
+                  {drugPairs.length > 0 ? (
+                    <div className="space-y-3 text-xs">
+                      {drugPairs.map((pair, idx) => (
+                        <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60 space-y-1">
+                          <p><strong className="text-slate-800 dark:text-slate-200">Combination #{idx + 1}:</strong> {pair.drug1.generic_name} + {pair.drug2.generic_name}</p>
+                          <p><strong className="text-slate-700 dark:text-slate-300">Potential Interaction:</strong> Monitor for additive therapeutic effects or altered clearance rate.</p>
+                          <p><strong className="text-slate-700 dark:text-slate-300">Management Consideration:</strong> Consider monitoring clinical response and organ function during co-administration.</p>
+                        </div>
+                      ))}
                     </div>
-                    <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl text-xs space-y-1">
-                      <p><strong className="text-slate-700 dark:text-slate-300">Problem Identified:</strong> {norm.intervention.problem || 'Documented'}</p>
-                      <p><strong className="text-slate-700 dark:text-slate-300">Action Taken & Recommendations:</strong> {norm.intervention.action || 'Documented'}</p>
-                      <p><strong className="text-slate-700 dark:text-slate-300">Physician Acceptance:</strong> {norm.intervention.accepted ? 'Accepted' : 'Pending'}</p>
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">Insufficient medication records in submitted documentation to evaluate drug-drug interactions.</p>
+                  )}
+                </div>
+
+                {/* SECTION 6 — DRUG–DISEASE / CONDITION INTERACTION REVIEW */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <HeartPulse className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        SECTION 6 — DRUG–DISEASE / CONDITION INTERACTION REVIEW
+                      </h3>
                     </div>
                   </div>
-                )}
 
-                {/* 5. DRUG INFORMATION REQUEST EVALUATION */}
-                {isDirSubmitted && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-                      <Info className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">5. Drug Information Request Insights</h3>
-                    </div>
+                  {isProfileSubmitted && norm.diagnosis.final !== 'N/A' ? (
                     <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl text-xs space-y-1">
-                      <p><strong className="text-slate-700 dark:text-slate-300">Clinical Query:</strong> {norm.dir.query || 'Documented'}</p>
-                      <p><strong className="text-slate-700 dark:text-slate-300">Category:</strong> {norm.dir.category || 'Therapeutic Use'}</p>
-                      <p><strong className="text-slate-700 dark:text-slate-300">Literature Answer Provided:</strong> {norm.dir.response || 'Documented'}</p>
+                      <p><strong className="text-slate-700 dark:text-slate-300">Documented Diagnosis:</strong> {norm.diagnosis.final}</p>
+                      <p><strong className="text-slate-700 dark:text-slate-300">Documented Regimen:</strong> {evaluatedDrugs.map(d => d.generic_name).join(', ') || 'None'}</p>
+                      <p><strong className="text-slate-700 dark:text-slate-300">Student/Preceptor Review Point:</strong> Verify that active drug therapy is not contraindicated in patient's renal/hepatic profile and systemic condition.</p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">Documented disease/condition data not available in submitted documentation.</p>
+                  )}
+                </div>
+
+                {/* SECTION 7 — DOSE / REGIMEN / ADMINISTRATION REVIEW */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <Clock className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        SECTION 7 — DOSE / REGIMEN / ADMINISTRATION REVIEW
+                      </h3>
                     </div>
                   </div>
-                )}
 
-                {/* 6. ADR EVALUATION */}
-                {isAdrSubmitted && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-                      <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">6. Adverse Reaction (ADR) Causality Analysis</h3>
+                  {evaluatedDrugs.length > 0 ? (
+                    <div className="space-y-2 text-xs">
+                      {evaluatedDrugs.map((d, idx) => (
+                        <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl">
+                          <p><strong className="text-slate-800 dark:text-slate-200">{d.generic_name}:</strong> {d.dose} via {d.route_of_admin} ({d.frequency})</p>
+                          <p className="text-slate-500 dark:text-slate-400 text-[11px]">Consider reviewing administration timing (with meals vs empty stomach) and duration with preceptor.</p>
+                        </div>
+                      ))}
                     </div>
-                    <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl text-xs space-y-1">
-                      <p><strong className="text-slate-700 dark:text-slate-300">Reaction Title:</strong> <span className="text-rose-700 dark:text-rose-400 font-bold">{norm.adr.reactionTitle}</span></p>
-                      <p><strong className="text-slate-700 dark:text-slate-300">Causality Opinion (Naranjo/WHO):</strong> {norm.adr.causalityOpinion || 'Probable'}</p>
-                      <p><strong className="text-slate-700 dark:text-slate-300">Severity & Seriousness:</strong> {norm.adr.severity} / {norm.adr.seriousness}</p>
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">Dosing and administration details not available in submitted documentation.</p>
+                  )}
+                </div>
+
+                {/* SECTION 8 — LABORATORY & CLINICAL PARAMETER REVIEW */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <Activity className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        SECTION 8 — LABORATORY & CLINICAL PARAMETER REVIEW
+                      </h3>
                     </div>
                   </div>
-                )}
 
-                {/* 7. UNROUNDED DATA / MISSING FORM ALERTS (NO INVENTED DATA) */}
-                <div className="pt-2">
-                  <div className="bg-slate-100 dark:bg-slate-800/70 p-4 rounded-xl text-xs text-slate-600 dark:text-slate-400 space-y-1">
-                    <p className="font-extrabold text-slate-800 dark:text-slate-200">
-                      Clinical Documentation Audit & Completeness Notice:
+                  {isProfileSubmitted && norm.labs.length > 0 ? (
+                    <div className="space-y-2 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {norm.labs.map((lab, idx) => (
+                          <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl space-y-0.5">
+                            <p><strong className="text-slate-800 dark:text-slate-200">{lab.parameter_name}:</strong> {lab.test_value} {lab.unit}</p>
+                            <p className="text-[11px] text-slate-500">Ref: {lab.normal_range} • Impression: <span className="font-bold text-emerald-600 dark:text-emerald-400">{lab.impression}</span></p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">Laboratory data not available in submitted documentation.</p>
+                  )}
+                </div>
+
+                {/* SECTION 9 — ADR / SAFETY REVIEW */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        SECTION 9 — ADR / SAFETY REVIEW
+                      </h3>
+                    </div>
+                  </div>
+
+                  {isAdrSubmitted ? (
+                    <div className="bg-rose-50/50 dark:bg-rose-950/30 p-3.5 rounded-xl border border-rose-200/80 dark:border-rose-800/80 text-xs text-rose-950 dark:text-rose-200 space-y-1">
+                      <p><strong>Suspected Medication:</strong> {norm.adr.suspectedMed}</p>
+                      <p><strong>Documented Reaction Title:</strong> {norm.adr.reactionTitle}</p>
+                      <p><strong>Severity & Seriousness:</strong> {norm.adr.severity} / {norm.adr.seriousness}</p>
+                      <p><strong>Causality (Naranjo/WHO):</strong> {norm.adr.causalityOpinion || 'Probable'}</p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
+                      ADR documentation is not available for analysis.
                     </p>
-                    <p>
-                      This AI analysis evaluated <strong>{submittedCount} of 5</strong> clinical documentation forms. Forms marked as Draft or Unsubmitted were excluded from evaluation to maintain strict data integrity. No artificial data was fabricated.
+                  )}
+                </div>
+
+                {/* SECTION 10 — PHARMACIST INTERVENTION REVIEW */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <ShieldCheck className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        SECTION 10 — PHARMACIST INTERVENTION REVIEW
+                      </h3>
+                    </div>
+                  </div>
+
+                  {isInterventionSubmitted ? (
+                    <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl text-xs space-y-1">
+                      <p><strong className="text-slate-800 dark:text-slate-200">Identified Issue:</strong> {norm.intervention.problem || 'Documented'}</p>
+                      <p><strong className="text-slate-800 dark:text-slate-200">Intervention & Action Taken:</strong> {norm.intervention.action || 'Documented'}</p>
+                      <p><strong className="text-slate-800 dark:text-slate-200">Physician Acceptance:</strong> {norm.intervention.accepted ? 'Accepted' : 'Pending'}</p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
+                      Pharmacist Intervention documentation is not available for analysis.
                     </p>
+                  )}
+                </div>
+
+                {/* SECTION 11 — PATIENT COUNSELLING REVIEW */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <UserCheck className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        SECTION 11 — PATIENT COUNSELLING REVIEW
+                      </h3>
+                    </div>
+                  </div>
+
+                  {isCounsellingSubmitted ? (
+                    <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl text-xs space-y-1">
+                      <p><strong className="text-slate-800 dark:text-slate-200">Disease Condition Counselled:</strong> {norm.counselling.diseaseCounselled || 'Documented'}</p>
+                      <p><strong className="text-slate-800 dark:text-slate-200">Medications Counselled:</strong> {norm.counselling.medicationsCounselled || 'Documented'}</p>
+                      <p><strong className="text-slate-800 dark:text-slate-200">Patient Understanding Ascertained:</strong> {norm.counselling.understandingAscertained ? 'Yes (Ascertained)' : 'No'}</p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
+                      Not documented in the submitted counselling form.
+                    </p>
+                  )}
+                </div>
+
+                {/* SECTION 12 — MISSING / UNAVAILABLE INFORMATION */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        SECTION 12 — MISSING / UNAVAILABLE INFORMATION
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl text-xs space-y-2">
+                    <p className="font-extrabold text-slate-800 dark:text-slate-200">Genuinely Missing / Unsubmitted Case Items:</p>
+                    <ul className="list-disc pl-4 space-y-1 text-slate-600 dark:text-slate-400">
+                      {!isProfileSubmitted && <li>Patient Profile documentation not available in submitted documentation.</li>}
+                      {!isCounsellingSubmitted && <li>Patient Counselling documentation not available in submitted documentation.</li>}
+                      {!isInterventionSubmitted && <li>Pharmacist Intervention documentation not available in submitted documentation.</li>}
+                      {!isDirSubmitted && <li>Drug Information Request documentation not available in submitted documentation.</li>}
+                      {!isAdrSubmitted && <li>ADR Documentation Log not available in submitted documentation.</li>}
+                      {norm.labs.length === 0 && <li>Laboratory findings not available in submitted documentation.</li>}
+                    </ul>
                   </div>
                 </div>
+
+                {/* SECTION 13 — PRIORITY ISSUES FOR STUDENT REVIEW */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <Layers className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        SECTION 13 — PRIORITY ISSUES FOR STUDENT REVIEW
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    <div className="bg-emerald-50/50 dark:bg-emerald-950/30 p-3.5 rounded-xl border border-emerald-200/80 dark:border-emerald-800/80 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-emerald-950 dark:text-emerald-200">High Priority Discussion Point</span>
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100 font-extrabold text-[10px]">Priority #1</span>
+                      </div>
+                      <p className="text-emerald-900 dark:text-emerald-200">Review complete pharmacotherapeutic indication match and renal/hepatic clearance parameters with preceptor during case presentation.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SECTION 14 — LEARNING POINTS */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <BookOpen className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        SECTION 14 — LEARNING POINTS
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl text-xs space-y-2 text-slate-700 dark:text-slate-300 leading-relaxed">
+                    <p>• <strong>Clinical Pharmacotherapy:</strong> Ensure all prescribed drugs map directly to documented medical conditions.</p>
+                    <p>• <strong>Medication Safety & ADR Detection:</strong> Monitor patient for subtle adverse reactions and maintain diligent documentation.</p>
+                    <p>• <strong>Patient Communication:</strong> Verify patient understanding of drug administration schedule, storage, and potential side effects.</p>
+                  </div>
+                </div>
+
               </div>
             </div>
           )}
