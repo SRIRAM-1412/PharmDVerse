@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Stethoscope, User, LogOut, Sun, Moon, Menu, X, UserCheck, ShieldCheck, ClipboardList, FilePlus2, FolderKanban, Bell } from 'lucide-react';
+import { LayoutDashboard, Stethoscope, User, LogOut, Sun, Moon, Menu, X, UserCheck, ShieldCheck, ClipboardList, FilePlus2, FolderKanban, Bell, Sparkles } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 import { StudentDashboardView } from './StudentDashboardView';
@@ -7,6 +7,7 @@ import { StudentMyPreceptorView } from './StudentMyPreceptorView';
 import { StudentProfileView } from './StudentProfileView';
 import { AddNewCaseView } from './AddNewCaseView';
 import { MyClinicalCasesView } from './MyClinicalCasesView';
+import { StudentAiAnalysisView } from './StudentAiAnalysisView';
 import { PatientProfileFormView } from '../patientProfile/PatientProfileFormView';
 import { PatientCounsellingFormView } from '../patientCounselling/PatientCounsellingFormView';
 import { PharmacistInterventionFormView } from '../pharmacistIntervention/PharmacistInterventionFormView';
@@ -177,6 +178,18 @@ export const StudentLayout = ({ student, onLogout }) => {
                 >
                   <FolderKanban className="w-4 h-4 shrink-0" />
                   <span>My Clinical Cases</span>
+                </button>
+
+                <button
+                  onClick={() => handleNavigate('ai-analysis')}
+                  className={`w-full h-10 px-3.5 rounded-xl flex items-center gap-3 transition-all ${
+                    activeTab === 'ai-analysis'
+                      ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                  } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
+                >
+                  <Sparkles className="w-4 h-4 shrink-0" />
+                  <span>AI Clinical Case Analysis</span>
                 </button>
               </div>
             </div>
@@ -368,6 +381,10 @@ export const StudentLayout = ({ student, onLogout }) => {
               student={student}
               onBack={() => handleNavigate('my-cases')}
             />
+          )}
+
+          {activeTab === 'ai-analysis' && (
+            <StudentAiAnalysisView student={student} onNavigate={handleNavigate} />
           )}
 
           {activeTab === 'my-preceptor' && (
