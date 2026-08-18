@@ -8,27 +8,74 @@ import { fetchStudentCasesFromSupabase, fetchCaseModuleStatusesFromSupabase } fr
 import { buildNormalizedApprovedCaseData } from '../../utils/buildNormalizedApprovedCaseData';
 
 /**
- * Check if a specific form record has been saved with persisted content
+ * Helper to determine if a form object has SAVED/PERSISTED data in Supabase for the selected case.
+ * Returns true if the form record exists with non-empty clinical fields.
+ * Returns false if no form record exists or the form is completely empty/unsaved.
  */
-const checkIsFormSaved = (record, formType) => {
-  if (!record || typeof record !== 'object') return false;
-  if (record.is_saved === true) return true;
-  if (record.status && String(record.status).toLowerCase() !== 'draft' && String(record.status).toLowerCase() !== 'empty') return true;
-
-  switch (formType) {
-    case 'profile':
-      return Boolean(record.patient_name || record.age || record.chief_complaints || record.diagnosis_final);
-    case 'counselling':
-      return Boolean(record.special_instructions || record.adherence_advice || record.counselling_points);
-    case 'intervention':
-      return Boolean(record.intervention_type || record.recommendation || record.outcome);
-    case 'dir':
-      return Boolean(record.query_title || record.query_text || record.response_text);
-    case 'adr':
-      return Boolean(record.reaction_title || record.suspected_drug || record.causality);
-    default:
-      return Boolean(Object.keys(record).length > 0);
+const checkIsFormSaved = (formObj, formType = '') => {
+  if (!formObj || typeof formObj !== 'object' || Object.keys(formObj).length === 0) return false;
+  
+  const status = String(formObj.status || formObj.form_status || formObj.approval_status || formObj.status_label || '').toLowerCase().trim();
+  
+  if (status === 'not_created' || status === 'uncreated' || status === 'not added') {
+    return false;
   }
+
+  if (formType === 'profile' || formType === true) {
+    return Boolean(
+      formObj.patient_name ||
+      formObj.chief_complaints ||
+      formObj.provisional_diagnosis ||
+      (formObj.final_diagnosis && formObj.final_diagnosis !== 'N/A')
+    );
+  }
+
+  if (formType === 'counselling') {
+    return Boolean(
+      formObj.disease_counselled ||
+      formObj.medications_counselled ||
+      formObj.topics_covered ||
+      formObj.counselling_points ||
+      formObj.points_covered
+    );
+  }
+
+  if (formType === 'intervention') {
+    return Boolean(
+      formObj.description_of_problem ||
+      formObj.problem_identified ||
+      formObj.prescription_problems ||
+      formObj.action_taken ||
+      formObj.recommendations ||
+      formObj.actions_taken
+    );
+  }
+
+  if (formType === 'dir') {
+    return Boolean(
+      formObj.details_of_enquiry ||
+      formObj.query ||
+      formObj.question_asked ||
+      formObj.information_provided ||
+      formObj.response
+    );
+  }
+
+  if (formType === 'adr') {
+    const suspectedArr = Array.isArray(formObj.suspected_meds) ? formObj.suspected_meds : (Array.isArray(formObj.suspected_drugs) ? formObj.suspected_drugs : []);
+    const hasSuspectedMeds = suspectedArr.length > 0 || Boolean(formObj.suspected_medication || formObj.suspected_drug || formObj.suspected_med);
+    
+    const reactionTitle = String(formObj.reaction_title || formObj.reactionTitle || '').trim();
+    const reactionDesc = String(formObj.reaction_description || '').trim();
+    const hasReaction = Boolean(
+      (reactionTitle && reactionTitle !== 'N/A' && reactionTitle !== '—') ||
+      (reactionDesc && reactionDesc !== 'N/A' && reactionDesc !== '—')
+    );
+    
+    return Boolean(hasReaction || hasSuspectedMeds);
+  }
+
+  return false;
 };
 
 /**
