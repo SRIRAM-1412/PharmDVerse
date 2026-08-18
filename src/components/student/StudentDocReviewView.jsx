@@ -122,6 +122,9 @@ const COMMON_SPELLING_CORRECTIONS = {
   'atorvastatin': 'Atorvastatin',
   'aspirine': 'Aspirin',
   'spironolacton': 'Spironolactone',
+  'levocetriz': 'Levocetirizine',
+  'levocetirizin': 'Levocetirizine',
+  'levocetrizine': 'Levocetirizine',
 
   // Diagnoses
   'hypertenssion': 'Hypertension',
@@ -251,8 +254,8 @@ const generatePreSubmissionReview = (norm, caseModulesData) => {
 
     // D. Medication List Review (Requirements 6, 7, 8, 9 & Date Checks)
     drugs.forEach((d, idx) => {
-      const trade = (d.trade_name || '').trim();
-      const generic = (d.generic_name || '').trim();
+      const trade = (d.trade_name || '').replace(/^—$/, '').trim();
+      const generic = (d.generic_name || '').replace(/^—$/, '').trim();
       const combined = `${trade} ${generic}`.trim();
       const lowerCombined = combined.toLowerCase();
 
