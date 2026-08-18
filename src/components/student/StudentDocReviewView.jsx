@@ -219,6 +219,45 @@ const findClosestDrugSpelling = (inputStr) => {
 };
 
 /**
+ * Common misspelling corrections dictionary
+ */
+const COMMON_SPELLING_CORRECTIONS = {
+  // Drugs
+  'mesalamin': 'Mesalamine',
+  'hyoscine butylbromid': 'Hyoscine butylbromide',
+  'amoxicilin': 'Amoxicillin',
+  'telmisat': 'Telmisartan',
+  'telmisartin': 'Telmisartan',
+  'paracetmol': 'Paracetamol',
+  'pantoprazol': 'Pantoprazole',
+  'atorvastatin': 'Atorvastatin',
+  'aspirine': 'Aspirin',
+  'spironolacton': 'Spironolactone',
+  'levocetriz': 'Levocetirizine',
+  'levocetirizin': 'Levocetirizine',
+  'levocetrizine': 'Levocetirizine',
+
+  // Diagnoses
+  'hypertenssion': 'Hypertension',
+  'hypertensionn': 'Hypertension',
+  'diabates': 'Diabetes Mellitus',
+  'diabtes': 'Diabetes Mellitus',
+  'astma': 'Asthma',
+  'pneumonea': 'Pneumonia',
+  'serosis': 'Cirrhosis',
+
+  // Symptoms
+  'feverr': 'Fever',
+  'nauseaa': 'Nausea',
+  'vomitting': 'Vomiting',
+
+  // Diagnostic tests
+  'echocardiogramm': 'Echocardiogram',
+  'electrocardiogramm': 'Electrocardiogram',
+  'ultrasond': 'Ultrasound'
+};
+
+/**
  * Evaluates Pre-Submission Clinical Documentation Issues across all saved modules.
  * Generates 🔴 CORRECTION REQUIRED, 🟠 PLEASE VERIFY, and 🔵 DOCUMENTATION GAP notes.
  */
