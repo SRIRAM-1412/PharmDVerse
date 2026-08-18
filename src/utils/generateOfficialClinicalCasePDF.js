@@ -1105,18 +1105,18 @@ export const generateOfficialClinicalCasePDF = ({
     doc.setFont(fontFamily, 'normal'); doc.text('Turnaround: ', boxX + 135, dirSessY + 5.5);
     doc.setFont(fontFamily, 'bold'); doc.text(String(dir.timeframe_needed || dir.answer_needed || 'Immediately'), boxX + 154, dirSessY + 5.5, { maxWidth: 25 });
 
-    // Row 2: Enquirer Name, Designation, Phone No, Ward/Unit (Tuned widths)
+    // Row 2: Enquirer Name, Designation, Phone No, Ward/Unit (Auto-adjusted spacing based on content)
     doc.setFont(fontFamily, 'normal'); doc.text('Enquirer: ', boxX + 2, dirSessY + 14.0);
-    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.enquirer_name || dir.enquirer_select || 'Resident Physician'), boxX + 16, dirSessY + 14.0, { maxWidth: 24 });
+    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.enquirer_name || dir.enquirer_select || 'Resident Physician'), boxX + 16, dirSessY + 14.0, { maxWidth: 38 });
 
-    doc.setFont(fontFamily, 'normal'); doc.text('Designation: ', boxX + 42, dirSessY + 14.0);
-    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.designation || 'Doctor'), boxX + 60, dirSessY + 14.0, { maxWidth: 24 });
+    doc.setFont(fontFamily, 'normal'); doc.text('Designation: ', boxX + 56, dirSessY + 14.0);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.designation || 'Doctor'), boxX + 74, dirSessY + 14.0, { maxWidth: 22 });
 
-    doc.setFont(fontFamily, 'normal'); doc.text('Phone No: ', boxX + 86, dirSessY + 14.0);
-    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.phone_no || '—'), boxX + 102, dirSessY + 14.0, { maxWidth: 20 });
+    doc.setFont(fontFamily, 'normal'); doc.text('Phone No: ', boxX + 98, dirSessY + 14.0);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.phone_no || '—'), boxX + 114, dirSessY + 14.0, { maxWidth: 18 });
 
-    doc.setFont(fontFamily, 'normal'); doc.text('Ward/Unit: ', boxX + 124, dirSessY + 14.0);
-    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.unit_ward || norm.demographics.wardBed), boxX + 140, dirSessY + 14.0, { maxWidth: 39 });
+    doc.setFont(fontFamily, 'normal'); doc.text('Ward/Unit: ', boxX + 134, dirSessY + 14.0);
+    doc.setFont(fontFamily, 'bold'); doc.text(String(dir.unit_ward || norm.demographics.wardBed), boxX + 150, dirSessY + 14.0, { maxWidth: 28 });
 
     // Row 3: Professional Status & Question Category
     doc.setFont(fontFamily, 'normal'); doc.text('Professional Status: ', boxX + 2, dirSessY + 22.0);
