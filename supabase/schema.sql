@@ -521,3 +521,35 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+-- ====================================================================
+-- SECTION 3 KNOWLEDGE TABLE: lab_parameter_knowledge
+-- Standard Clinical Knowledge for Laboratory Parameters
+-- ====================================================================
+CREATE TABLE IF NOT EXISTS public.lab_parameter_knowledge (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    parameter_name TEXT NOT NULL,
+    normalized_name TEXT NOT NULL UNIQUE,
+    category TEXT NULL,
+    evaluation_type TEXT NOT NULL CHECK (evaluation_type IN ('numeric', 'positive_negative', 'present_absent')),
+    increased_significance TEXT NULL,
+    decreased_significance TEXT NULL,
+    positive_significance TEXT NULL,
+    negative_significance TEXT NULL,
+    present_significance TEXT NULL,
+    absent_significance TEXT NULL,
+    context_notes TEXT NULL,
+    source_reference TEXT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_lab_param_knowledge_norm_name ON public.lab_parameter_knowledge(normalized_name);
+
+ALTER TABLE public.lab_parameter_knowledge ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow Read Access for All Users" ON public.lab_parameter_knowledge;
+CREATE POLICY "Allow Read Access for All Users" ON public.lab_parameter_knowledge
+    FOR SELECT USING (true);
+
