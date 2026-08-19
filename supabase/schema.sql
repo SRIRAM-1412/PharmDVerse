@@ -553,3 +553,32 @@ DROP POLICY IF EXISTS "Allow Read Access for All Users" ON public.lab_parameter_
 CREATE POLICY "Allow Read Access for All Users" ON public.lab_parameter_knowledge
     FOR SELECT USING (true);
 
+-- ====================================================================
+-- SECTION 4 KNOWLEDGE TABLE: drug_knowledge
+-- Standard Clinical Knowledge for Prescribed Medications
+-- ====================================================================
+CREATE TABLE IF NOT EXISTS public.drug_knowledge (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    generic_name TEXT NOT NULL,
+    brand_names TEXT NULL,
+    drug_class TEXT NULL,
+    established_uses TEXT NULL,
+    mechanism_of_action TEXT NULL,
+    normal_dose_range TEXT NULL,
+    contraindications TEXT NULL,
+    side_effects_adverse_effects TEXT NULL,
+    monitoring_parameters TEXT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_drug_knowledge_generic_name_unique 
+    ON public.drug_knowledge (LOWER(TRIM(generic_name)));
+
+ALTER TABLE public.drug_knowledge ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow read access to all users for drug_knowledge" ON public.drug_knowledge;
+CREATE POLICY "Allow read access to all users for drug_knowledge" 
+    ON public.drug_knowledge FOR SELECT USING (true);
+
+
