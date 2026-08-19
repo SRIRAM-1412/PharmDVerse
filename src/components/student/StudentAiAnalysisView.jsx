@@ -583,6 +583,16 @@ const matchLabKnowledgeRecord = (rawTestName, knowledgeList = []) => {
   return found || null;
 };
 
+const formatCautiousAssociation = (sigText) => {
+  if (!sigText) return 'relevant clinical conditions';
+  let text = String(sigText).trim();
+  text = text.replace(/\.$/, '');
+  if (/^[A-Z][a-z]/.test(text)) {
+    text = text.charAt(0).toLowerCase() + text.slice(1);
+  }
+  return text;
+};
+
 /**
  * Section 3 Result Status & Clinical Significance Evaluation Engine
  */
@@ -617,11 +627,12 @@ const evaluateLabResultStatus = (labRecord, knowledgeRecord, norm = {}) => {
     const isPositive = valLower.includes('positive') || valLower.includes('+') || valLower.includes('reactive') || valLower.includes('trace') || valLower.includes('present');
     if (isPositive) {
       const sig = knowledgeRecord.positive_significance || 'Positive result identified.';
+      const formattedSig = formatCautiousAssociation(sig);
       return {
         status: 'Positive',
         statusType: 'positive',
         significance: sig,
-        aiInterpretation: `Positive result documented for ${testName}. ${sig}`
+        aiInterpretation: `The documented ${testName} result is ${rawVal}. This positive finding may be associated with ${formattedSig}. Correlation with clinical findings and symptoms is required.`
       };
     } else {
       const sig = knowledgeRecord.negative_significance || 'No abnormal activity detected.';
@@ -629,7 +640,7 @@ const evaluateLabResultStatus = (labRecord, knowledgeRecord, norm = {}) => {
         status: 'Negative',
         statusType: 'negative',
         significance: sig,
-        aiInterpretation: `Negative result documented for ${testName}. No significant abnormality identified.`
+        aiInterpretation: `The documented ${testName} result is ${rawVal}. No significant abnormality is identified from this parameter based on documented findings.`
       };
     }
   }
@@ -640,11 +651,12 @@ const evaluateLabResultStatus = (labRecord, knowledgeRecord, norm = {}) => {
     const isPresent = valLower.includes('present') || valLower.includes('+') || valLower.includes('detected') || valLower.includes('cloudy') || valLower.includes('turbid') || valLower.includes('yes');
     if (isPresent) {
       const sig = knowledgeRecord.present_significance || 'Finding present.';
+      const formattedSig = formatCautiousAssociation(sig);
       return {
         status: 'Present',
         statusType: 'present',
         significance: sig,
-        aiInterpretation: `Documented finding of ${testName} is present. ${sig}`
+        aiInterpretation: `The documented finding of ${testName} is present (${rawVal}). This finding may occur with ${formattedSig}. Clinical correlation with patient symptoms and findings is required.`
       };
     } else {
       const sig = knowledgeRecord.absent_significance || 'Finding absent.';
@@ -652,7 +664,7 @@ const evaluateLabResultStatus = (labRecord, knowledgeRecord, norm = {}) => {
         status: 'Absent',
         statusType: 'absent',
         significance: sig,
-        aiInterpretation: `Documented finding of ${testName} is absent. No significant abnormality identified.`
+        aiInterpretation: `The documented finding of ${testName} is absent (${rawVal}). No significant abnormality is identified from this parameter based on documented findings.`
       };
     }
   }
@@ -664,7 +676,7 @@ const evaluateLabResultStatus = (labRecord, knowledgeRecord, norm = {}) => {
       status: 'Qualitative Result',
       statusType: 'neutral',
       significance: knowledgeRecord.context_notes || 'Qualitative laboratory entry.',
-      aiInterpretation: `Documented value "${rawVal}" for ${testName} is qualitative; correlate with clinical findings.`
+      aiInterpretation: `The documented value "${rawVal}" for ${testName} is qualitative; should be interpreted in the clinical context.`
     };
   }
 
@@ -697,21 +709,23 @@ const evaluateLabResultStatus = (labRecord, knowledgeRecord, norm = {}) => {
 
   if (minBound !== null && numVal < minBound) {
     const sig = knowledgeRecord.decreased_significance || 'Decreased laboratory parameter level.';
+    const formattedSig = formatCautiousAssociation(sig);
     return {
       status: 'Decreased',
       statusType: 'decreased',
       significance: sig,
-      aiInterpretation: `Documented value (${rawVal} ${labRecord.unit || ''}) for ${testName} is below the reference range (${rawRef} ${labRecord.unit || ''}). ${sig}`
+      aiInterpretation: `The documented ${testName} (${rawVal}) is below the documented reference range (${rawRef}). This reduction may occur with ${formattedSig}. Correlation with clinical findings and patient status is required.`
     };
   }
 
   if (maxBound !== null && numVal > maxBound) {
     const sig = knowledgeRecord.increased_significance || 'Elevated laboratory parameter level.';
+    const formattedSig = formatCautiousAssociation(sig);
     return {
       status: 'Increased',
       statusType: 'increased',
       significance: sig,
-      aiInterpretation: `Documented value (${rawVal} ${labRecord.unit || ''}) for ${testName} is above the reference range (${rawRef} ${labRecord.unit || ''}). ${sig}`
+      aiInterpretation: `The documented ${testName} (${rawVal}) is above the documented reference range (${rawRef}). This elevation may be associated with ${formattedSig}. Correlation with clinical findings is required.`
     };
   }
 
@@ -720,7 +734,7 @@ const evaluateLabResultStatus = (labRecord, knowledgeRecord, norm = {}) => {
       status: 'Within Reference Range',
       statusType: 'normal',
       significance: 'Result is within documented reference range.',
-      aiInterpretation: `No significant abnormality is identified for ${testName} based on the documented reference range.`
+      aiInterpretation: `The documented result for ${testName} (${rawVal}) is within the laboratory reference range (${rawRef}), with no significant abnormality identified from this parameter alone.`
     };
   }
 
@@ -728,7 +742,7 @@ const evaluateLabResultStatus = (labRecord, knowledgeRecord, norm = {}) => {
     status: 'Documented',
     statusType: 'neutral',
     significance: knowledgeRecord.context_notes || 'Value documented.',
-    aiInterpretation: `Documented value for ${testName} is ${rawVal} ${labRecord.unit || ''}.`
+    aiInterpretation: `The documented value for ${testName} is ${rawVal}; should be interpreted in the clinical context.`
   };
 };
 
