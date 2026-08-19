@@ -348,7 +348,13 @@ export const generateOfficialClinicalCasePDF = ({
     doc.setFont(fontFamily, 'bold');
     doc.setFontSize(10.0);
     doc.setTextColor(3, 105, 161);
-    doc.text(`(CASE ID: ${norm.caseId})`, boxX + boxW - 1, y + 5.5, { align: 'right' });
+    doc.text(`(CASE ID: ${norm.caseId})`, boxX + boxW - 1, y, { align: 'right' });
+
+    // Line 3: APPROVED in GREEN color right below CASE ID
+    doc.setFont('courier', 'bold');
+    doc.setFontSize(9.0);
+    doc.setTextColor(5, 150, 105); // emerald-600 green
+    doc.text('APPROVED', boxX + boxW - 1, y + 4.8, { align: 'right' });
 
     doc.setTextColor(15, 23, 42);
     y += 12;

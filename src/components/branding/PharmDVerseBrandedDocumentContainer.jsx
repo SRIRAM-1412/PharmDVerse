@@ -9,6 +9,9 @@ export const PharmDVerseBrandedDocumentContainer = ({
   student,
   preceptor,
   preceptorName,
+  clinicalCase,
+  status,
+  caseStatus,
   children,
   pageNumber = '1 of 1',
   showSignatures = false,
@@ -295,6 +298,7 @@ export const PharmDVerseBrandedDocumentContainer = ({
               branding={branding}
               documentTitle={documentTitle}
               caseId={caseId}
+              status={status || caseStatus || clinicalCase?.overall_case_status || clinicalCase?.status || 'APPROVED'}
             />
           )}
 
