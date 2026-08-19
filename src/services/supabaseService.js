@@ -2956,6 +2956,28 @@ export const fetchUnreadNotificationsCountFromSupabase = async (userId) => {
   }
 };
 
+/**
+ * Fetch Standard Clinical Knowledge Records for Laboratory Analysis (Section 3).
+ * Reads from public.lab_parameter_knowledge table.
+ */
+export const fetchLabParameterKnowledgeFromSupabase = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('lab_parameter_knowledge')
+      .select('*')
+      .eq('is_active', true);
+
+    if (error) {
+      console.error('Error fetching lab_parameter_knowledge from Supabase:', error);
+      return { success: false, data: [], error: error.message };
+    }
+    return { success: true, data: data || [] };
+  } catch (err) {
+    console.error('Unexpected error fetching lab_parameter_knowledge:', err);
+    return { success: false, data: [], error: err.message };
+  }
+};
+
 
 
 

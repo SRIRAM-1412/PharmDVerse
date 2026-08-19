@@ -4,7 +4,7 @@ import {
   ArrowRight, RefreshCw, AlertTriangle, FileText, CheckCircle, Clock, Info, 
   Pill, AlertOctagon, Activity, HeartPulse, UserCheck, BookOpen, Layers
 } from 'lucide-react';
-import { fetchStudentCasesFromSupabase, fetchCaseModuleStatusesFromSupabase } from '../../services/supabaseService';
+import { fetchStudentCasesFromSupabase, fetchCaseModuleStatusesFromSupabase, fetchLabParameterKnowledgeFromSupabase } from '../../services/supabaseService';
 import { buildNormalizedApprovedCaseData } from '../../utils/buildNormalizedApprovedCaseData';
 import { resolveClinicalEntityKnowledge } from '../../services/clinicalKnowledgeService';
 import { evaluatePairwiseDrugInteraction, runAiClinicalCaseAnalysis } from '../../services/aiAnalysisService';
@@ -487,6 +487,252 @@ const generatePatientProfileInterpretation = (norm, profileObj) => {
 };
 
 /**
+ * SECTION 3 — LABORATORY PARAMETER ALIAS & NORMALIZATION MAP
+ */
+const PARAM_ALIAS_MAP = {
+  'hb': 'hb', 'hemoglobin': 'hb', 'haemoglobin': 'hb', 'hgb': 'hb',
+  'rbc_count': 'rbc_count', 'rbc': 'rbc_count', 'red_blood_cell_count': 'rbc_count', 'red_blood_cells': 'rbc_count',
+  'wbc_count': 'wbc_count', 'wbc': 'wbc_count', 'white_blood_cell_count': 'wbc_count', 'white_blood_cells': 'wbc_count', 'total_wbc': 'wbc_count', 'tc': 'wbc_count', 'total_leukocyte_count': 'wbc_count',
+  'neutrophils': 'neutrophils', 'neutrophil': 'neutrophils', 'polymorphs': 'neutrophils', 'granulocytes': 'neutrophils',
+  'lymphocytes': 'lymphocytes', 'lymphocyte': 'lymphocytes', 'lymph': 'lymphocytes',
+  'eosinophils': 'eosinophils', 'eosinophil': 'eosinophils', 'eos': 'eosinophils',
+  'monocytes': 'monocytes', 'monocyte': 'monocytes', 'mono': 'monocytes',
+  'mcv': 'mcv', 'mean_corpuscular_volume': 'mcv',
+  'mch': 'mch', 'mean_corpuscular_hemoglobin': 'mch',
+  'mchc': 'mchc', 'mean_corpuscular_hemoglobin_concentration': 'mchc',
+  'esr': 'esr', 'erythrocyte_sedimentation_rate': 'esr',
+  'platelets': 'platelets', 'platelet_count': 'platelets', 'plt': 'platelets', 'platelet': 'platelets',
+  'pcv_haematocrit': 'pcv_haematocrit', 'pcv': 'pcv_haematocrit', 'haematocrit': 'pcv_haematocrit', 'hematocrit': 'pcv_haematocrit', 'packed_cell_volume': 'pcv_haematocrit',
+  'ct_clotting_time': 'ct_clotting_time', 'ct': 'ct_clotting_time', 'clotting_time': 'ct_clotting_time',
+  'bt_bleeding_time': 'bt_bleeding_time', 'bt': 'bt_bleeding_time', 'bleeding_time': 'bt_bleeding_time',
+  'pt': 'pt', 'prothrombin_time': 'pt',
+  'aptt': 'aptt', 'ptt': 'aptt', 'activated_partial_thromboplastin_time': 'aptt',
+  'tsh': 'tsh', 'thyroid_stimulating_hormone': 'tsh',
+  'free_t4': 'free_t4', 'ft4': 'free_t4', 'free_thyroxine': 'free_t4',
+  'total_t3': 'total_t3', 't3': 'total_t3', 'total_triiodothyronine': 'total_t3',
+  'urine_colour': 'urine_colour', 'urine_color': 'urine_colour', 'color': 'urine_colour', 'colour': 'urine_colour',
+  'urine_specific_gravity': 'urine_specific_gravity', 'specific_gravity': 'urine_specific_gravity', 'sp_gravity': 'urine_specific_gravity',
+  'urine_ph': 'urine_ph', 'ph': 'urine_ph',
+  'urine_glucose_sugar': 'urine_glucose_sugar', 'urine_glucose': 'urine_glucose_sugar', 'urine_sugar': 'urine_glucose_sugar', 'sugar': 'urine_glucose_sugar', 'glucose': 'urine_glucose_sugar',
+  'urine_blood': 'urine_blood', 'blood': 'urine_blood', 'hematuria': 'urine_blood', 'haematuria': 'urine_blood',
+  'pus_cells': 'pus_cells', 'pus': 'pus_cells', 'pus_cell': 'pus_cells', 'pyuria': 'pus_cells',
+  'urine_rbc': 'urine_rbc',
+  'ketone_bodies': 'ketone_bodies', 'ketones': 'ketone_bodies', 'urine_ketones': 'ketone_bodies', 'ketone': 'ketone_bodies',
+  'epithelial_cells': 'epithelial_cells', 'epithelial': 'epithelial_cells', 'epi_cells': 'epithelial_cells',
+  'urine_protein': 'urine_protein', 'protein': 'urine_protein', 'albumin_urine': 'urine_protein', 'urine_albumin': 'urine_protein',
+  'bile_salts_pigments': 'bile_salts_pigments', 'bile_salts': 'bile_salts_pigments', 'bile_pigments': 'bile_salts_pigments', 'bile': 'bile_salts_pigments',
+  'urine_transparency': 'urine_transparency', 'transparency': 'urine_transparency', 'clarity': 'urine_transparency', 'appearance': 'urine_transparency',
+  'urine_crystals': 'urine_crystals', 'crystals': 'urine_crystals',
+  'fbs': 'fbs', 'fasting_blood_sugar': 'fbs', 'fasting_glucose': 'fbs',
+  'rbs': 'rbs', 'random_blood_sugar': 'rbs', 'random_glucose': 'rbs',
+  'ppbs': 'ppbs', 'post_prandial_blood_sugar': 'ppbs', 'pp_glucose': 'ppbs',
+  'sodium': 'sodium', 'na+': 'sodium', 'na': 'sodium', 'serum_sodium': 'sodium',
+  'potassium': 'potassium', 'k+': 'potassium', 'k': 'potassium', 'serum_potassium': 'potassium',
+  'chloride': 'chloride', 'cl-': 'chloride', 'cl': 'chloride', 'serum_chloride': 'chloride',
+  'magnesium': 'magnesium', 'mg++': 'magnesium', 'mg': 'magnesium', 'serum_magnesium': 'magnesium',
+  'serum_calcium': 'serum_calcium', 'calcium': 'serum_calcium', 'ca++': 'serum_calcium', 'ca': 'serum_calcium',
+  'cpk_ck': 'cpk_ck', 'cpk': 'cpk_ck', 'ck': 'cpk_ck', 'creatine_kinase': 'cpk_ck',
+  'cpk_mb': 'cpk_mb', 'ck_mb': 'cpk_mb', 'ckmb': 'cpk_mb', 'cpkmb': 'cpk_mb',
+  'ldh': 'ldh', 'lactate_dehydrogenase': 'ldh',
+  'total_bilirubin': 'total_bilirubin', 't_bilirubin': 'total_bilirubin', 't_bili': 'total_bilirubin',
+  'direct_bilirubin': 'direct_bilirubin', 'd_bilirubin': 'direct_bilirubin', 'd_bili': 'direct_bilirubin', 'conjugated_bilirubin': 'direct_bilirubin',
+  'indirect_bilirubin': 'indirect_bilirubin', 'i_bilirubin': 'indirect_bilirubin', 'unconjugated_bilirubin': 'indirect_bilirubin',
+  'sgot_ast': 'sgot_ast', 'sgot': 'sgot_ast', 'ast': 'sgot_ast',
+  'sgpt_alt': 'sgpt_alt', 'sgpt': 'sgpt_alt', 'alt': 'sgpt_alt',
+  'alkaline_phosphatase': 'alkaline_phosphatase', 'alp': 'alkaline_phosphatase', 'alk_phos': 'alkaline_phosphatase',
+  'albumin': 'albumin', 'serum_albumin': 'albumin',
+  'globulin': 'globulin', 'serum_globulin': 'globulin',
+  'urea': 'urea', 'blood_urea': 'urea', 'bun': 'urea', 'blood_urea_nitrogen': 'urea',
+  'serum_creatinine': 'serum_creatinine', 's_cr': 'serum_creatinine', 'scr': 'serum_creatinine', 'creatinine': 'serum_creatinine', 's_creatinine': 'serum_creatinine',
+  'uric_acid': 'uric_acid', 'serum_uric_acid': 'uric_acid',
+  'total_cholesterol': 'total_cholesterol', 'cholesterol': 'total_cholesterol', 't_chol': 'total_cholesterol',
+  'hdl': 'hdl', 'hdl_cholesterol': 'hdl',
+  'ldl': 'ldl', 'ldl_cholesterol': 'ldl',
+  'vldl': 'vldl', 'vldl_cholesterol': 'vldl',
+  'triglycerides': 'triglycerides', 'tg': 'triglycerides', 'triacylglycerol': 'triglycerides'
+};
+
+const normalizeLabParamKey = (rawName) => {
+  if (!rawName) return '';
+  const clean = String(rawName)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return PARAM_ALIAS_MAP[clean] || clean;
+};
+
+const matchLabKnowledgeRecord = (rawTestName, knowledgeList = []) => {
+  if (!rawTestName || !Array.isArray(knowledgeList) || knowledgeList.length === 0) return null;
+
+  const targetKey = normalizeLabParamKey(rawTestName);
+
+  // Direct normalized_name match or alias match
+  let found = knowledgeList.find(k => k.normalized_name === targetKey);
+  if (found) return found;
+
+  // Substring / fallback matching
+  const cleanRaw = String(rawTestName).toLowerCase().trim();
+  found = knowledgeList.find(k => {
+    const kn = String(k.parameter_name).toLowerCase().trim();
+    const nn = String(k.normalized_name).toLowerCase().trim();
+    return cleanRaw.includes(kn) || kn.includes(cleanRaw) || cleanRaw.includes(nn) || nn.includes(cleanRaw);
+  });
+
+  return found || null;
+};
+
+/**
+ * Section 3 Result Status & Clinical Significance Evaluation Engine
+ */
+const evaluateLabResultStatus = (labRecord, knowledgeRecord, norm = {}) => {
+  const rawVal = labRecord?.test_value !== undefined && labRecord?.test_value !== null ? String(labRecord.test_value).trim() : '';
+  const rawRef = labRecord?.reference_range !== undefined && labRecord?.reference_range !== null ? String(labRecord.reference_range).trim() : '';
+  const testName = labRecord?.test_name || labRecord?.parameter_name || 'Laboratory Parameter';
+
+  if (!rawVal || rawVal === 'N/A' || rawVal === '—') {
+    return {
+      status: 'Result Not Documented',
+      statusType: 'missing',
+      significance: 'Result not documented.',
+      aiInterpretation: 'Result not documented; interpretation cannot be performed.'
+    };
+  }
+
+  if (!knowledgeRecord) {
+    return {
+      status: 'Knowledge Unavailable',
+      statusType: 'neutral',
+      significance: 'Clinical significance knowledge is not available for this parameter.',
+      aiInterpretation: `Clinical significance knowledge is not available for ${testName}.`
+    };
+  }
+
+  const evalType = knowledgeRecord.evaluation_type || 'numeric';
+
+  // POSITIVE / NEGATIVE EVALUATION
+  if (evalType === 'positive_negative') {
+    const valLower = rawVal.toLowerCase();
+    const isPositive = valLower.includes('positive') || valLower.includes('+') || valLower.includes('reactive') || valLower.includes('trace') || valLower.includes('present');
+    if (isPositive) {
+      const sig = knowledgeRecord.positive_significance || 'Positive result identified.';
+      return {
+        status: 'Positive',
+        statusType: 'positive',
+        significance: sig,
+        aiInterpretation: `Positive result documented for ${testName}. ${sig}`
+      };
+    } else {
+      const sig = knowledgeRecord.negative_significance || 'No abnormal activity detected.';
+      return {
+        status: 'Negative',
+        statusType: 'negative',
+        significance: sig,
+        aiInterpretation: `Negative result documented for ${testName}. No significant abnormality identified.`
+      };
+    }
+  }
+
+  // PRESENT / ABSENT EVALUATION
+  if (evalType === 'present_absent') {
+    const valLower = rawVal.toLowerCase();
+    const isPresent = valLower.includes('present') || valLower.includes('+') || valLower.includes('detected') || valLower.includes('cloudy') || valLower.includes('turbid') || valLower.includes('yes');
+    if (isPresent) {
+      const sig = knowledgeRecord.present_significance || 'Finding present.';
+      return {
+        status: 'Present',
+        statusType: 'present',
+        significance: sig,
+        aiInterpretation: `Documented finding of ${testName} is present. ${sig}`
+      };
+    } else {
+      const sig = knowledgeRecord.absent_significance || 'Finding absent.';
+      return {
+        status: 'Absent',
+        statusType: 'absent',
+        significance: sig,
+        aiInterpretation: `Documented finding of ${testName} is absent. No significant abnormality identified.`
+      };
+    }
+  }
+
+  // NUMERIC EVALUATION
+  const numVal = parseFloat(rawVal.replace(/[^0-9.]/g, ''));
+  if (isNaN(numVal)) {
+    return {
+      status: 'Qualitative Result',
+      statusType: 'neutral',
+      significance: knowledgeRecord.context_notes || 'Qualitative laboratory entry.',
+      aiInterpretation: `Documented value "${rawVal}" for ${testName} is qualitative; correlate with clinical findings.`
+    };
+  }
+
+  if (!rawRef || rawRef === 'N/A' || rawRef === '—') {
+    return {
+      status: 'Reference Range Not Documented',
+      statusType: 'warning',
+      significance: 'Reference range not documented; interpretation is limited.',
+      aiInterpretation: `Reference range not documented for ${testName}; interpretation is limited.`
+    };
+  }
+
+  // Parse reference range bounds
+  let minBound = null;
+  let maxBound = null;
+
+  if (rawRef.includes('-') || rawRef.includes('–') || rawRef.includes('to')) {
+    const parts = rawRef.replace('to', '-').replace('–', '-').split('-');
+    const minP = parseFloat(parts[0].replace(/[^0-9.]/g, ''));
+    const maxP = parseFloat(parts[1].replace(/[^0-9.]/g, ''));
+    if (!isNaN(minP)) minBound = minP;
+    if (!isNaN(maxP)) maxBound = maxP;
+  } else if (rawRef.includes('<')) {
+    const maxP = parseFloat(rawRef.replace(/[^0-9.]/g, ''));
+    if (!isNaN(maxP)) maxBound = maxP;
+  } else if (rawRef.includes('>')) {
+    const minP = parseFloat(rawRef.replace(/[^0-9.]/g, ''));
+    if (!isNaN(minP)) minBound = minP;
+  }
+
+  if (minBound !== null && numVal < minBound) {
+    const sig = knowledgeRecord.decreased_significance || 'Decreased laboratory parameter level.';
+    return {
+      status: 'Decreased',
+      statusType: 'decreased',
+      significance: sig,
+      aiInterpretation: `Documented value (${rawVal} ${labRecord.unit || ''}) for ${testName} is below the reference range (${rawRef} ${labRecord.unit || ''}). ${sig}`
+    };
+  }
+
+  if (maxBound !== null && numVal > maxBound) {
+    const sig = knowledgeRecord.increased_significance || 'Elevated laboratory parameter level.';
+    return {
+      status: 'Increased',
+      statusType: 'increased',
+      significance: sig,
+      aiInterpretation: `Documented value (${rawVal} ${labRecord.unit || ''}) for ${testName} is above the reference range (${rawRef} ${labRecord.unit || ''}). ${sig}`
+    };
+  }
+
+  if (minBound !== null || maxBound !== null) {
+    return {
+      status: 'Within Reference Range',
+      statusType: 'normal',
+      significance: 'Result is within documented reference range.',
+      aiInterpretation: `No significant abnormality is identified for ${testName} based on the documented reference range.`
+    };
+  }
+
+  return {
+    status: 'Documented',
+    statusType: 'neutral',
+    significance: knowledgeRecord.context_notes || 'Value documented.',
+    aiInterpretation: `Documented value for ${testName} is ${rawVal} ${labRecord.unit || ''}.`
+  };
+};
+
+/**
  * Student Role AI Clinical Case Analysis View.
  * Educational Analysis Engine Triggered by SAVED Form Data.
  */
@@ -497,6 +743,19 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
   
   const [modulesData, setModulesData] = useState(null);
   const [loadingModules, setLoadingModules] = useState(false);
+
+  const [labKnowledgeList, setLabKnowledgeList] = useState([]);
+
+  // Load standard lab parameter knowledge records from Supabase for Section 3
+  useEffect(() => {
+    const loadKnowledge = async () => {
+      const res = await fetchLabParameterKnowledgeFromSupabase();
+      if (res.success && Array.isArray(res.data)) {
+        setLabKnowledgeList(res.data);
+      }
+    };
+    loadKnowledge();
+  }, []);
 
   // Load student cases
   useEffect(() => {
@@ -969,6 +1228,129 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                     {generatePatientProfileInterpretation(norm, profileRecord)}
                   </p>
                 </div>
+              </div>
+
+              {/* SECTION 3 — LABORATORY ANALYSIS (DYNAMIC PATIENT LABS MATCHED WITH CLINICAL KNOWLEDGE) */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5 min-w-0 w-full">
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <Activity className="w-5 h-5 text-cyan-600 dark:text-cyan-400 shrink-0" />
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                      SECTION 3 — LABORATORY ANALYSIS
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800">
+                    {(() => {
+                      const labs = (Array.isArray(modulesData?.labs) && modulesData.labs.length > 0)
+                        ? modulesData.labs
+                        : (Array.isArray(selectedCase?.lab_investigations) && selectedCase.lab_investigations.length > 0
+                          ? selectedCase.lab_investigations
+                          : (Array.isArray(selectedCase?.labs) ? selectedCase.labs : (Array.isArray(norm.labs) ? norm.labs : [])));
+                      return `${labs.length} Investigation${labs.length !== 1 ? 's' : ''}`;
+                    })()}
+                  </span>
+                </div>
+
+                {(() => {
+                  const labs = (Array.isArray(modulesData?.labs) && modulesData.labs.length > 0)
+                    ? modulesData.labs
+                    : (Array.isArray(selectedCase?.lab_investigations) && selectedCase.lab_investigations.length > 0
+                      ? selectedCase.lab_investigations
+                      : (Array.isArray(selectedCase?.labs) ? selectedCase.labs : (Array.isArray(norm.labs) ? norm.labs : [])));
+
+                  if (labs.length === 0) {
+                    return (
+                      <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 text-center space-y-2">
+                        <AlertCircle className="w-8 h-8 text-amber-500 mx-auto" />
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-white">No Laboratory Investigations Documented</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                          No lab investigation results are currently documented in the patient profile for this selected case.
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-4">
+                      {labs.map((labItem, idx) => {
+                        const rawTestName = labItem.test_name || labItem.parameter_name || `Parameter ${idx + 1}`;
+                        const matchedKnowledge = matchLabKnowledgeRecord(rawTestName, labKnowledgeList);
+                        const evalResult = evaluateLabResultStatus(labItem, matchedKnowledge, norm);
+
+                        return (
+                          <div key={idx} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-3 min-w-0">
+                            {/* PARAMETER TITLE & STATUS BADGE */}
+                            <div className="flex items-start justify-between flex-wrap gap-2">
+                              <div>
+                                <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wide">
+                                  {rawTestName}
+                                </h4>
+                                {matchedKnowledge?.category && (
+                                  <span className="text-[10px] font-semibold text-slate-400 block mt-0.5">
+                                    Category: {matchedKnowledge.category}
+                                  </span>
+                                )}
+                              </div>
+                              <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border ${
+                                evalResult.statusType === 'increased' ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800' :
+                                evalResult.statusType === 'decreased' ? 'bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 border-sky-300 dark:border-sky-800' :
+                                evalResult.statusType === 'positive' || evalResult.statusType === 'present' ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800' :
+                                evalResult.statusType === 'normal' ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800' :
+                                'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600'
+                              }`}>
+                                Status: {evalResult.status}
+                              </span>
+                            </div>
+
+                            {/* RESULT & REFERENCE RANGE GRID */}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                              <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
+                                <span className="text-[10px] uppercase font-bold text-slate-400 block">Actual Result</span>
+                                <strong className="font-mono font-extrabold text-slate-900 dark:text-white text-xs block truncate">
+                                  {labItem.test_value !== undefined && labItem.test_value !== null && String(labItem.test_value).trim() !== '' ? `${labItem.test_value} ${labItem.unit || ''}`.trim() : 'Result not documented'}
+                                </strong>
+                              </div>
+
+                              <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
+                                <span className="text-[10px] uppercase font-bold text-slate-400 block">Reference Range</span>
+                                <strong className="font-mono font-bold text-slate-700 dark:text-slate-300 text-xs block truncate">
+                                  {labItem.reference_range !== undefined && labItem.reference_range !== null && String(labItem.reference_range).trim() !== '' ? `${labItem.reference_range} ${labItem.unit || ''}`.trim() : 'Reference range not documented'}
+                                </strong>
+                              </div>
+
+                              <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 col-span-2 sm:col-span-1">
+                                <span className="text-[10px] uppercase font-bold text-slate-400 block">Unit</span>
+                                <strong className="font-mono font-bold text-slate-700 dark:text-slate-300 text-xs block truncate">
+                                  {labItem.unit || 'Not specified'}
+                                </strong>
+                              </div>
+                            </div>
+
+                            {/* CLINICAL SIGNIFICANCE FROM KNOWLEDGE BASE */}
+                            <div className="space-y-1 text-xs">
+                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                                Clinical Significance
+                              </span>
+                              <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed break-words bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200/80 dark:border-slate-800">
+                                {evalResult.significance}
+                              </p>
+                            </div>
+
+                            {/* CASE-SPECIFIC AI INTERPRETATION */}
+                            <div className="bg-cyan-50/60 dark:bg-cyan-950/30 p-3.5 rounded-lg border border-cyan-200/80 dark:border-cyan-800/80 space-y-1 text-xs leading-relaxed">
+                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-cyan-800 dark:text-cyan-300 block">
+                                AI Case-Specific Interpretation
+                              </span>
+                              <p className="text-slate-800 dark:text-slate-200 font-medium break-words">
+                                {evalResult.aiInterpretation}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
