@@ -76,7 +76,6 @@ export const PharmacistInterventionPDFPreviewModal = ({ isOpen, onClose, clinica
             documentTitle="Pharmacist Intervention Documentation"
             caseId={clinicalCase?.case_id}
             student={student}
-            clinicalCase={clinicalCase}
             pageNumber="1 of 2"
             showSignatures={false}
           >
@@ -148,7 +147,6 @@ export const PharmacistInterventionPDFPreviewModal = ({ isOpen, onClose, clinica
             documentTitle="Pharmacist Intervention Documentation (Continued)"
             caseId={clinicalCase?.case_id}
             student={student}
-            clinicalCase={clinicalCase}
             pageNumber="2 of 2"
             isLastPage={true}
           >

@@ -85,7 +85,6 @@ export const PatientCounsellingPDFPreviewModal = ({ isOpen, onClose, clinicalCas
             documentTitle="Patient Counselling Documentation"
             caseId={clinicalCase?.case_id}
             student={student}
-            clinicalCase={clinicalCase}
             pageNumber="1 of 2"
             showSignatures={false}
           >
@@ -144,7 +143,6 @@ export const PatientCounsellingPDFPreviewModal = ({ isOpen, onClose, clinicalCas
             documentTitle="Patient Counselling Documentation (Continued)"
             caseId={clinicalCase?.case_id}
             student={student}
-            clinicalCase={clinicalCase}
             pageNumber="2 of 2"
             isLastPage={true}
           >

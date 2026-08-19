@@ -9,7 +9,6 @@ export const PharmDVerseBrandedDocumentContainer = ({
   student,
   preceptor,
   preceptorName,
-  clinicalCase,
   children,
   pageNumber = '1 of 1',
   showSignatures = false,
@@ -336,26 +335,12 @@ export const PharmDVerseBrandedDocumentContainer = ({
             </div>
           )}
 
-          {/* FOOTER & APPROVED STATUS BAR */}
+          {/* FOOTER */}
           {shouldShowDocumentFooter && (
-            <div className="space-y-1.5 pt-3 border-t text-[10px] font-mono" style={{ borderColor: borderCol, color: secondaryColor }}>
-              <div className="flex justify-between items-center">
-                <span>{footerLeft} {showDateTime ? `• ${currentDateTimeStr}` : ''}</span>
-                <span>{footerCenter}</span>
-                <span>{showPageNum ? `Page ${pageNumber}` : ''}</span>
-              </div>
-
-              {/* APPROVED CASE METADATA FOOTER (STATUS, PRECEPTOR NAME, APPROVED DATE & TIME BESIDE / BELOW CASE ID) */}
-              <div className="flex flex-wrap justify-between items-center pt-1.5 border-t border-slate-200 dark:border-slate-800 text-[9px] font-mono text-emerald-800 dark:text-emerald-400 font-bold gap-2">
-                <span>CASE ID: {caseId || clinicalCase?.case_id || 'AMRMCP-2026-0001'}</span>
-                <span>STATUS: {String(clinicalCase?.overall_case_status || clinicalCase?.status || 'APPROVED').toUpperCase()}</span>
-                <span>APPROVED BY: {preceptor?.full_name || preceptorName || clinicalCase?.preceptor_name || student?.assigned_preceptor || 'FACULTY PRECEPTOR'}</span>
-                <span>APPROVED AT: {
-                  (clinicalCase?.approved_at || clinicalCase?.reviewed_at || clinicalCase?.updated_at)
-                    ? new Date(clinicalCase.approved_at || clinicalCase.reviewed_at || clinicalCase.updated_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
-                    : new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
-                }</span>
-              </div>
+            <div className="flex justify-between items-center pt-3 border-t text-[10px] font-mono" style={{ borderColor: borderCol, color: secondaryColor }}>
+              <span>{footerLeft} {showDateTime ? `• ${currentDateTimeStr}` : ''}</span>
+              <span>{footerCenter}</span>
+              <span>{showPageNum ? `Page ${pageNumber}` : ''}</span>
             </div>
           )}
 

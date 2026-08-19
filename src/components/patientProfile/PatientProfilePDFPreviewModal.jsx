@@ -96,7 +96,6 @@ export const PatientProfilePDFPreviewModal = ({ isOpen, onClose, clinicalCase, s
             documentTitle="PATIENT DOCUMENTATION FORM"
             caseId={clinicalCase?.case_id}
             student={student}
-            clinicalCase={clinicalCase}
             pageNumber="1 of 3"
             showSignatures={false}
           >
@@ -254,7 +253,6 @@ export const PatientProfilePDFPreviewModal = ({ isOpen, onClose, clinicalCase, s
             documentTitle="PATIENT DOCUMENTATION FORM (Continued)"
             caseId={clinicalCase?.case_id}
             student={student}
-            clinicalCase={clinicalCase}
             pageNumber="2 of 3"
             showSignatures={false}
           >
@@ -299,7 +297,6 @@ export const PatientProfilePDFPreviewModal = ({ isOpen, onClose, clinicalCase, s
             documentTitle="PATIENT DOCUMENTATION FORM (Continued)"
             caseId={clinicalCase?.case_id}
             student={student}
-            clinicalCase={clinicalCase}
             pageNumber="3 of 3"
             isLastPage={true}
           >
