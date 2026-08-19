@@ -1,39 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { FilePlus2, User, GraduationCap, Building2, Stethoscope, Calendar, Save, X, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { fetchStudentAssignedPreceptorFromSupabase, insertClinicalCaseToSupabase } from '../../services/supabaseService';
+import { supabase } from '../../lib/supabaseClient';
 import { SearchableSelect } from '../common/SearchableSelect';
 import { CLINICAL_DEPARTMENTS, CLINICAL_WARDS_UNITS } from '../../constants/clinicalMasterData';
+import { resolveCollegeHospitalOptions } from '../../utils/resolveCollegeHospitalOptions';
 
 export const AddNewCaseView = ({ student, onCancel, onSuccess }) => {
   const [caseId, setCaseId] = useState('');
   const [assignedPreceptor, setAssignedPreceptor] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const rawConfiguredHospital = student?.colleges?.hospital_name || student?.colleges?.hospitalName || student?.colleges?.primary_hospital_name || '';
-  
-  const getUniqueHospitals = (hospitalsList) => {
-    const seen = new Set();
-    const result = [];
-    hospitalsList.forEach((h) => {
-      if (!h) return;
-      const normalized = h
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, ' ')
-        .replace(/superspecialities/g, 'super specialities')
-        .replace(/super specialty/g, 'super specialities')
-        .replace(/superspecialty/g, 'super specialities');
-      if (!seen.has(normalized)) {
-        seen.add(normalized);
-        result.push(h.trim());
-      }
-    });
-    return result;
-  };
+  const initialOptions = resolveCollegeHospitalOptions(student?.colleges, student);
+  const [hospitalOptions, setHospitalOptions] = useState(initialOptions);
+  const [hospitalName, setHospitalName] = useState(initialOptions[0] || '');
 
-  const hospitalOptions = getUniqueHospitals([rawConfiguredHospital]);
-
-  const [hospitalName, setHospitalName] = useState(hospitalOptions[0] || rawConfiguredHospital || '');
   const [department, setDepartment] = useState('');
   const [wardUnit, setWardUnit] = useState('');
   const [ipOpType, setIpOpType] = useState('IP');
@@ -49,8 +30,28 @@ export const AddNewCaseView = ({ student, onCancel, onSuccess }) => {
       if (!student) return;
       setLoading(true);
 
-      const precRes = await fetchStudentAssignedPreceptorFromSupabase(student.id);
+      const collegeId = student.college_id || student?.colleges?.id;
+      let fetchedCollege = student?.colleges || null;
+
+      // Fetch preceptor and complete college data from Supabase in parallel
+      const [precRes, colRes] = await Promise.all([
+        fetchStudentAssignedPreceptorFromSupabase(student.id),
+        collegeId ? supabase.from('colleges').select('*').eq('id', collegeId).maybeSingle() : Promise.resolve({ data: null })
+      ]);
+
       if (precRes.success && precRes.data) setAssignedPreceptor(precRes.data);
+
+      if (colRes?.data) {
+        fetchedCollege = { ...fetchedCollege, ...colRes.data };
+      }
+
+      const resolvedOpts = resolveCollegeHospitalOptions(fetchedCollege, student);
+      setHospitalOptions(resolvedOpts);
+      if (resolvedOpts.length > 0 && !hospitalName) {
+        setHospitalName(resolvedOpts[0]);
+      } else if (resolvedOpts.length > 0 && !resolvedOpts.includes(hospitalName)) {
+        setHospitalName(resolvedOpts[0]);
+      }
 
       setLoading(false);
     };

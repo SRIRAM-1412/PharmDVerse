@@ -147,8 +147,17 @@ export const SearchableSelect = ({
           {/* OPTIONS LIST */}
           <div className="max-h-60 overflow-y-auto p-1.5 space-y-1 text-xs">
             {filteredOptions.length === 0 ? (
-              <div className="py-4 text-center text-slate-400 font-medium">
-                No matching options found.
+              <div className="py-4 px-3 text-center space-y-2">
+                <p className="text-slate-400 font-medium text-xs">No matching options found.</p>
+                {searchQuery.trim() !== '' && (
+                  <button
+                    type="button"
+                    onClick={() => handleSelect(searchQuery.trim())}
+                    className="w-full py-2 px-3 text-xs font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/80 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded-xl transition-colors border border-emerald-300 dark:border-emerald-700"
+                  >
+                    + Use &quot;{searchQuery.trim()}&quot;
+                  </button>
+                )}
               </div>
             ) : hasCategories ? (
               // CATEGORIZED RENDERING
