@@ -1354,11 +1354,11 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                               </span>
                             </div>
 
-                            {/* RESULT & REFERENCE RANGE GRID */}
+                            {/* RESULT & REFERENCE RANGE GRID (ORDER: ACTUAL RESULT -> UNIT -> REFERENCE RANGE) */}
                             {(() => {
                               const fetchedUnit = extractLabUnit(labItem);
                               return (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                                   <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
                                     <span className="text-[10px] uppercase font-bold text-slate-400 block">Actual Result</span>
                                     <strong className="font-mono font-extrabold text-slate-900 dark:text-white text-xs block truncate">
@@ -1367,16 +1367,16 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                                   </div>
 
                                   <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
-                                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Reference Range</span>
-                                    <strong className="font-mono font-bold text-slate-700 dark:text-slate-300 text-xs block truncate">
-                                      {labItem.reference_range !== undefined && labItem.reference_range !== null && String(labItem.reference_range).trim() !== '' ? String(labItem.reference_range).trim() : 'Reference range not documented'}
-                                    </strong>
-                                  </div>
-
-                                  <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 col-span-2 sm:col-span-1">
                                     <span className="text-[10px] uppercase font-bold text-slate-400 block">Unit</span>
                                     <strong className="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-xs block truncate">
                                       {fetchedUnit}
+                                    </strong>
+                                  </div>
+
+                                  <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
+                                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Reference Range</span>
+                                    <strong className="font-mono font-bold text-slate-700 dark:text-slate-300 text-xs block truncate">
+                                      {labItem.reference_range !== undefined && labItem.reference_range !== null && String(labItem.reference_range).trim() !== '' ? String(labItem.reference_range).trim() : 'Reference range not documented'}
                                     </strong>
                                   </div>
                                 </div>
