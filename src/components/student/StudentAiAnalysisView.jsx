@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { fetchStudentCasesFromSupabase, fetchCaseModuleStatusesFromSupabase } from '../../services/supabaseService';
 import { buildNormalizedApprovedCaseData } from '../../utils/buildNormalizedApprovedCaseData';
+import { resolveClinicalEntityKnowledge } from '../../services/clinicalKnowledgeService';
+import { evaluatePairwiseDrugInteraction, runAiClinicalCaseAnalysis } from '../../services/aiAnalysisService';
 
 /**
  * Helper to determine if a form object has SAVED/PERSISTED data in Supabase for the selected case.
@@ -167,307 +169,46 @@ const BRAND_GENERIC_REGISTRY = {
 
 /**
  * Dynamic Medication Evaluator helper.
- * Retrieves verified drug-specific information (Drug Class, Established Use, MOA, Monitoring, Dosing)
- * from authoritative pharmacopoeia registry without generic templates.
+ * Delegates to Clinical Knowledge Retrieval Service for drug identity resolution & verified knowledge.
  */
 const getMedicationSpecificAnalysis = (drug) => {
   const trade = String(drug.trade_name || '').replace(/^—$/, '').trim();
   const generic = String(drug.generic_name || '').replace(/^—$/, '').trim();
-  const rawInput = `${generic} ${trade}`.trim();
-  const name = rawInput.toLowerCase();
-  const cleanName = name.replace(/[^a-z0-9]/g, '');
+  const rawInput = `${generic} ${trade}`.trim() || 'Prescribed Medication';
 
-  const tradeLower = trade.toLowerCase();
-  const genericLower = generic.toLowerCase();
-  const cleanTrade = tradeLower.replace(/[^a-z0-9]/g, '');
-  const cleanGeneric = genericLower.replace(/[^a-z0-9]/g, '');
+  const knowledge = resolveClinicalEntityKnowledge(rawInput);
 
-  // Check direct registry entry across trade, generic, combined string, or clean tokens
-  let matchedKey = Object.keys(BRAND_GENERIC_REGISTRY).find(k => {
-    const cleanK = k.replace(/[^a-z0-9]/g, '');
-    return (
-      (tradeLower && (tradeLower === k || cleanTrade === cleanK || tradeLower.includes(k))) ||
-      (genericLower && (genericLower === k || cleanGeneric === cleanK || genericLower.includes(k))) ||
-      name.includes(k) ||
-      cleanName.includes(cleanK)
-    );
-  });
-
-  if (matchedKey) {
-    const entry = BRAND_GENERIC_REGISTRY[matchedKey];
-    return {
-      originalEntry: rawInput,
-      recognizedEntryType: entry.type,
-      resolvedGeneric: entry.generic,
-      brandName: entry.brand,
-      drugClass: entry.class,
-      establishedUse: entry.use,
-      mechanismOfAction: entry.moa,
-      monitoringAdvice: entry.mon,
-      formularyDose: entry.dose,
-      isVerified: true,
-      needsVerificationBanner: false
-    };
-  }
-
-  // Smart Stem Matcher for recognized pharmacological drug families
-  const stems = [
-    // CNS, Antidepressants & Anxiolytics
-    { stem: 'triptyline', cls: 'Tricyclic Antidepressant (TCA) — Serotonin & Norepinephrine Reuptake Inhibitor', use: 'Major depressive disorder, neuropathic pain management, and migraine prophylaxis.', moa: 'Inhibits presynaptic reuptake of serotonin (5-HT) and norepinephrine (NE) in CNS synapses; also blocks peripheral alpha-1, histamine H1, and muscarinic M1 receptors.', mon: 'Monitor ECG/cardiac conduction (QTc interval, QRS duration), blood pressure, anticholinergic side effects (dry mouth, constipation, sedation), and therapeutic response.', dose: '25 mg – 75 mg Oral HS' },
-    { stem: 'pramine', cls: 'Tricyclic Antidepressant (TCA)', use: 'Major depressive disorder, enuresis, and chronic neuropathic pain.', moa: 'Inhibits presynaptic reuptake of serotonin and norepinephrine in CNS neurons.', mon: 'Monitor cardiac ECG, blood pressure, and anticholinergic tolerance.', dose: '25 mg – 75 mg Oral HS' },
-    { stem: 'xetine', cls: 'Selective Serotonin Reuptake Inhibitor (SSRI)', use: 'Major depressive disorder, generalized anxiety disorder, and OCD.', moa: 'Selectively inhibits presynaptic serotonin transporter (SERT), enhancing central serotonergic neurotransmission.', mon: 'Monitor for suicidal ideation in early therapy, serotonin syndrome signs, hyponatremia/SIADH, and GI tolerance.', dose: '20 mg Oral QD' },
-    { stem: 'lopram', cls: 'Selective Serotonin Reuptake Inhibitor (SSRI)', use: 'Major depressive disorder and panic disorder.', moa: 'Selectively inhibits presynaptic serotonin transporter (SERT) in CNS neurons.', mon: 'Monitor QTc interval (dose-dependent restriction for Citalopram), suicidal ideation, and mood response.', dose: '10 mg – 20 mg Oral QD' },
-    { stem: 'traline', cls: 'Selective Serotonin Reuptake Inhibitor (SSRI)', use: 'Major depressive disorder, panic disorder, PTSD, and social anxiety disorder.', moa: 'Selectively inhibits neuronal serotonin reuptake (SERT).', mon: 'Monitor mood response, suicidal ideation, and GI symptoms.', dose: '50 mg Oral QD' },
-    { stem: 'faxine', cls: 'Serotonin-Norepinephrine Reuptake Inhibitor (SNRI)', use: 'Major depressive disorder, generalized anxiety disorder, and panic disorder.', moa: 'Potently inhibits neuronal reuptake of serotonin and norepinephrine in CNS synapses.', mon: 'Monitor blood pressure (dose-dependent elevation), heart rate, and mood response.', dose: '75 mg Oral QD' },
-    { stem: 'zepam', cls: 'Benzodiazepine (GABA-A Receptor Positive Allosteric Modulator)', use: 'Anxiety disorders, panic disorder, acute muscle spasm, and seizure disorders.', moa: 'Binds to Benzodiazepine site on central GABA-A receptors, enhancing GABA-mediated chloride influx and neuronal hyperpolarization.', mon: 'Monitor CNS depression/sedation, respiratory rate, cognitive function, habituation risk, and fall risk in elderly.', dose: '0.5 mg – 2 mg Oral BID-TID' },
-    { stem: 'zolam', cls: 'Benzodiazepine (GABA-A Receptor Positive Allosteric Modulator)', use: 'Short-term management of acute anxiety and panic disorder.', moa: 'Enhances GABA-A receptor chloride channel opening frequency, causing central neuronal inhibition.', mon: 'Monitor CNS sedation, cognitive impairment, and withdrawal upon discontinuation.', dose: '0.25 mg – 0.5 mg Oral TID' },
-
-    // Cardiovascular, Renin-Angiotensin & Lipids
-    { stem: 'nitr', cls: 'Organic Nitrate Vasodilator (Antianginal Agent)', use: 'Acute relief and prophylaxis of angina pectoris, myocardial ischemia, and acute coronary syndromes.', moa: 'Releases free Nitric Oxide (NO) in vascular smooth muscle, stimulating soluble guanylyl cyclase to increase cGMP and induce peripheral venodilation.', mon: 'Monitor blood pressure (watch for acute hypotension), resting heart rate, and headache.', dose: 'Prescribed per clinical order' },
-    { stem: 'sorb', cls: 'Organic Nitrate Antianginal Vasodilator', use: 'Prevention and treatment of angina pectoris.', moa: 'Relaxes vascular smooth muscle via Nitric Oxide release, reducing cardiac pre- and afterload.', mon: 'Monitor blood pressure and orthostatic dizziness.', dose: 'Prescribed per clinical order' },
-    { stem: 'iazem', cls: 'Benzothiazepine Non-Dihydropyridine Calcium Channel Blocker (Class IV Antiarrhythmic)', use: 'Essential hypertension, angina pectoris, and rate control in atrial fibrillation / flutter.', moa: 'Inhibits transmembrane calcium influx in nodal cardiac tissue and vascular smooth muscle, slowing SA/AV node conduction.', mon: 'Monitor resting heart rate, blood pressure, and ECG PR interval.', dose: '30 mg – 60 mg Oral TID or 120 mg – 240 mg SR QD' },
-    { stem: 'sartan', cls: 'Angiotensin II Receptor Blocker (ARB / AT1 Receptor Antagonist)', use: 'Essential hypertension, heart failure, and diabetic nephropathy.', moa: 'Selectively blocks vascular AT1 angiotensin II receptors, inhibiting vasoconstriction and aldosterone secretion.', mon: 'Monitor blood pressure, serum creatinine, and serum potassium.', dose: '40 mg Oral QD' },
-    { stem: 'pril', cls: 'ACE Inhibitor (Angiotensin-Converting Enzyme Inhibitor)', use: 'Hypertension, chronic heart failure, post-MI, and diabetic nephropathy.', moa: 'Inhibits Angiotensin-Converting Enzyme, blocking conversion of Angiotensin I to Angiotensin II and inhibiting bradykinin degradation.', mon: 'Monitor blood pressure, serum creatinine, serum potassium, and watch for dry cough or angioedema.', dose: '10 mg – 20 mg Oral QD' },
-    { stem: 'statin', cls: 'HMG-CoA Reductase Inhibitor (Statin)', use: 'Hypercholesterolemia, primary & secondary cardiovascular disease prevention.', moa: 'Competitively inhibits rate-limiting HMG-CoA reductase in hepatic cholesterol biosynthesis.', mon: 'Monitor lipid panel, baseline LFTs (ALT/AST), and report unexplained muscle pain/myopathy.', dose: '20 mg Oral QD' },
-    { stem: 'olol', cls: 'Beta-Adrenoceptor Antagonist (Beta-Blocker)', use: 'Hypertension, angina pectoris, tachyarrhythmias, and post-MI.', moa: 'Competitively blocks cardiac Beta-1 adrenergic receptors, decreasing heart rate and contractility.', mon: 'Monitor resting heart rate (hold if HR < 50 bpm) and blood pressure.', dose: '50 mg Oral BID' },
-    { stem: 'dipine', cls: 'Dihydropyridine Calcium Channel Blocker (L-type CCB)', use: 'Essential hypertension and chronic stable angina.', moa: 'Inhibits L-type voltage-gated calcium influx into vascular smooth muscle cells, inducing peripheral arterial vasodilation.', mon: 'Monitor blood pressure, resting heart rate, and peripheral ankle edema.', dose: '5 mg Oral QD' },
-
-    // Gastrointestinal & Endocrine
-    { stem: 'prazole', cls: 'Proton Pump Inhibitor (Gastric H+/K+-ATPase Inhibitor)', use: 'Gastroesophageal Reflux Disease (GERD), peptic ulcer disease, stress ulcer prophylaxis, and H. pylori eradication.', moa: 'Covalently binds cysteine residues on parietal cell H+/K+-ATPase proton pump, inhibiting final step of gastric acid secretion.', mon: 'Re-evaluate ongoing indication. Monitor serum magnesium, B12, and GI symptom control in long-term therapy.', dose: '40 mg Oral QD' },
-    { stem: 'tidine', cls: 'H2-Receptor Antagonist (Histamine H2 Blocker)', use: 'GERD, peptic ulcer disease, and gastric acid hypersecretion.', moa: 'Competitively inhibits histamine H2 receptors on parietal cells, suppressing gastric acid secretion.', mon: 'Monitor GI symptom control and adjust dose in renal impairment.', dose: '150 mg Oral BID' },
-    { stem: 'setron', cls: '5-HT3 Receptor Antagonist Antiemetic', use: 'Prevention and treatment of chemotherapy-induced, radiation-induced, and postoperative nausea and vomiting.', moa: 'Selectively antagonizes 5-HT3 receptors peripherally on vagal nerve terminals and centrally in the chemoreceptor trigger zone (CTZ).', mon: 'Monitor bowel function (constipation) and QTc interval in high-risk patients.', dose: '4 mg – 8 mg Oral/IV Q8H' },
-    { stem: 'flozin', cls: 'SGLT2 Inhibitor (Sodium-Glucose Co-Transporter 2 Inhibitor)', use: 'Type 2 Diabetes Mellitus, HFrEF, and chronic kidney disease.', moa: 'Inhibits renal proximal tubule SGLT2 transporters, promoting urinary glucose and sodium excretion.', mon: 'Monitor renal function (eGFR), hydration status, blood pressure, and fungal genital infections.', dose: '10 mg Oral QD' },
-    { stem: 'gliptin', cls: 'DPP-4 Inhibitor (Dipeptidyl Peptidase-4 Inhibitor)', use: 'Type 2 Diabetes Mellitus.', moa: 'Inhibits DPP-4 enzyme, preventing degradation of incretin hormones (GLP-1/GIP) to stimulate glucose-dependent insulin secretion.', mon: 'Monitor HbA1c, blood glucose, renal function, and report severe joint or abdominal pain.', dose: '100 mg Oral QD' },
-
-    // Antimicrobials, Antimalarials, Respiratory & Corticosteroids
-    { stem: 'quine', cls: '4-Aminoquinoline / Cinchona Antimalarial & DMARD', use: 'Treatment and prophylaxis of plasmodial malaria infections, hepatic amebiasis, and autoimmune rheumatic conditions.', moa: 'Inhibits parasitic heme polymerization in erythrocytes, causing toxic accumulation of unpolymerized heme that lyses parasite membranes.', mon: 'Monitor blood parasite clearance, CBC, baseline visual acuity/retinal maculopathy, and ECG.', dose: 'Standard adult prescribing per indication' },
-    { stem: 'cillin', cls: 'Penicillin Beta-Lactam Antibiotic', use: 'Bacterial skin, soft tissue, upper/lower respiratory tract infections, and endocarditis.', moa: 'Binds to penicillin-binding proteins (PBPs), inhibiting bacterial cell wall peptidoglycan cross-linking.', mon: 'Monitor fever resolution, WBC count, and watch for hypersensitivity/anaphylaxis.', dose: '500 mg Oral Q8H' },
-    { stem: 'cef', cls: 'Cephalosporin Antibiotic', use: 'Upper/lower respiratory tract, urinary, skin/soft tissue, or systemic bacterial infections.', moa: 'Binds PBPs on bacterial cell walls, inhibiting peptidoglycan synthesis.', mon: 'Monitor infection resolution parameters, renal function, and CBC.', dose: '500 mg Oral Q12H' },
-    { stem: 'mycin', cls: 'Macrolide / Aminoglycoside Antibacterial', use: 'Bacterial respiratory, systemic, or GI infections.', moa: 'Binds to bacterial ribosomal subunits (50S/30S), inhibiting protein translation.', mon: 'Monitor infection clearance, CBC, renal and hepatic function.', dose: 'Standard adult prescribing per indication' },
-    { stem: 'floxacin', cls: 'Fluoroquinolone Antibacterial (DNA Gyrase & Topoisomerase IV Inhibitor)', use: 'Complicated UTI, pyelonephritis, severe respiratory, and intra-abdominal infections.', moa: 'Inhibits bacterial DNA gyrase (topoisomerase II) and topoisomerase IV, preventing bacterial DNA replication.', mon: 'Monitor infection clearance, tendon pain/tendonitis, QTc interval, and blood glucose fluctuations.', dose: '500 mg Oral Q12H' },
-    { stem: 'capone', cls: 'COMT (Catechol-O-Methyltransferase) Inhibitor', use: 'Adjunctive treatment to Levodopa for motor fluctuations in Parkinson\'s Disease.', moa: 'Reversibly inhibits peripheral COMT, prolonging Levodopa half-life and CNS bioavailability.', mon: 'Monitor for levodopa-potentiated dyskinesias, orthostatic BP, and harmless urine discoloration.', dose: '200 mg Oral per Levodopa dose' },
-    { stem: 'giline', cls: 'MAO-B (Monoamine Oxidase Type B) Inhibitor', use: 'Parkinson\'s Disease monotherapy or adjunctive therapy.', moa: 'Irreversibly inhibits CNS Monoamine Oxidase B, retarding dopamine breakdown in striatum.', mon: 'Monitor motor control, blood pressure, and sleep parameters.', dose: '5 mg – 10 mg Oral QD' },
-    { stem: 'pexole', cls: 'Non-Ergot Dopamine Receptor Agonist', use: 'Idiopathic Parkinson\'s Disease and Restless Legs Syndrome.', moa: 'Stimulates dopamine D2/D3 receptors in the striatum.', mon: 'Monitor for somnolence, impulse control disorders, and dyskinesias.', dose: '0.125 mg – 1 mg Oral TID' },
-    { stem: 'sone', cls: 'Glucocorticoid Anti-Inflammatory & Immunosuppressive Agent', use: 'Inflammatory, allergic, autoimmune conditions, and acute exacerbations.', moa: 'Binds intracellular glucocorticoid receptors, modulating gene expression to suppress pro-inflammatory cytokines.', mon: 'Monitor blood pressure, blood glucose, electrolytes, and signs of infection.', dose: 'Prescribed per clinical indication' },
-    { stem: 'pred', cls: 'Systemic Corticosteroid / Anti-Inflammatory Agent', use: 'Severe inflammatory, rheumatic, and allergic disorders.', moa: 'Suppresses inflammatory cascade by inhibiting cytokine synthesis and leukocyte migration.', mon: 'Monitor blood pressure, glucose, and serum potassium.', dose: 'Prescribed per clinical indication' },
-    { stem: 'fenac', cls: 'NSAID — Cyclooxygenase (COX-1/COX-2) Inhibitor', use: 'Rheumatoid arthritis, osteoarthritis, ankylosing spondylitis, and acute painful conditions.', moa: 'Inhibits cyclooxygenase enzymes, blocking systemic prostaglandin synthesis.', mon: 'Monitor renal function, blood pressure, and GI mucosa tolerance.', dose: '50 mg Oral BID' },
-    { stem: 'profen', cls: 'NSAID — Propionic Acid Derivative', use: 'Mild-to-moderate pain, fever, and inflammatory joint disease.', moa: 'Reversibly inhibits COX-1 and COX-2 enzymes.', mon: 'Monitor GI tolerance, renal parameters, and BP.', dose: '400 mg Oral TID' },
-    { stem: 'mab', cls: 'Monoclonal Antibody Immunomodulator / Biologic Agent', use: 'Targeted biological therapy for autoimmune diseases or oncological indications.', moa: 'Selectively binds targeted cytokine receptors, cell surface markers, or circulating proteins.', mon: 'Monitor complete blood count, infusion reactions, and infection markers.', dose: 'Prescribed per protocol' },
-    { stem: 'nib', cls: 'Targeted Small Molecule / Tyrosine Kinase Inhibitor', use: 'Targeted antineoplastic or immunosuppressive therapy.', moa: 'Inhibits specific intracellular protein kinases involved in cell proliferation signaling pathways.', mon: 'Monitor CBC, LFTs, ECG, and specific organ toxicities.', dose: 'Prescribed per oncology protocol' }
-  ];
-
-  const matchedStem = stems.find(s => name.includes(s.stem) || cleanName.includes(s.stem));
-  if (matchedStem) {
-    const inferredGeneric = (generic || trade || 'Identified Pharmacotherapy').toUpperCase();
-    return {
-      originalEntry: rawInput,
-      recognizedEntryType: 'Pharmacological Family Recognized',
-      resolvedGeneric: inferredGeneric,
-      brandName: trade !== '—' ? trade : null,
-      drugClass: matchedStem.cls,
-      establishedUse: matchedStem.use,
-      mechanismOfAction: matchedStem.moa,
-      monitoringAdvice: matchedStem.mon,
-      formularyDose: matchedStem.dose,
-      isVerified: true,
-      needsVerificationBanner: false
-    };
-  }
-
-  // Dynamic Pharmacotherapy Resolver for Any Newly Entered Valid Medication
-  const candidate = (generic !== '—' && generic ? generic : trade !== '—' && trade ? trade : rawInput).trim();
-  const isJunkOrAmbiguous = !candidate || candidate.length < 3 || /^\d+$/.test(candidate) || /^[?#!@$%^&*()]+$/.test(candidate);
-
-  if (!isJunkOrAmbiguous) {
-    const drugTitle = candidate.charAt(0).toUpperCase() + candidate.slice(1);
-    return {
-      originalEntry: rawInput,
-      recognizedEntryType: 'Prescribed Pharmacotherapeutic Agent',
-      resolvedGeneric: drugTitle,
-      brandName: trade !== '—' && trade.toLowerCase() !== generic.toLowerCase() ? trade : null,
-      drugClass: `${drugTitle} — Pharmacotherapeutic Agent`,
-      establishedUse: `Treatment and therapeutic management of documented clinical condition in accordance with established clinical pharmacotherapy guidelines for ${drugTitle}.`,
-      mechanismOfAction: `Exerts specific receptor binding, enzymatic inhibition, or cellular physiological actions characteristic of ${drugTitle} as documented in clinical pharmacopoeia references.`,
-      monitoringAdvice: `Monitor clinical therapeutic response, vital signs, organ function parameters (renal/hepatic clearance), and clinical tolerance for ${drugTitle}.`,
-      formularyDose: `Prescribed per clinical order; verify individual patient dosing strength against authoritative drug reference.`,
-      isVerified: true,
-      needsVerificationBanner: false
-    };
-  }
-
-  // Ambiguous / Unrecognized Entry Fallback
   return {
     originalEntry: rawInput,
-    recognizedEntryType: 'Clinical Verification Required',
-    resolvedGeneric: candidate || 'Unverified Entry',
-    brandName: trade !== '—' && trade.toLowerCase() !== generic.toLowerCase() ? trade : null,
-    drugClass: 'Unverified Pharmacotherapy Entry',
-    establishedUse: 'Specific information could not be confidently retrieved for this entry. Please verify the clinical entity and consult an appropriate clinical reference.',
-    mechanismOfAction: 'Specific information could not be confidently retrieved for this entry. Please verify the clinical entity against an authoritative drug reference.',
-    monitoringAdvice: 'Verify medication identity and dosing guidelines against clinical reference before evaluating monitoring parameters.',
-    formularyDose: 'Drug-specific dosing information could not be confidently retrieved. Verify against applicable clinical reference.',
-    isVerified: false,
-    needsVerificationBanner: true,
-    possibleMatch: null
+    recognizedEntryType: knowledge.isVerified ? 'Prescribed Pharmacotherapeutic Agent' : 'Clinical Verification Required',
+    resolvedGeneric: knowledge.displayTitle || generic || trade || 'Pharmacotherapy Entry',
+    brandName: trade && trade !== '—' && trade.toLowerCase() !== (generic || '').toLowerCase() ? trade : (knowledge.brandName || null),
+    drugClass: knowledge.drugClass,
+    establishedUse: knowledge.establishedUses,
+    mechanismOfAction: knowledge.mechanismOfAction,
+    monitoringAdvice: knowledge.monitoringAdvice,
+    formularyDose: knowledge.formularyDose,
+    isVerified: knowledge.isVerified,
+    needsVerificationBanner: knowledge.needsVerificationBanner,
+    sourceReferences: knowledge.sourceReferences
   };
 };
 
 /**
  * Dynamic Pairwise Drug-Drug Interaction Evaluator.
- * Evaluates verified interactions between specific pairs of documented drugs.
+ * Delegates to AI Analysis Service for independent pairwise drug interaction evaluations.
  */
 const getPairSpecificInteraction = (drug1, drug2) => {
-  const d1Info = getMedicationSpecificAnalysis(drug1);
-  const d2Info = getMedicationSpecificAnalysis(drug2);
-
-  const d1Name = (d1Info.resolvedGeneric || drug1.generic_name || drug1.trade_name).toLowerCase();
-  const d2Name = (d2Info.resolvedGeneric || drug2.generic_name || drug2.trade_name).toLowerCase();
-
-  const title1 = d1Info.resolvedGeneric || drug1.trade_name || drug1.generic_name;
-  const title2 = d2Info.resolvedGeneric || drug2.trade_name || drug2.generic_name;
-  const pairTitle = `${title1} + ${title2}`;
-
-  // If either drug identity in pair cannot be verified (Requirement 11)
-  if (!d1Info.isVerified || !d2Info.isVerified) {
-    return {
-      pairTitle,
-      hasInteraction: false,
-      isUncertain: true,
-      severity: 'Verification Required',
-      mechanism: 'Drug-pair-specific interaction information could not be confidently established. Please verify the medication identities and consult an appropriate drug-information reference.',
-      clinicalSignificance: 'Medication identity requires clinical verification before evaluating drug-drug interaction parameters.',
-      managementConsideration: 'Verify original prescription orders against patient medical record.'
-    };
-  }
-
-  const isPair = (kw1, kw2) => (d1Name.includes(kw1) && d2Name.includes(kw2)) || (d1Name.includes(kw2) && d2Name.includes(kw1));
-
-  // Digoxin + Pantoprazole
-  if (isPair('digoxin', 'pantoprazole')) {
-    return {
-      pairTitle,
-      hasInteraction: true,
-      isUncertain: false,
-      severity: 'Moderate / Electrolyte Monitoring Required',
-      mechanism: 'Long-term Pantoprazole PPI therapy may decrease intestinal absorption of Magnesium and Potassium. Hypomagnesemia and hypokalemia sensitize myocardial Na+/K+-ATPase to Digoxin, increasing Digoxin toxicity risk.',
-      clinicalSignificance: 'Elevated risk of Digoxin-induced cardiac arrhythmias in the presence of PPI-induced electrolyte depletion.',
-      managementConsideration: 'Monitor serum Potassium and Magnesium levels periodically. Monitor serum Digoxin concentrations and ECG rhythm.'
-    };
-  }
-
-  // Digoxin + Phenytoin
-  if (isPair('digoxin', 'phenytoin')) {
-    return {
-      pairTitle,
-      hasInteraction: true,
-      isUncertain: false,
-      severity: 'Moderate / Pharmacokinetic Interaction',
-      mechanism: 'Phenytoin induces P-glycoprotein (P-gp) intestinal/renal efflux transporters and hepatic clearance pathways, decreasing serum Digoxin AUC and trough concentrations.',
-      clinicalSignificance: 'Potential reduction in therapeutic efficacy of Digoxin (sub-therapeutic ventricular rate control or heart failure symptom control).',
-      managementConsideration: 'Monitor serum Digoxin levels closely upon initiation or discontinuation of Phenytoin. Adjust Digoxin dosage based on therapeutic drug monitoring.'
-    };
-  }
-
-  // Digoxin + Furosemide
-  if (isPair('digoxin', 'furosemide')) {
-    return {
-      pairTitle,
-      hasInteraction: true,
-      isUncertain: false,
-      severity: 'High / Severe Electrolyte Toxicity Risk',
-      mechanism: 'Furosemide loop diuresis promotes renal excretion of Potassium and Magnesium. Hypokalemia markedly increases myocardial binding of Digoxin to Na+/K+-ATPase pumps.',
-      clinicalSignificance: 'High risk of fatal Digoxin cardiac arrhythmias (ventricular ectopy, AV block, VT/VF).',
-      managementConsideration: 'Monitor serum Potassium and Magnesium closely. Co-prescribe oral Potassium supplements or Potassium-sparing diuretics to maintain serum K+ > 4.0 mEq/L.'
-    };
-  }
-
-  // Digoxin + Azithromycin
-  if (isPair('digoxin', 'azithromycin')) {
-    return {
-      pairTitle,
-      hasInteraction: true,
-      isUncertain: false,
-      severity: 'Moderate to High / Bioavailability Increase',
-      mechanism: 'Azithromycin inhibits P-glycoprotein efflux in the gut wall, increasing systemic oral absorption and serum AUC of Digoxin. Both agents can also prolong QTc interval.',
-      clinicalSignificance: 'Elevated serum Digoxin concentrations leading to toxicity; potential additive cardiac conduction effects.',
-      managementConsideration: 'Monitor serum Digoxin concentrations during antibiotic co-therapy. Monitor ECG and heart rate.'
-    };
-  }
-
-  // Digoxin + Levocetirizine
-  if (isPair('digoxin', 'levocetirizine')) {
-    return {
-      pairTitle,
-      hasInteraction: false,
-      isUncertain: false,
-      severity: 'No Clinically Significant Interaction',
-      mechanism: 'No direct metabolic, CYP450 enzyme, P-glycoprotein, or receptor-level interaction documented between Digoxin and Levocetirizine in standard pharmacopoeia references.',
-      clinicalSignificance: 'Co-administration is considered clinically compatible.',
-      managementConsideration: 'Continue standard clinical monitoring for each medication individually.'
-    };
-  }
-
-  // Levodopa + Haloperidol / Metoclopramide
-  if (isPair('levodopa', 'haloperidol') || isPair('levodopa', 'olanzapine')) {
-    return {
-      pairTitle,
-      hasInteraction: true,
-      isUncertain: false,
-      severity: 'Severe / Antagonistic Interaction',
-      mechanism: 'Antipsychotics block central striatal Dopamine D2 receptors, directly antagonizing the antiparkinsonian therapeutic effects of Levodopa.',
-      clinicalSignificance: 'Severe exacerbation of parkinsonian motor symptoms (rigidity, bradykinesia, tremor).',
-      managementConsideration: 'Avoid D2 receptor antagonists in patients taking Levodopa. Use Quetiapine or Clozapine if antipsychotic is mandatory.'
-    };
-  }
-
-  // Aspirin + Clopidogrel
-  if (isPair('aspirin', 'clopidogrel')) {
-    return {
-      pairTitle,
-      hasInteraction: true,
-      isUncertain: false,
-      severity: 'High / Dual Antiplatelet Bleeding Risk',
-      mechanism: 'Additive antiplatelet effect via COX-1 inhibition (Aspirin) and P2Y12 ADP receptor blockade (Clopidogrel).',
-      clinicalSignificance: 'Substantially increased risk of major gastrointestinal mucosal bleeding and systemic hemorrhages.',
-      managementConsideration: 'Ensure dual antiplatelet therapy (DAPT) is strictly indicated per clinical guidelines. Co-prescribe PPI gastroprotection.'
-    };
-  }
-
-  // Metformin + Pantoprazole
-  if (isPair('metformin', 'pantoprazole')) {
-    return {
-      pairTitle,
-      hasInteraction: true,
-      isUncertain: false,
-      severity: 'Minor / Long-Term B12 Monitoring',
-      mechanism: 'Long-term PPI acid suppression reduces gastric cleavage of dietary Vitamin B12; Metformin also reduces B12 absorption at the terminal ileum.',
-      clinicalSignificance: 'Additive long-term risk of Vitamin B12 deficiency and megaloblastic anemia / peripheral neuropathy.',
-      managementConsideration: 'Monitor serum Vitamin B12 levels annually in patients on chronic co-therapy.'
-    };
-  }
-
-  // Telmisartan + Aspirin
-  if (isPair('telmisartan', 'aspirin')) {
-    return {
-      pairTitle,
-      hasInteraction: true,
-      isUncertain: false,
-      severity: 'Moderate / Renal Hemodynamic Interaction',
-      mechanism: 'NSAIDs/Aspirin inhibit renal prostaglandin synthesis (vasodilatory tone at afferent arteriole), while ARBs (Telmisartan) inhibit Angiotensin II efferent arteriole constriction, reducing GFR.',
-      clinicalSignificance: 'Potential blunting of antihypertensive response and increased risk of acute renal function decline in volume-depleted patients.',
-      managementConsideration: 'Monitor blood pressure, serum creatinine, and serum potassium. Maintain adequate hydration.'
-    };
-  }
-
-  // Default output for pair with no documented interaction (Requirement 10 & 26)
+  const inter = evaluatePairwiseDrugInteraction(drug1, drug2);
   return {
-    pairTitle,
-    hasInteraction: false,
+    pairTitle: inter.pairTitle,
+    hasInteraction: inter.hasInteraction,
     isUncertain: false,
-    severity: 'No Clinically Significant Interaction Identified',
-    mechanism: `No documented pharmacokinetic (CYP450 enzyme, P-gp, renal transporter) or pharmacodynamic (receptor-level) interaction between ${title1} and ${title2} in standard pharmacopoeia references.`,
-    clinicalSignificance: `Co-administration of ${title1} and ${title2} is considered clinically compatible based on available drug-information literature.`,
-    managementConsideration: 'Continue standard clinical monitoring for each medication individually.'
+    severity: inter.severity,
+    mechanism: inter.mechanism,
+    clinicalSignificance: inter.clinicalSignificance,
+    managementConsideration: inter.managementConsideration,
+    source: inter.source
   };
 };
 
