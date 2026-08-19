@@ -369,6 +369,124 @@ const generateFactualCaseSummary = (norm) => {
 };
 
 /**
+ * Helper to calculate or verify BMI from height (cm) and weight (kg).
+ */
+const calculateOrVerifyBmi = (rawHeight, rawWeight, rawBmi) => {
+  const hCm = parseFloat(String(rawHeight || '').replace(/[^0-9.]/g, ''));
+  const wKg = parseFloat(String(rawWeight || '').replace(/[^0-9.]/g, ''));
+  const existingBmi = parseFloat(String(rawBmi || '').replace(/[^0-9.]/g, ''));
+
+  if (!isNaN(wKg) && !isNaN(hCm) && hCm > 0) {
+    const hM = hCm / 100;
+    const calcBmi = (wKg / (hM * hM)).toFixed(1);
+    return {
+      bmiVal: calcBmi,
+      bmiStr: `${calcBmi} kg/m²`,
+      heightStr: `${hCm} cm`,
+      weightStr: `${wKg} kg`
+    };
+  }
+
+  if (!isNaN(existingBmi) && existingBmi > 0) {
+    return {
+      bmiVal: existingBmi.toFixed(1),
+      bmiStr: `${existingBmi.toFixed(1)} kg/m²`,
+      heightStr: !isNaN(hCm) ? `${hCm} cm` : 'Not documented',
+      weightStr: !isNaN(wKg) ? `${wKg} kg` : 'Not documented'
+    };
+  }
+
+  return {
+    bmiVal: null,
+    bmiStr: 'Not documented',
+    heightStr: !isNaN(hCm) ? `${hCm} cm` : 'Not documented',
+    weightStr: !isNaN(wKg) ? `${wKg} kg` : 'Not documented'
+  };
+};
+
+/**
+ * Short Patient-Specific AI Profile Interpretation Generator (Section 2).
+ * Based ONLY on actual saved patient profile values without hallucinated parameters.
+ */
+const generatePatientProfileInterpretation = (norm, profileObj) => {
+  const age = norm.demographics.age && norm.demographics.age !== 'N/A' && norm.demographics.age !== '—' ? norm.demographics.age : null;
+  const sex = norm.demographics.gender && norm.demographics.gender !== 'N/A' && norm.demographics.gender !== '—' ? norm.demographics.gender : null;
+  
+  const rawH = profileObj?.height || profileObj?.height_cm || norm.demographics.height;
+  const rawW = profileObj?.weight || profileObj?.weight_kg || norm.demographics.weight;
+  const rawBmi = profileObj?.bmi || norm.demographics.bmi;
+
+  const bmiData = calculateOrVerifyBmi(rawH, rawW, rawBmi);
+
+  const sentences = [];
+
+  // Sentence 1: Demographics & BMI Status
+  const pDesc = [age ? `${age}-year-old` : '', sex ? sex.toLowerCase() : 'patient'].filter(Boolean).join(' ') || 'patient';
+  if (bmiData.bmiVal) {
+    const val = parseFloat(bmiData.bmiVal);
+    let category = '';
+    if (val < 18.5) category = 'underweight range';
+    else if (val <= 24.9) category = 'healthy normal weight range';
+    else if (val <= 29.9) category = 'overweight category';
+    else if (val <= 34.9) category = 'Class I obesity range';
+    else if (val <= 39.9) category = 'Class II severe obesity range';
+    else category = 'Class III morbid obesity range';
+
+    sentences.push(`The patient is a ${pDesc}. Calculated BMI of ${bmiData.bmiStr} based on documented height (${bmiData.heightStr}) and weight (${bmiData.weightStr}) is in the ${category}.`);
+  } else {
+    sentences.push(`The patient is a ${pDesc}. Height and weight values are not fully documented to compute BMI.`);
+  }
+
+  // Sentence 2: Vitals Interpretation (if documented)
+  const vitalsList = Array.isArray(profileObj?.vital_signs) && profileObj.vital_signs.length > 0
+    ? profileObj.vital_signs
+    : (Array.isArray(norm.vitals) ? norm.vitals : []);
+
+  const latestVital = vitalsList[0] || profileObj || {};
+  const sys = parseInt(latestVital.bp_sys || (typeof latestVital.bp === 'string' ? latestVital.bp.split('/')[0] : null), 10);
+  const dia = parseInt(latestVital.bp_dia || (typeof latestVital.bp === 'string' ? latestVital.bp.split('/')[1] : null), 10);
+  const pulse = parseInt(latestVital.pulse_rate || latestVital.pr || latestVital.pulse, 10);
+  const temp = parseFloat(latestVital.temperature_f || latestVital.temp, 10);
+  const spo2 = parseInt(latestVital.spo2, 10);
+
+  const vitalNotes = [];
+  if (!isNaN(sys) && !isNaN(dia)) {
+    if (sys >= 140 || dia >= 90) vitalNotes.push(`elevated blood pressure (${sys}/${dia} mmHg)`);
+    else if (sys < 90 || dia < 60) vitalNotes.push(`hypotensive blood pressure (${sys}/${dia} mmHg)`);
+  }
+  if (!isNaN(pulse)) {
+    if (pulse > 100) vitalNotes.push(`tachycardia (${pulse} bpm)`);
+    else if (pulse < 60) vitalNotes.push(`bradycardia (${pulse} bpm)`);
+  }
+  if (!isNaN(temp)) {
+    if (temp >= 100.4) vitalNotes.push(`fever/pyrexia (${temp}°F)`);
+  }
+  if (!isNaN(spo2)) {
+    if (spo2 < 95) vitalNotes.push(`reduced oxygen saturation (SpO2 ${spo2}%)`);
+  }
+
+  if (vitalNotes.length > 0) {
+    sentences.push(`Documented vital signs show ${vitalNotes.join(', ')}.`);
+  } else if (!isNaN(sys) || !isNaN(pulse) || !isNaN(temp) || !isNaN(spo2)) {
+    sentences.push('Documented vital signs are within normal hemodynamically stable limits.');
+  } else {
+    sentences.push('Vital signs are not documented in the saved case file.');
+  }
+
+  // Sentence 3: Relevant Physical Examination Findings (if documented)
+  const genExam = profileObj?.general_examination || profileObj?.general_exam;
+  const sysExam = profileObj?.systemic_examination || profileObj?.systemic_exam;
+
+  if (genExam && genExam !== 'N/A' && genExam !== 'Conscious and coherent.') {
+    sentences.push(`Physical examination findings: ${genExam}.`);
+  } else if (sysExam && sysExam !== 'N/A' && sysExam !== 'CVS: S1S2 heard. RS: NVBS. GI: Soft. CNS: Intact.') {
+    sentences.push(`Systemic examination findings: ${sysExam}.`);
+  }
+
+  return sentences.join(' ');
+};
+
+/**
  * Student Role AI Clinical Case Analysis View.
  * Educational Analysis Engine Triggered by SAVED Form Data.
  */
@@ -676,81 +794,181 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
               </p>
             </div>
           ) : (
-            /* SECTION 1 — CASE OVERVIEW (DYNAMIC PERSISTED CASE DATA) */
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5 min-w-0 w-full">
-              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
-                <div className="flex items-center gap-2.5">
-                  <FileText className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                    SECTION 1 — CASE OVERVIEW
-                  </h3>
+            <div className="space-y-6 min-w-0 w-full">
+              {/* SECTION 1 — CASE OVERVIEW (DYNAMIC PERSISTED CASE DATA) */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5 min-w-0 w-full">
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <FileText className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                      SECTION 1 — CASE OVERVIEW
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                    Saved Case Record
+                  </span>
                 </div>
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                  Saved Case Record
-                </span>
+
+                {/* SAVED CLINICAL PARAMETERS GRID */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Patient Age / Sex</span>
+                    <strong className="font-extrabold text-slate-900 dark:text-white text-xs block truncate">
+                      {norm.demographics.age && norm.demographics.age !== 'N/A' && norm.demographics.age !== '—' ? `${norm.demographics.age} Yrs` : 'Not documented'} / {norm.demographics.gender && norm.demographics.gender !== 'N/A' && norm.demographics.gender !== '—' ? norm.demographics.gender : 'Not documented'}
+                    </strong>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Department / Ward</span>
+                    <strong className="font-extrabold text-slate-900 dark:text-white text-xs block truncate">
+                      {norm.demographics.department && norm.demographics.department !== 'N/A' && norm.demographics.department !== '—' ? norm.demographics.department : 'Not documented'}
+                      {norm.demographics.ward && norm.demographics.ward !== 'N/A' && norm.demographics.ward !== '—' ? ` (${norm.demographics.ward})` : ''}
+                    </strong>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Final Diagnosis</span>
+                    <strong className="font-extrabold text-emerald-700 dark:text-emerald-400 text-xs block break-words">
+                      {norm.diagnosis.final && norm.diagnosis.final !== 'N/A' && norm.diagnosis.final !== '—' ? norm.diagnosis.final : 'Not documented'}
+                    </strong>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Chief Complaint(s)</span>
+                    <p className="font-medium text-slate-800 dark:text-slate-200 text-xs break-words">
+                      {norm.history.chiefComplaints && norm.history.chiefComplaints !== 'N/A' && norm.history.chiefComplaints !== '—' ? norm.history.chiefComplaints : 'Not documented'}
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Relevant Past Medical History</span>
+                    <p className="font-medium text-slate-800 dark:text-slate-200 text-xs break-words">
+                      {norm.history.pastMedicalHistory && norm.history.pastMedicalHistory !== 'N/A' && norm.history.pastMedicalHistory !== '—' ? norm.history.pastMedicalHistory : 'Not documented'}
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Relevant Social History</span>
+                    <p className="font-medium text-slate-800 dark:text-slate-200 text-xs break-words">
+                      {norm.demographics.socialHistory && norm.demographics.socialHistory !== 'N/A' && norm.demographics.socialHistory !== '—' ? norm.demographics.socialHistory : 'Not available in saved documentation.'}
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1 md:col-span-2 lg:col-span-3">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Documented Allergies</span>
+                    <p className="font-medium text-slate-800 dark:text-slate-200 text-xs break-words">
+                      {norm.demographics.allergyDrugs && norm.demographics.allergyDrugs !== 'N/A' && norm.demographics.allergyDrugs !== '—' ? norm.demographics.allergyDrugs : 'Not documented'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* SHORT CASE SUMMARY BOX */}
+                <div className="bg-emerald-50/60 dark:bg-emerald-950/30 p-4 rounded-xl border border-emerald-200/80 dark:border-emerald-800/80 space-y-1.5 min-w-0 text-xs leading-relaxed">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 block">
+                    CASE SUMMARY
+                  </span>
+                  <p className="text-slate-800 dark:text-slate-200 font-medium break-words">
+                    {generateFactualCaseSummary(norm)}
+                  </p>
+                </div>
               </div>
 
-              {/* SAVED CLINICAL PARAMETERS GRID */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Patient Age / Sex</span>
-                  <strong className="font-extrabold text-slate-900 dark:text-white text-xs block truncate">
-                    {norm.demographics.age && norm.demographics.age !== 'N/A' && norm.demographics.age !== '—' ? `${norm.demographics.age} Yrs` : 'Not documented'} / {norm.demographics.gender && norm.demographics.gender !== 'N/A' && norm.demographics.gender !== '—' ? norm.demographics.gender : 'Not documented'}
-                  </strong>
+              {/* SECTION 2 — PATIENT PROFILE ANALYSIS (DYNAMIC ANTHROPOMETRICS & INTERPRETATION) */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5 min-w-0 w-full">
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <UserCheck className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                      SECTION 2 — PATIENT PROFILE ANALYSIS
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800">
+                    Anthropometric & Physical Assessment
+                  </span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Department / Ward</span>
-                  <strong className="font-extrabold text-slate-900 dark:text-white text-xs block truncate">
-                    {norm.demographics.department && norm.demographics.department !== 'N/A' && norm.demographics.department !== '—' ? norm.demographics.department : 'Not documented'}
-                    {norm.demographics.ward && norm.demographics.ward !== 'N/A' && norm.demographics.ward !== '—' ? ` (${norm.demographics.ward})` : ''}
-                  </strong>
+                {/* DEMOGRAPHICS & ANTHROPOMETRICS GRID */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 text-xs">
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Age</span>
+                    <strong className="font-extrabold text-slate-900 dark:text-white text-xs block truncate">
+                      {norm.demographics.age && norm.demographics.age !== 'N/A' && norm.demographics.age !== '—' ? `${norm.demographics.age} Yrs` : 'Not documented'}
+                    </strong>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Sex</span>
+                    <strong className="font-extrabold text-slate-900 dark:text-white text-xs block truncate">
+                      {norm.demographics.gender && norm.demographics.gender !== 'N/A' && norm.demographics.gender !== '—' ? norm.demographics.gender : 'Not documented'}
+                    </strong>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Height</span>
+                    <strong className="font-extrabold text-slate-900 dark:text-white text-xs block truncate">
+                      {calculateOrVerifyBmi(profileRecord?.height || selectedCase?.height, profileRecord?.weight || selectedCase?.weight, profileRecord?.bmi || selectedCase?.bmi).heightStr}
+                    </strong>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Weight</span>
+                    <strong className="font-extrabold text-slate-900 dark:text-white text-xs block truncate">
+                      {calculateOrVerifyBmi(profileRecord?.height || selectedCase?.height, profileRecord?.weight || selectedCase?.weight, profileRecord?.bmi || selectedCase?.bmi).weightStr}
+                    </strong>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1 col-span-2 sm:col-span-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">BMI</span>
+                    <strong className="font-extrabold text-indigo-600 dark:text-indigo-400 text-xs block truncate">
+                      {calculateOrVerifyBmi(profileRecord?.height || selectedCase?.height, profileRecord?.weight || selectedCase?.weight, profileRecord?.bmi || selectedCase?.bmi).bmiStr}
+                    </strong>
+                  </div>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Final Diagnosis</span>
-                  <strong className="font-extrabold text-emerald-700 dark:text-emerald-400 text-xs block break-words">
-                    {norm.diagnosis.final && norm.diagnosis.final !== 'N/A' && norm.diagnosis.final !== '—' ? norm.diagnosis.final : 'Not documented'}
-                  </strong>
+                {/* VITALS & PHYSICAL EXAM FINDINGS GRID */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Documented Vital Signs</span>
+                    <p className="font-medium text-slate-800 dark:text-slate-200 text-xs break-words">
+                      {(() => {
+                        const vList = Array.isArray(profileRecord?.vital_signs) && profileRecord.vital_signs.length > 0
+                          ? profileRecord.vital_signs
+                          : (Array.isArray(norm.vitals) && norm.vitals.length > 0 ? norm.vitals : []);
+                        if (vList.length === 0) return 'Not documented';
+                        const v = vList[0];
+                        const parts = [];
+                        if (v.bp || v.bp_sys) parts.push(`BP: ${v.bp || `${v.bp_sys}/${v.bp_dia}`} mmHg`);
+                        if (v.pr || v.pulse_rate || v.pulse) parts.push(`Pulse: ${v.pr || v.pulse_rate || v.pulse} bpm`);
+                        if (v.temp || v.temperature_f) parts.push(`Temp: ${v.temp || v.temperature_f}°F`);
+                        if (v.rr || v.respiratory_rate) parts.push(`RR: ${v.rr || v.respiratory_rate}/min`);
+                        if (v.spo2) parts.push(`SpO2: ${v.spo2}%`);
+                        return parts.length > 0 ? parts.join(' | ') : 'Not documented';
+                      })()}
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Relevant Examination Findings</span>
+                    <p className="font-medium text-slate-800 dark:text-slate-200 text-xs break-words">
+                      {(() => {
+                        const gen = profileRecord?.general_examination || profileRecord?.general_exam;
+                        const sys = profileRecord?.systemic_examination || profileRecord?.systemic_exam;
+                        const parts = [gen, sys].filter(Boolean);
+                        return parts.length > 0 ? parts.join(' • ') : 'Not documented';
+                      })()}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Chief Complaint(s)</span>
-                  <p className="font-medium text-slate-800 dark:text-slate-200 text-xs break-words">
-                    {norm.history.chiefComplaints && norm.history.chiefComplaints !== 'N/A' && norm.history.chiefComplaints !== '—' ? norm.history.chiefComplaints : 'Not documented'}
+                {/* PATIENT-SPECIFIC AI INTERPRETATION BOX */}
+                <div className="bg-indigo-50/60 dark:bg-indigo-950/30 p-4 rounded-xl border border-indigo-200/80 dark:border-indigo-800/80 space-y-1.5 min-w-0 text-xs leading-relaxed">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-800 dark:text-indigo-300 block">
+                    AI PATIENT PROFILE INTERPRETATION
+                  </span>
+                  <p className="text-slate-800 dark:text-slate-200 font-medium break-words">
+                    {generatePatientProfileInterpretation(norm, profileRecord)}
                   </p>
                 </div>
-
-                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Relevant Past Medical History</span>
-                  <p className="font-medium text-slate-800 dark:text-slate-200 text-xs break-words">
-                    {norm.history.pastMedicalHistory && norm.history.pastMedicalHistory !== 'N/A' && norm.history.pastMedicalHistory !== '—' ? norm.history.pastMedicalHistory : 'Not documented'}
-                  </p>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Relevant Social History</span>
-                  <p className="font-medium text-slate-800 dark:text-slate-200 text-xs break-words">
-                    {norm.demographics.socialHistory && norm.demographics.socialHistory !== 'N/A' && norm.demographics.socialHistory !== '—' ? norm.demographics.socialHistory : 'Not available in saved documentation.'}
-                  </p>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1 md:col-span-2 lg:col-span-3">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Documented Allergies</span>
-                  <p className="font-medium text-slate-800 dark:text-slate-200 text-xs break-words">
-                    {norm.demographics.allergyDrugs && norm.demographics.allergyDrugs !== 'N/A' && norm.demographics.allergyDrugs !== '—' ? norm.demographics.allergyDrugs : 'Not documented'}
-                  </p>
-                </div>
-              </div>
-
-              {/* SHORT CASE SUMMARY BOX */}
-              <div className="bg-emerald-50/60 dark:bg-emerald-950/30 p-4 rounded-xl border border-emerald-200/80 dark:border-emerald-800/80 space-y-1.5 min-w-0 text-xs leading-relaxed">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 block">
-                  CASE SUMMARY
-                </span>
-                <p className="text-slate-800 dark:text-slate-200 font-medium break-words">
-                  {generateFactualCaseSummary(norm)}
-                </p>
               </div>
             </div>
           )}
