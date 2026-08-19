@@ -19,6 +19,18 @@ export const hashPassword = async (password) => {
 };
 
 /**
+ * Formats Supabase raw errors into user-friendly error messages
+ */
+export const formatSupabaseError = (err, fallbackMsg = 'Database operation failed.') => {
+  if (!err) return fallbackMsg;
+  const msg = typeof err === 'string' ? err : (err.message || String(err));
+  if (msg.includes('Failed to fetch') || msg.includes('TypeError') || msg.includes('NetworkError')) {
+    return 'Unable to connect to Supabase server. Please check your internet connection or try again.';
+  }
+  return msg || fallbackMsg;
+};
+
+/**
  * Upload profile photo to Supabase Storage bucket 'profile-photos' (100 KB max limit)
  */
 export const uploadProfilePhotoToSupabaseStorage = async (file, folder = 'profiles') => {
@@ -124,6 +136,26 @@ export const fetchCollegeByIdFromSupabase = async (collegeId) => {
 
     if (error) return { success: false, error: error.message };
     return { success: true, college: data };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+export const fetchCollegeSubscriptionByIdFromSupabase = async (collegeId) => {
+  if (!collegeId) return { success: false, error: 'College ID required' };
+  try {
+    const [collegeRes, subRes, studentsRes] = await Promise.all([
+      supabase.from('colleges').select('*').eq('id', collegeId).maybeSingle(),
+      supabase.from('subscriptions').select('*').eq('college_id', collegeId).maybeSingle(),
+      supabase.from('students').select('id', { count: 'exact', head: true }).eq('college_id', collegeId)
+    ]);
+
+    return {
+      success: true,
+      college: collegeRes.data,
+      subscription: subRes.data,
+      studentCount: studentsRes.count || 0
+    };
   } catch (err) {
     return { success: false, error: err.message };
   }
@@ -1773,6 +1805,24 @@ export const updateCollegeProfileAndSubscriptionInSupabase = async (collegeId, p
 
     if (updateCollegeErr) return { success: false, error: updateCollegeErr.message };
 
+    // Update or Upsert Subscription Record
+    const subPayload = {
+      college_id: collegeId,
+      plan_name: profileData.subscriptionPlan || 'Professional',
+      subscription_start_date: profileData.subscriptionStartDate || new Date().toISOString().split('T')[0],
+      subscription_expiry_date: profileData.subscriptionExpiryDate || '2027-08-04',
+      maximum_students: parseInt(profileData.maxStudentsAllowed, 10) || 600,
+      status: profileData.subscriptionStatus === 'Active' ? 'Active' : 'Inactive',
+      updated_at: new Date().toISOString()
+    };
+
+    const { data: existingSub } = await supabase.from('subscriptions').select('id').eq('college_id', collegeId).maybeSingle();
+    if (existingSub) {
+      await supabase.from('subscriptions').update(subPayload).eq('id', existingSub.id);
+    } else {
+      await supabase.from('subscriptions').insert([subPayload]);
+    }
+
     // Fetch fresh college record directly from Supabase
     const { data: freshCollege } = await supabase
       .from('colleges')
@@ -1867,6 +1917,23 @@ export const fetchAllCollegesFromSupabase = async () => {
     return { success: true, data: data || [] };
   } catch (err) {
     return { success: false, data: [], error: err.message };
+  }
+};
+
+export const fetchCollegeStudentCountsFromSupabase = async () => {
+  try {
+    const { data, error } = await supabase.from('students').select('id, college_id');
+    if (error || !Array.isArray(data)) return {};
+
+    const countsMap = {};
+    data.forEach(s => {
+      if (s.college_id) {
+        countsMap[s.college_id] = (countsMap[s.college_id] || 0) + 1;
+      }
+    });
+    return countsMap;
+  } catch (err) {
+    return {};
   }
 };
 

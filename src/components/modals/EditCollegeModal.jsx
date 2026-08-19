@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { ModalWrapper } from './ModalWrapper';
 import { useColleges } from '../../context/CollegeContext';
-import { Building2, MapPin, Award, User, Save, CreditCard, Trash2, AlertTriangle, ImageIcon, Upload, Loader2, CheckCircle2, KeyRound, Eye, EyeOff, Lock } from 'lucide-react';
+import { Building2, MapPin, Award, User, Save, CreditCard, Trash2, AlertTriangle, ImageIcon, Upload, Loader2, CheckCircle2, KeyRound, Eye, EyeOff, Lock, Users, Calendar, ShieldCheck, Clock } from 'lucide-react';
+import { SUBSCRIPTION_PLANS, getPlanDetails, calculateDaysRemaining, getSubscriptionStatusDetails, formatSubscriptionDate } from '../../utils/subscriptionUtils';
 
 export const EditCollegeModal = ({ isOpen, onClose, college, onSave, onDelete, isFullPage = false }) => {
-  const { uploadCollegeLogo, activeColleges } = useColleges();
+  const { uploadCollegeLogo = async () => ({ success: false }), activeColleges = [] } = useColleges() || {};
 
   const [formData, setFormData] = useState({
     collegeName: '',
@@ -27,7 +28,7 @@ export const EditCollegeModal = ({ isOpen, onClose, college, onSave, onDelete, i
     subscriptionPlan: 'Professional',
     subscriptionStartDate: new Date().toISOString().split('T')[0],
     subscriptionExpiryDate: new Date(Date.now() + 365*24*60*60*1000).toISOString().split('T')[0],
-    maxStudentsAllowed: 600,
+    maxStudentsAllowed: 300,
     subscriptionStatus: 'Active'
   });
 
@@ -42,9 +43,13 @@ export const EditCollegeModal = ({ isOpen, onClose, college, onSave, onDelete, i
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  const collegeId = college?.id || college?.collegeId || college?.code;
+
   useEffect(() => {
     if (college) {
       const email = college.principalEmail || college.principal_email || college.email || '';
+      const planMeta = getPlanDetails(college.subscriptionPlan || 'Professional');
+
       setFormData({
         collegeName: college.name || college.collegeName || college.college_name || '',
         collegeCode: college.code || college.collegeCode || college.college_code || '',
@@ -63,21 +68,40 @@ export const EditCollegeModal = ({ isOpen, onClose, college, onSave, onDelete, i
         principalEmail: email,
         adminPassword: '',
         confirmAdminPassword: '',
-        subscriptionPlan: college.subscriptionPlan || 'Professional',
+        subscriptionPlan: planMeta.id,
         subscriptionStartDate: college.subscriptionStartDate || new Date().toISOString().split('T')[0],
         subscriptionExpiryDate: college.subscriptionExpiryDate || new Date(Date.now() + 365*24*60*60*1000).toISOString().split('T')[0],
-        maxStudentsAllowed: college.maxStudentsAllowed || 600,
+        maxStudentsAllowed: planMeta.maxStudents,
         subscriptionStatus: college.subscriptionStatus || 'Active'
       });
       setValidationError('');
     }
-  }, [college]);
+  }, [collegeId]);
 
   if (!isOpen && !isFullPage) return null;
   if (!college && !isFullPage) return null;
 
+  const currentStudentsCount = college?.currentStudentsCount || 0;
+  const activePlanMeta = getPlanDetails(formData.subscriptionPlan);
+  const maxCapacity = activePlanMeta.maxStudents;
+  const availableSeats = Math.max(0, maxCapacity - currentStudentsCount);
+  const isDowngradeExceeded = currentStudentsCount > maxCapacity;
+  const daysRemaining = calculateDaysRemaining(formData.subscriptionExpiryDate);
+  const liveStatusDetails = getSubscriptionStatusDetails(formData.subscriptionExpiryDate, formData.subscriptionStatus);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'subscriptionPlan') {
+      const planMeta = getPlanDetails(value);
+      setFormData(prev => ({
+        ...prev,
+        subscriptionPlan: planMeta.id,
+        maxStudentsAllowed: planMeta.maxStudents
+      }));
+      setValidationError('');
+      return;
+    }
+
     setFormData(prev => ({ ...prev, [name]: value }));
     setValidationError('');
   };
@@ -116,6 +140,11 @@ export const EditCollegeModal = ({ isOpen, onClose, college, onSave, onDelete, i
     e.preventDefault();
     setValidationError('');
     setErrors({});
+
+    if (isDowngradeExceeded) {
+      setValidationError(`❌ Cannot downgrade plan: Current student count (${currentStudentsCount}) exceeds the selected plan capacity (${maxCapacity}). Please reduce registered students or select a higher capacity plan.`);
+      return;
+    }
 
     const errorsList = {};
 
@@ -799,6 +828,22 @@ export const EditCollegeModal = ({ isOpen, onClose, college, onSave, onDelete, i
           Subscription Plan Section
         </h4>
 
+        {/* Downgrade Conflict Warning Banner */}
+        {isDowngradeExceeded && (
+          <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 space-y-1 shadow-xs">
+            <div className="flex items-center gap-2 font-bold text-amber-800 dark:text-amber-300">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>PLAN CAPACITY CONFLICT WARNING</span>
+            </div>
+            <p className="text-[11px] leading-relaxed">
+              <strong>CURRENT STUDENTS:</strong> {currentStudentsCount} &nbsp;|&nbsp; <strong>SELECTED PLAN:</strong> {activePlanMeta.name} ({maxCapacity} Capacity)
+            </p>
+            <p className="text-[11px] text-amber-800 dark:text-amber-300 font-semibold">
+              ⚠️ This college currently has {currentStudentsCount} registered students, which exceeds the selected plan capacity of {maxCapacity} students. Plan downgrade cannot be finalized until student count is resolved.
+            </p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
@@ -810,10 +855,28 @@ export const EditCollegeModal = ({ isOpen, onClose, college, onSave, onDelete, i
               onChange={handleChange}
               className="w-full h-[46px] px-3.5 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/50 focus:outline-none font-semibold"
             >
-              <option value="Basic">Basic Plan (Up to 200 Students)</option>
-              <option value="Professional">Professional Plan (Up to 600 Students)</option>
-              <option value="Enterprise">Enterprise Plan (Unlimited)</option>
+              {Object.values(SUBSCRIPTION_PLANS).map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Maximum Students Allowed (Read Only)
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                name="maxStudentsAllowed"
+                readOnly
+                disabled
+                value={formData.maxStudentsAllowed}
+                className="w-full h-[46px] px-3.5 text-xs font-bold rounded-xl border border-emerald-200 dark:border-emerald-900/80 bg-emerald-50/50 dark:bg-slate-900 text-emerald-900 dark:text-emerald-300 cursor-not-allowed"
+              />
+              <Lock className="w-3.5 h-3.5 text-emerald-500 absolute right-3.5 top-1/2 -translate-y-1/2" />
+            </div>
+            <p className="text-[10px] text-slate-400 mt-1">Automatically determined by selected Subscription Plan.</p>
           </div>
 
           <div>
@@ -846,22 +909,6 @@ export const EditCollegeModal = ({ isOpen, onClose, college, onSave, onDelete, i
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Maximum Students Allowed *
-            </label>
-            <input
-              type="number"
-              name="maxStudentsAllowed"
-              required
-              min={10}
-              max={10000}
-              value={formData.maxStudentsAllowed}
-              onChange={handleChange}
-              className="w-full h-[46px] px-3.5 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/50 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Subscription Status *
             </label>
             <select
@@ -873,6 +920,46 @@ export const EditCollegeModal = ({ isOpen, onClose, college, onSave, onDelete, i
               <option value="Active">Active (Live on Landing Page)</option>
               <option value="Inactive">Inactive (Suspended)</option>
             </select>
+          </div>
+        </div>
+
+        {/* LIVE SUBSCRIPTION SUMMARY BOX */}
+        <div className="mt-4 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-900/60 shadow-xs space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+            <h5 className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              Live Subscription Summary
+            </h5>
+            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${liveStatusDetails.badgeClass}`}>
+              {liveStatusDetails.label}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+              <span className="block text-[10px] text-slate-400 font-semibold">PLAN</span>
+              <strong className="text-emerald-600 dark:text-emerald-400 font-extrabold text-xs">{activePlanMeta.shortName}</strong>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+              <span className="block text-[10px] text-slate-400 font-semibold">STUDENT USAGE</span>
+              <strong className="text-slate-800 dark:text-slate-200 font-extrabold text-xs">{currentStudentsCount} / {maxCapacity}</strong>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+              <span className="block text-[10px] text-slate-400 font-semibold">AVAILABLE SEATS</span>
+              <strong className="text-teal-600 dark:text-teal-400 font-extrabold text-xs">{availableSeats} Seats Available</strong>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+              <span className="block text-[10px] text-slate-400 font-semibold">TIME REMAINING</span>
+              <strong className="text-slate-700 dark:text-slate-300 font-extrabold text-xs">{daysRemaining < 0 ? 'Expired' : `${daysRemaining} Days`}</strong>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+            <div><strong>START DATE:</strong> {formatSubscriptionDate(formData.subscriptionStartDate)}</div>
+            <div><strong>EXPIRY DATE:</strong> {formatSubscriptionDate(formData.subscriptionExpiryDate)}</div>
           </div>
         </div>
       </div>

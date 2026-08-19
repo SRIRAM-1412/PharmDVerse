@@ -35,9 +35,9 @@ export const NotificationsView = ({ userId, userRole, onNavigate, onBack }) => {
     // Trigger navigation
     if (onNavigate) {
       let targetRoute = notif.action_route;
-      if (userRole === 'Preceptor' || notif.action_label === 'Review Case' || notif.notification_type?.includes('Case')) {
+      if (userRole === 'Preceptor' || notif.action_label === 'Review Case') {
         targetRoute = 'case-review';
-      } else if (!targetRoute) {
+      } else {
         targetRoute = 'my-cases';
       }
       onNavigate(targetRoute, notif.clinical_case_id);
@@ -185,7 +185,11 @@ export const NotificationsView = ({ userId, userRole, onNavigate, onBack }) => {
               {notif.action_label && (
                 <button
                   type="button"
-                  className="px-4 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-150 dark:border-indigo-900 text-[11px] font-bold flex items-center gap-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 transition-all shrink-0 select-none"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleNotificationClick(notif);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-150 dark:border-indigo-900 text-[11px] font-bold flex items-center gap-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 transition-all shrink-0 select-none cursor-pointer"
                 >
                   <span>{notif.action_label}</span>
                   <ExternalLink className="w-3.5 h-3.5" />

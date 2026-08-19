@@ -4,11 +4,12 @@ import { useTheme } from '../../context/ThemeContext';
 import { EditCollegeModal } from '../modals/EditCollegeModal';
 import { ModalWrapper } from '../modals/ModalWrapper';
 import { logoutSuperAdmin } from '../../services/authService';
+import { formatSubscriptionDate } from '../../utils/subscriptionUtils';
 
 import { 
   Building2, CheckCircle2, Clock, XCircle, Edit3, 
   ExternalLink, Search, AlertTriangle, ShieldCheck,
-  Sun, Moon, ChevronLeft, ChevronRight, LogOut, ArrowLeft, Trash2, CheckSquare, Square, Loader2, MessageSquare
+  Sun, Moon, ChevronLeft, ChevronRight, LogOut, ArrowLeft, Trash2, CheckSquare, Square, Loader2, MessageSquare, Power
 } from 'lucide-react';
 
 import { LeaveWorkspaceModal } from '../modals/LeaveWorkspaceModal';
@@ -50,16 +51,25 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
   const [collegeToDelete, setCollegeToDelete] = useState(null);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
-  const handleDeactivateCollege = async (collegeId) => {
-    if (window.confirm('Deactivate this college? All data, students, preceptors, cases, and settings will remain 100% safely preserved.')) {
-      await updateCollegeStatus(collegeId, 'Inactive');
-    }
+  // Subscription Deactivation / Reactivation Confirmation Modals
+  const [deactivatingCollege, setDeactivatingCollege] = useState(null);
+  const [reactivatingCollege, setReactivatingCollege] = useState(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  const handleConfirmDeactivate = async () => {
+    if (!deactivatingCollege) return;
+    setIsUpdatingStatus(true);
+    await updateCollegeStatus(deactivatingCollege.id, 'Inactive');
+    setIsUpdatingStatus(false);
+    setDeactivatingCollege(null);
   };
 
-  const handleReactivateCollege = async (collegeId) => {
-    if (window.confirm('Reactivate this college portal? All previous data and access will be fully restored.')) {
-      await updateCollegeStatus(collegeId, 'Active');
-    }
+  const handleConfirmReactivate = async () => {
+    if (!reactivatingCollege) return;
+    setIsUpdatingStatus(true);
+    await updateCollegeStatus(reactivatingCollege.id, 'Active');
+    setIsUpdatingStatus(false);
+    setReactivatingCollege(null);
   };
 
   const pendingCount = pendingRequests.filter(r => r.status === 'Pending').length;
@@ -762,18 +772,22 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
                             </div>
                           </div>
 
-                          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800/80 space-y-1.5 my-3 text-xs">
+                          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800/80 space-y-2 my-3 text-xs">
                             <div className="flex items-center justify-between">
-                              <span className="text-slate-400 text-[10px]">Plan:</span>
-                              <span className="font-bold text-emerald-600 dark:text-emerald-400">{clg.subscriptionPlan || 'Professional'}</span>
+                              <span className="text-slate-400 text-[10px] font-semibold">Subscription Plan:</span>
+                              <span className="font-bold text-emerald-600 dark:text-emerald-400">{clg.subscriptionPlanName || clg.subscriptionPlan || 'Professional Plan'}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-slate-400 text-[10px]">Max Students:</span>
-                              <span className="font-semibold text-slate-800 dark:text-slate-200">{clg.maxStudentsAllowed || clg.studentsCount || 600} Candidates</span>
+                              <span className="text-slate-400 text-[10px] font-semibold">Student Usage:</span>
+                              <span className="font-extrabold text-slate-800 dark:text-slate-200">{clg.currentStudentsCount || 0} / {clg.maxStudentsAllowed || 300}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-slate-400 text-[10px]">Expiry Date:</span>
-                              <span className="font-mono text-slate-700 dark:text-slate-300">{clg.subscriptionExpiryDate || '2026-12-31'}</span>
+                              <span className="text-slate-400 text-[10px] font-semibold">Available Seats:</span>
+                              <span className="font-bold text-teal-600 dark:text-teal-400">{clg.availableSeats !== undefined ? clg.availableSeats : (clg.maxStudentsAllowed - (clg.currentStudentsCount || 0))} Available</span>
+                            </div>
+                            <div className="flex items-center justify-between border-t border-slate-200/60 dark:border-slate-700/60 pt-1.5">
+                              <span className="text-slate-400 text-[10px] font-semibold">Expiry Date:</span>
+                              <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{formatSubscriptionDate(clg.subscriptionExpiryDate)} ({clg.daysRemaining < 0 ? 'Expired' : `${clg.daysRemaining} Days`})</span>
                             </div>
                           </div>
                         </div>
@@ -789,11 +803,11 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
                             </button>
 
                             <button
-                              onClick={() => handleDeactivateCollege(clg.id)}
+                              onClick={() => setDeactivatingCollege(clg)}
                               className="px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 dark:bg-amber-950/60 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 text-xs font-bold flex items-center gap-1 transition-colors"
-                              title="Deactivate College (Preserves All Data)"
+                              title="Deactivate College Subscription"
                             >
-                              <XCircle className="w-3.5 h-3.5" />
+                              <Power className="w-3.5 h-3.5" />
                               <span>Deactivate</span>
                             </button>
                           </div>
@@ -884,25 +898,25 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
                             </span>
                           </div>
 
-                          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800/80 space-y-1.5 my-3 text-xs">
+                          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800/80 space-y-2 my-3 text-xs">
                             <div className="flex items-center justify-between">
-                              <span className="text-slate-400 text-[10px]">College ID:</span>
-                              <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{c.id.substring(0, 8)}...</span>
+                              <span className="text-slate-400 text-[10px] font-semibold">Subscription Plan:</span>
+                              <span className="font-bold text-amber-600 dark:text-amber-400">{c.subscriptionPlanName || c.subscriptionPlan || 'Professional Plan'}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-slate-400 text-[10px]">Admin ID:</span>
-                              <span className="font-mono text-slate-700 dark:text-slate-300">{c.adminUsername || 'Admin'}</span>
+                              <span className="text-slate-400 text-[10px] font-semibold">Student Usage:</span>
+                              <span className="font-extrabold text-slate-800 dark:text-slate-200">{c.currentStudentsCount || 0} / {c.maxStudentsAllowed || 300}</span>
                             </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-400 text-[10px]">Data Status:</span>
-                              <span className="font-bold text-emerald-600 dark:text-emerald-400">100% Preserved</span>
+                            <div className="flex items-center justify-between border-t border-slate-200/60 dark:border-slate-700/60 pt-1.5">
+                              <span className="text-slate-400 text-[10px] font-semibold">Expiry Date:</span>
+                              <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{formatSubscriptionDate(c.subscriptionExpiryDate)}</span>
                             </div>
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
                           <button
-                            onClick={() => handleReactivateCollege(c.id)}
+                            onClick={() => setReactivatingCollege(c)}
                             className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -1110,6 +1124,137 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
                 className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md shadow-rose-600/20"
               >
                 Delete Selected ({selectedIds.length})
+              </button>
+            </div>
+          </div>
+        </ModalWrapper>
+      )}
+
+      {/* SUBSCRIPTION DEACTIVATION CONFIRMATION MODAL */}
+      {deactivatingCollege && (
+        <ModalWrapper
+          isOpen={Boolean(deactivatingCollege)}
+          onClose={() => setDeactivatingCollege(null)}
+          title="DEACTIVATE COLLEGE?"
+          subtitle={`Confirm subscription suspension for ${deactivatingCollege.name}`}
+          maxWidth="max-w-md"
+        >
+          <div className="space-y-4">
+            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 space-y-2 text-xs">
+              <div className="flex items-center justify-between font-bold text-slate-900 dark:text-white">
+                <span>College:</span>
+                <span className="text-amber-800 dark:text-amber-300">{deactivatingCollege.name}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-700 dark:text-slate-300">
+                <span>Current Plan:</span>
+                <span className="font-semibold">{deactivatingCollege.subscriptionPlanName || deactivatingCollege.subscriptionPlan || 'Professional Plan'}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-700 dark:text-slate-300">
+                <span>Students:</span>
+                <span className="font-mono font-bold">{deactivatingCollege.currentStudentsCount || 0} / {deactivatingCollege.maxStudentsAllowed || 300}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-700 dark:text-slate-300">
+                <span>Expiry Date:</span>
+                <span className="font-mono">{formatSubscriptionDate(deactivatingCollege.subscriptionExpiryDate)}</span>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-xs text-rose-800 dark:text-rose-200 flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+              <p className="leading-relaxed">
+                <strong>Warning:</strong> Deactivating this college will change its subscription status to <strong>Inactive</strong> and restrict portal access according to existing subscription rules. All college data, student accounts, preceptors, and clinical cases remain 100% safely preserved.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeactivatingCollege(null)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeactivate}
+                disabled={isUpdatingStatus}
+                className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold shadow-md shadow-amber-600/20 flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isUpdatingStatus ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deactivating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Power className="w-3.5 h-3.5" />
+                    <span>Deactivate</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </ModalWrapper>
+      )}
+
+      {/* SUBSCRIPTION REACTIVATION CONFIRMATION MODAL */}
+      {reactivatingCollege && (
+        <ModalWrapper
+          isOpen={Boolean(reactivatingCollege)}
+          onClose={() => setReactivatingCollege(null)}
+          title="REACTIVATE COLLEGE?"
+          subtitle={`Restore active subscription for ${reactivatingCollege.name}`}
+          maxWidth="max-w-md"
+        >
+          <div className="space-y-4">
+            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 space-y-2 text-xs">
+              <div className="flex items-center justify-between font-bold text-slate-900 dark:text-white">
+                <span>College:</span>
+                <span className="text-emerald-800 dark:text-emerald-300">{reactivatingCollege.name}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-700 dark:text-slate-300">
+                <span>Current Plan:</span>
+                <span className="font-semibold">{reactivatingCollege.subscriptionPlanName || reactivatingCollege.subscriptionPlan || 'Professional Plan'}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-700 dark:text-slate-300">
+                <span>Students:</span>
+                <span className="font-mono font-bold">{reactivatingCollege.currentStudentsCount || 0} / {reactivatingCollege.maxStudentsAllowed || 300}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-700 dark:text-slate-300">
+                <span>Expiry Date:</span>
+                <span className="font-mono">{formatSubscriptionDate(reactivatingCollege.subscriptionExpiryDate)}</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Reactivating this college will restore its subscription status to <strong>Active</strong> and restore landing page portal access. Existing plan parameters and subscription dates remain intact.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setReactivatingCollege(null)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReactivate}
+                disabled={isUpdatingStatus}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-md shadow-emerald-600/20 flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isUpdatingStatus ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Reactivating...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Reactivate</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

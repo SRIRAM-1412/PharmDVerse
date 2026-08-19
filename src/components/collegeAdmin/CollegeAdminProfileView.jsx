@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, User, KeyRound, Eye, EyeOff, Save, CheckCircle2, AlertTriangle, Upload, Trash2, RefreshCw, Award } from 'lucide-react';
-import { updateCollegeProfileAndSubscriptionInSupabase, uploadCollegeLogoToSupabaseStorage, fetchCollegeByIdFromSupabase } from '../../services/supabaseService';
+import { Building2, User, KeyRound, Eye, EyeOff, Save, CheckCircle2, AlertTriangle, Upload, Trash2, RefreshCw, Award, CreditCard, ShieldCheck, Lock, Calendar, Users, Clock } from 'lucide-react';
+import { updateCollegeProfileAndSubscriptionInSupabase, uploadCollegeLogoToSupabaseStorage, fetchCollegeByIdFromSupabase, fetchCollegeSubscriptionByIdFromSupabase } from '../../services/supabaseService';
 import { saveActiveSession } from '../../services/authService';
+import { SUBSCRIPTION_PLANS, getPlanDetails, calculateDaysRemaining, getSubscriptionStatusDetails, formatSubscriptionDate } from '../../utils/subscriptionUtils';
 
 export const CollegeAdminProfileView = ({ college: initialCollege, onProfileUpdated }) => {
   const [currentCollege, setCurrentCollege] = useState(initialCollege);
+  const [subscriptionData, setSubscriptionData] = useState(null);
+  const [liveStudentCount, setLiveStudentCount] = useState(0);
 
   const [formData, setFormData] = useState({
     collegeName: initialCollege?.name || initialCollege?.college_name || '',
@@ -19,29 +22,39 @@ export const CollegeAdminProfileView = ({ college: initialCollege, onProfileUpda
     confirmNewPassword: ''
   });
 
-  // FETCH FRESH COLLEGE RECORD DIRECTLY FROM SUPABASE ON MOUNT
+  // FETCH FRESH COLLEGE & SUBSCRIPTION RECORD DIRECTLY FROM SUPABASE ON MOUNT
   useEffect(() => {
-    const loadFreshCollege = async () => {
+    const loadFreshCollegeAndSubscription = async () => {
       if (initialCollege?.id) {
-        const res = await fetchCollegeByIdFromSupabase(initialCollege.id);
-        if (res.success && res.college) {
-          const fresh = res.college;
-          setCurrentCollege(fresh);
-          setFormData(prev => ({
-            ...prev,
-            collegeName: fresh.college_name || prev.collegeName,
-            isAutonomous: Boolean(fresh.is_autonomous),
-            hospitalName: fresh.hospital_name || prev.hospitalName,
-            collegeLogoUrl: fresh.college_logo_url || prev.collegeLogoUrl,
-            hospitalLogoUrl: fresh.hospital_logo_url || prev.hospitalLogoUrl,
-            principalName: fresh.principal_name || prev.principalName,
-            principalMobile: fresh.principal_mobile || prev.principalMobile,
-            principalEmail: fresh.principal_email || prev.principalEmail
-          }));
+        const res = await fetchCollegeSubscriptionByIdFromSupabase(initialCollege.id);
+        if (res.success) {
+          if (res.college) {
+            const fresh = res.college;
+            setCurrentCollege(fresh);
+            setFormData(prev => ({
+              ...prev,
+              collegeName: fresh.college_name || prev.collegeName,
+              isAutonomous: Boolean(fresh.is_autonomous),
+              hospitalName: fresh.hospital_name || prev.hospitalName,
+              collegeLogoUrl: fresh.college_logo_url || prev.collegeLogoUrl,
+              hospitalLogoUrl: fresh.hospital_logo_url || prev.hospitalLogoUrl,
+              principalName: fresh.principal_name || prev.principalName,
+              principalMobile: fresh.principal_mobile || prev.principalMobile,
+              principalEmail: fresh.principal_email || prev.principalEmail
+            }));
+          }
+          if (res.subscription) {
+            setSubscriptionData(res.subscription);
+          }
+          setLiveStudentCount(res.studentCount || 0);
         }
       }
     };
-    loadFreshCollege();
+    loadFreshCollegeAndSubscription();
+
+    const handleCollegeUpdatedEvent = () => loadFreshCollegeAndSubscription();
+    window.addEventListener('pharmdverse_college_updated', handleCollegeUpdatedEvent);
+    return () => window.removeEventListener('pharmdverse_college_updated', handleCollegeUpdatedEvent);
   }, [initialCollege?.id]);
 
   const [uploadingCollegeLogo, setUploadingCollegeLogo] = useState(false);
@@ -186,6 +199,16 @@ export const CollegeAdminProfileView = ({ college: initialCollege, onProfileUpda
       setErrorMsg(res.error || 'Failed to update College Profile.');
     }
   };
+
+  const rawMaxLimit = subscriptionData?.maximum_students || currentCollege?.maxStudentsAllowed;
+  const planKey = subscriptionData?.plan_name || currentCollege?.subscriptionPlan || 'Professional';
+  const planDetails = getPlanDetails(planKey, rawMaxLimit);
+  const maxStudents = planDetails.maxStudents;
+  const availableSeats = Math.max(0, maxStudents - liveStudentCount);
+  const startDateStr = subscriptionData?.subscription_start_date || currentCollege?.subscriptionStartDate || new Date().toISOString().split('T')[0];
+  const expiryDateStr = subscriptionData?.subscription_expiry_date || currentCollege?.subscriptionExpiryDate || '2027-08-04';
+  const rawStatus = currentCollege?.status || (subscriptionData ? subscriptionData.status : 'Active');
+  const statusMeta = getSubscriptionStatusDetails(expiryDateStr, rawStatus);
 
   return (
     <div className="space-y-6 animate-fadeIn max-w-4xl mx-auto">
@@ -366,6 +389,93 @@ export const CollegeAdminProfileView = ({ college: initialCollege, onProfileUpda
             </div>
           </div>
 
+        </div>
+
+        {/* SECTION 2: SUBSCRIPTION DETAILS (INFORMATIONAL & READ-ONLY FOR COLLEGE ADMIN) */}
+        <div className="p-6 rounded-3xl bg-gradient-to-br from-emerald-50/50 via-white to-teal-50/50 dark:from-emerald-950/20 dark:via-slate-900 dark:to-teal-950/20 border border-emerald-300/60 dark:border-emerald-800/80 shadow-xs space-y-5">
+          <div className="pb-3 border-b border-emerald-200/60 dark:border-emerald-800/60 flex items-center justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>Subscription Details</span>
+            </h3>
+            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700">
+              <Lock className="w-3 h-3 text-slate-400" /> Informational Only (Managed by Super Admin)
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* PLAN */}
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-900/60 shadow-xs space-y-1">
+              <span className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">PLAN</span>
+              <strong className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 block">
+                {planDetails.name}
+              </strong>
+            </div>
+
+            {/* STUDENT CAPACITY */}
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-900/60 shadow-xs space-y-1">
+              <span className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">STUDENT CAPACITY</span>
+              <strong className="text-sm font-extrabold text-slate-800 dark:text-slate-200 block">
+                {liveStudentCount} / {maxStudents} Students
+              </strong>
+            </div>
+
+            {/* AVAILABLE SEATS */}
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-900/60 shadow-xs space-y-1">
+              <span className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">AVAILABLE STUDENT SEATS</span>
+              <strong className="text-sm font-extrabold text-teal-600 dark:text-teal-400 block">
+                {availableSeats} Students Available
+              </strong>
+            </div>
+
+            {/* STATUS */}
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-900/60 shadow-xs space-y-1">
+              <span className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">SUBSCRIPTION STATUS</span>
+              <div className="pt-0.5">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold border ${statusMeta.badgeClass}`}>
+                  <span className={`w-2 h-2 rounded-full ${statusMeta.dotClass}`}></span>
+                  {statusMeta.label}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+            {/* START DATE */}
+            <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 text-xs flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 shrink-0">
+                <Calendar className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="block text-[10px] font-bold text-slate-400 uppercase">SUBSCRIPTION START DATE</span>
+                <span className="font-extrabold text-slate-800 dark:text-slate-200">{formatSubscriptionDate(startDateStr)}</span>
+              </div>
+            </div>
+
+            {/* EXPIRY DATE */}
+            <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 text-xs flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 shrink-0">
+                <Calendar className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="block text-[10px] font-bold text-slate-400 uppercase">SUBSCRIPTION EXPIRY DATE</span>
+                <span className="font-extrabold text-slate-800 dark:text-slate-200">{formatSubscriptionDate(expiryDateStr)}</span>
+              </div>
+            </div>
+
+            {/* TIME REMAINING */}
+            <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 text-xs flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 shrink-0">
+                <Clock className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="block text-[10px] font-bold text-slate-400 uppercase">TIME REMAINING</span>
+                <span className="font-extrabold text-slate-800 dark:text-slate-200">
+                  {statusMeta.daysRemaining < 0 ? 'Expired' : `${statusMeta.daysRemaining} Days Remaining`}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* PRINCIPAL DETAILS */}

@@ -495,94 +495,106 @@ export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOn
 
     setSaving(true);
 
-    const payload = {
-      clinical_case_id: clinicalCase.id,
-      student_id: student.id,
-      college_id: student.college_id,
-      patient_name: patientName.trim(),
-      age,
-      gender,
-      ip_no: ipNo,
-      height,
-      weight,
-      bmi,
-      ward,
-      department,
-      doa: doa || null,
-      doc: doc || null,
-      dod: dod || null,
-      physician,
-      chief_complaints: chiefComplaints,
-      past_medical_history: pastMedicalHistory,
-      past_medication_history: pastMedicationHistory,
-      family_history: familyHistory,
-      smoker_pack_day: smokerPackDay,
-      smoker_duration: smokerDuration,
-      alcoholic_amount_day: alcoholicAmountDay,
-      alcoholic_duration: alcoholicDuration,
-      allergy_food: allergyFood,
-      allergy_drugs: allergyDrugs,
-      marital_status: maritalStatus,
-      cyanosis,
-      icterus,
-      pallor,
-      cvs,
-      gi,
-      rs,
-      cns,
-      provisional_diagnosis: provisionalDiagnosis,
-      vital_signs: vitalSigns,
-      other_investigations: otherInvestigations,
-      final_diagnosis: finalDiagnosis,
-      discharge_summary: dischargeSummary,
-      status: saveStatus
-    };
+    try {
+      const payload = {
+        clinical_case_id: clinicalCase.id,
+        student_id: student.id,
+        college_id: student.college_id,
+        patient_name: patientName.trim(),
+        age,
+        gender,
+        ip_no: ipNo,
+        height,
+        weight,
+        bmi,
+        ward,
+        department,
+        doa: doa || null,
+        doc: doc || null,
+        dod: dod || null,
+        physician,
+        chief_complaints: chiefComplaints,
+        past_medical_history: pastMedicalHistory,
+        past_medication_history: pastMedicationHistory,
+        family_history: familyHistory,
+        smoker_pack_day: smokerPackDay,
+        smoker_duration: smokerDuration,
+        alcoholic_amount_day: alcoholicAmountDay,
+        alcoholic_duration: alcoholicDuration,
+        allergy_food: allergyFood,
+        allergy_drugs: allergyDrugs,
+        marital_status: maritalStatus,
+        cyanosis,
+        icterus,
+        pallor,
+        cvs,
+        gi,
+        rs,
+        cns,
+        provisional_diagnosis: provisionalDiagnosis,
+        vital_signs: vitalSigns,
+        other_investigations: otherInvestigations,
+        final_diagnosis: finalDiagnosis,
+        discharge_summary: dischargeSummary,
+        status: saveStatus
+      };
 
-    // Save Patient Profile using the unified Save API
-    const profRes = await saveStudentFormSectionInSupabase({
-      section_type: 'profile',
-      is_mandatory: true,
-      completion_status: allRequiredFilled, // ← field-validation based, not button-based
-      payload
-    });
+      // Save Patient Profile using the unified Save API
+      const profRes = await saveStudentFormSectionInSupabase({
+        section_type: 'profile',
+        is_mandatory: true,
+        completion_status: allRequiredFilled,
+        payload
+      });
 
-    if (!profRes.success) {
+      if (!profRes.success) {
+        setSaving(false);
+        const cleanMsg = (profRes.error || '').includes('Failed to fetch') || (profRes.error || '').includes('TypeError')
+          ? '✖ Connection error: Unable to connect to Supabase server. Please check your internet connection and try again.'
+          : (profRes.error || '✖ Failed to save Patient Profile.');
+        showBottomNotify({ type: 'error', message: cleanMsg });
+        return;
+      }
+
+      const savedProfileId = profRes.profile.id;
+      setExistingProfileId(savedProfileId);
+
+      // Save Child Tables
+      const activeLabRecords = labInvestigations.filter(l => l.parameter_name && l.test_value);
+      const activeDrugRecords = prescribedDrugs.filter(d => d.trade_name || d.generic_name);
+
+      await Promise.all([
+        saveLabInvestigationsInSupabase(savedProfileId, activeLabRecords),
+        savePrescribedDrugsInSupabase(savedProfileId, activeDrugRecords)
+      ]);
+
       setSaving(false);
-      showBottomNotify({ type: 'error', message: profRes.error || '✖ Failed to save Patient Profile.' });
-      return;
-    }
+      
+      // Sync completion flags strictly using backend response to avoid cached values
+      if (clinicalCase) {
+        clinicalCase.profile_completed = !!profRes.profile_completed;
+        clinicalCase.counselling_completed = !!profRes.counselling_completed;
+      }
 
-    const savedProfileId = profRes.profile.id;
-    setExistingProfileId(savedProfileId);
+      setProfileStatus(profRes.profile_completed ? 'Completed' : 'Draft');
+      
+      showBottomNotify({
+        type: 'success',
+        message: '✓ Patient Profile saved successfully! Returning to Pre-Submission Review...'
+      });
 
-    // Save Child Tables
-    const activeLabRecords = labInvestigations.filter(l => l.parameter_name && l.test_value);
-    const activeDrugRecords = prescribedDrugs.filter(d => d.trade_name || d.generic_name);
-
-    await Promise.all([
-      saveLabInvestigationsInSupabase(savedProfileId, activeLabRecords),
-      savePrescribedDrugsInSupabase(savedProfileId, activeDrugRecords)
-    ]);
-
-    setSaving(false);
-    
-    // Sync completion flags strictly using backend response to avoid cached values
-    if (clinicalCase) {
-      clinicalCase.profile_completed = !!profRes.profile_completed;
-      clinicalCase.counselling_completed = !!profRes.counselling_completed;
-    }
-
-    setProfileStatus(profRes.profile_completed ? 'Completed' : 'Draft');
-    
-    showBottomNotify({
-      type: 'success',
-      message: '✓ Patient Profile saved successfully! Returning to Pre-Submission Review...'
-    });
-
-    if (onBack) {
-      setTimeout(() => {
-        onBack();
-      }, 1000);
+      if (onBack) {
+        setTimeout(() => {
+          onBack();
+        }, 1000);
+      }
+    } catch (err) {
+      setSaving(false);
+      const rawErr = err?.message || String(err);
+      const cleanMsg = rawErr.includes('Failed to fetch') || rawErr.includes('TypeError')
+        ? '✖ Connection error: Unable to connect to Supabase server. Please check your internet connection and try again.'
+        : `✖ Save failed: ${rawErr}`;
+      showBottomNotify({ type: 'error', message: cleanMsg });
     }
   };
 

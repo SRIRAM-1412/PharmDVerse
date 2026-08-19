@@ -3,6 +3,7 @@ import {
   fetchAllCollegesFromSupabase,
   fetchActiveCollegesFromSupabase, 
   fetchRegistrationRequestsFromSupabase, 
+  fetchCollegeStudentCountsFromSupabase,
   submitCollegeRegistrationToSupabase, 
   approveCollegeInSupabase, 
   rejectCollegeInSupabase,
@@ -13,6 +14,7 @@ import {
   uploadCollegeLogoToSupabaseStorage,
   authenticateCollegeAdminInSupabase
 } from '../services/supabaseService';
+import { getPlanDetails, getSubscriptionStatusDetails, calculateDaysRemaining } from '../utils/subscriptionUtils';
 
 const CollegeContext = createContext();
 
@@ -35,11 +37,25 @@ export const CollegeProvider = ({ children }) => {
     setIsLoading(true);
     console.log('[CollegeContext] Loading live data from Supabase PostgreSQL...');
     
+    // Fetch live student count map per college ID
+    const studentCountsMap = await fetchCollegeStudentCountsFromSupabase();
+
     // 1. Fetch All Colleges for Super Admin & Landing Page (from colleges table)
     const collegesRes = await fetchAllCollegesFromSupabase();
     if (collegesRes.success && Array.isArray(collegesRes.data)) {
       const mappedColleges = collegesRes.data.map(c => {
-        const sub = c.subscriptions && c.subscriptions[0] ? c.subscriptions[0] : null;
+        const sub = Array.isArray(c.subscriptions) ? c.subscriptions[0] : (c.subscriptions || null);
+        const planKey = sub ? sub.plan_name : 'Professional';
+        const rawMax = sub ? sub.maximum_students : 600;
+        const planInfo = getPlanDetails(planKey, rawMax);
+        
+        const rawExpiry = sub ? sub.subscription_expiry_date : '2027-08-04';
+        const dbStatus = c.status || (sub ? sub.status : 'Active');
+        
+        const statusMeta = getSubscriptionStatusDetails(rawExpiry, dbStatus);
+        const currentStudents = studentCountsMap[c.id] || 0;
+        const maxCapacity = planInfo.maxStudents;
+
         return {
           id: c.id,
           name: c.college_name || c.name || '',
@@ -59,20 +75,26 @@ export const CollegeProvider = ({ children }) => {
           principalEmail: c.principal_email || '',
           logoBg: c.college_logo || c.logo_bg || 'from-emerald-600 to-teal-700',
           initials: safeInitials(c.college_name || c.name),
-          studentsCount: sub ? sub.maximum_students : 600,
+          studentsCount: maxCapacity,
+          currentStudentsCount: currentStudents,
+          availableSeats: Math.max(0, maxCapacity - currentStudents),
           portalUrl: `https://${(c.college_code || c.code || 'clg').toLowerCase()}.pharmdverse.com`,
-          status: c.status || (sub ? sub.status : 'Active'),
-          subscriptionPlan: sub ? sub.plan_name : 'Professional',
+          status: statusMeta.status,
+          dbStatus: dbStatus,
+          subscriptionPlan: planInfo.id,
+          subscriptionPlanName: planInfo.shortName,
           subscriptionStartDate: sub ? sub.subscription_start_date : new Date().toISOString().split('T')[0],
-          subscriptionExpiryDate: sub ? sub.subscription_expiry_date : '2027-08-04',
-          maxStudentsAllowed: sub ? sub.maximum_students : 600,
-          subscriptionStatus: sub ? sub.status : (c.status || 'Active')
+          subscriptionExpiryDate: rawExpiry,
+          maxStudentsAllowed: maxCapacity,
+          daysRemaining: statusMeta.daysRemaining,
+          badgeClass: statusMeta.badgeClass,
+          subscriptionStatus: statusMeta.status
         };
       });
 
-      const activeList = mappedColleges.filter(c => String(c.status).toLowerCase() === 'active');
-      const expiredList = mappedColleges.filter(c => String(c.status).toLowerCase() === 'expired');
-      const inactiveList = mappedColleges.filter(c => String(c.status).toLowerCase() !== 'active' && String(c.status).toLowerCase() !== 'expired');
+      const activeList = mappedColleges.filter(c => String(c.dbStatus).toLowerCase() !== 'inactive');
+      const expiredList = mappedColleges.filter(c => c.status === 'Expired');
+      const inactiveList = mappedColleges.filter(c => String(c.dbStatus).toLowerCase() === 'inactive' || c.status === 'Inactive');
 
       setActiveColleges(activeList);
       setInactiveColleges(inactiveList);
@@ -228,4 +250,25 @@ export const CollegeProvider = ({ children }) => {
   );
 };
 
-export const useColleges = () => useContext(CollegeContext);
+const defaultContextValue = {
+  activeColleges: [],
+  pendingRequests: [],
+  inactiveColleges: [],
+  expiredSubscriptions: [],
+  isLoading: false,
+  loadSupabaseData: async () => {},
+  submitRegistration: async () => ({ success: false }),
+  approveCollege: async () => null,
+  rejectCollege: async () => {},
+  updateCollegeProfile: async () => ({ success: false }),
+  updateCollegeStatus: async () => ({ success: false }),
+  uploadCollegeLogo: async () => ({ success: false }),
+  loginCollegeAdmin: async () => ({ success: false }),
+  deleteCollege: async () => {},
+  deleteMultipleColleges: async () => {}
+};
+
+export const useColleges = () => {
+  const context = useContext(CollegeContext);
+  return context || defaultContextValue;
+};
