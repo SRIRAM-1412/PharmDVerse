@@ -312,8 +312,65 @@ const generateCaseSpecificMRPs = (norm, evaluatedDrugs) => {
 };
 
 /**
+ * Short Factual Case Summary Generator (approx 2–4 lines).
+ * Based ONLY on actual saved case information in Supabase without hallucination.
+ */
+const generateFactualCaseSummary = (norm) => {
+  const ageStr = norm.demographics.age && norm.demographics.age !== 'N/A' && norm.demographics.age !== '—' ? `${norm.demographics.age}-year-old` : '';
+  const genderStr = norm.demographics.gender && norm.demographics.gender !== 'N/A' && norm.demographics.gender !== '—' ? norm.demographics.gender.toLowerCase() : 'patient';
+  
+  const patientDesc = [ageStr, genderStr].filter(Boolean).join(' ') || 'patient';
+  
+  const dept = norm.demographics.department && norm.demographics.department !== 'N/A' && norm.demographics.department !== '—' ? norm.demographics.department : '';
+  const ward = norm.demographics.ward && norm.demographics.ward !== 'N/A' && norm.demographics.ward !== '—' ? norm.demographics.ward : '';
+  const locationParts = [dept, ward].filter(Boolean).join(' / ');
+  const locationStr = locationParts ? `admitted to the ${locationParts}` : '';
+
+  const complaints = norm.history.chiefComplaints && norm.history.chiefComplaints !== 'N/A' && norm.history.chiefComplaints !== '—' ? norm.history.chiefComplaints : null;
+  const diagnosis = norm.diagnosis.final && norm.diagnosis.final !== 'N/A' && norm.diagnosis.final !== '—' ? norm.diagnosis.final : null;
+  const pastHistory = norm.history.pastMedicalHistory && norm.history.pastMedicalHistory !== 'N/A' && norm.history.pastMedicalHistory !== 'NIL' && norm.history.pastMedicalHistory !== 'None' && norm.history.pastMedicalHistory !== '—' ? norm.history.pastMedicalHistory : null;
+  const allergies = norm.demographics.allergyDrugs && norm.demographics.allergyDrugs !== 'N/A' && norm.demographics.allergyDrugs !== 'NIL' && norm.demographics.allergyDrugs !== 'None' && norm.demographics.allergyDrugs !== 'No known drug allergies' && norm.demographics.allergyDrugs !== 'NKDA' && norm.demographics.allergyDrugs !== '—' ? norm.demographics.allergyDrugs : null;
+  const social = norm.demographics.socialHistory && norm.demographics.socialHistory !== 'N/A' && norm.demographics.socialHistory !== '—' ? norm.demographics.socialHistory : null;
+
+  const sentences = [];
+
+  // Sentence 1: Patient presentation
+  if (complaints || diagnosis) {
+    let s1 = `This case involves a ${patientDesc} ${locationStr}`.trim();
+    if (complaints && diagnosis) {
+      s1 += ` presenting with ${complaints} and diagnosed with ${diagnosis}.`;
+    } else if (complaints) {
+      s1 += ` presenting with ${complaints}.`;
+    } else if (diagnosis) {
+      s1 += ` with a documented final diagnosis of ${diagnosis}.`;
+    } else {
+      s1 += `.`;
+    }
+    sentences.push(s1.replace(/\s+/g, ' ').replace(' .', '.'));
+  } else {
+    sentences.push(`This case involves a ${patientDesc} ${locationStr}.`.replace(/\s+/g, ' ').replace(' .', '.'));
+  }
+
+  // Sentence 2: Past medical history
+  if (pastHistory) {
+    sentences.push(`Documented past medical history includes ${pastHistory}.`);
+  }
+
+  // Sentence 3: Allergies & Social History
+  if (allergies && social) {
+    sentences.push(`Documented allergies: ${allergies}. Relevant social history: ${social}.`);
+  } else if (allergies) {
+    sentences.push(`Documented allergies: ${allergies}.`);
+  } else if (social) {
+    sentences.push(`Relevant social history: ${social}.`);
+  }
+
+  return sentences.join(' ');
+};
+
+/**
  * Student Role AI Clinical Case Analysis View.
- * Complete 14-Section Educational Analysis Engine Triggered by SAVED Form Data.
+ * Educational Analysis Engine Triggered by SAVED Form Data.
  */
 export const StudentAiAnalysisView = ({ student, onNavigate }) => {
   const [cases, setCases] = useState([]);
@@ -605,651 +662,81 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
               </p>
             </div>
           ) : (
-            /* FULL 14-SECTION AI ANALYSIS PANEL WITH SAVED FORM TRIGGER DATA */
-            <div className="space-y-6 min-w-0 w-full">
-              {/* STATUS INDICATOR */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm min-w-0 w-full">
-                <div className="flex items-center justify-between flex-wrap gap-3 min-w-0 w-full">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Brain className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <div className="min-w-0">
-                      <h3 className="text-xs font-extrabold text-slate-900 dark:text-white leading-snug break-words">
-                        {isAnyFormApproved
-                          ? 'AI Clinical Case Analysis — Based on Approved Clinical Documentation'
-                          : 'AI Clinical Case Analysis — Based on Saved Clinical Documentation'}
-                      </h3>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono break-words mt-0.5">
-                        CASE ID: {norm.caseId} • Patient: {norm.demographics.patientName}
-                      </p>
-                    </div>
-                  </div>
+            /* SECTION 1 — CASE OVERVIEW (DYNAMIC PERSISTED CASE DATA) */
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5 min-w-0 w-full">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
+                <div className="flex items-center gap-2.5">
+                  <FileText className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                    SECTION 1 — CASE OVERVIEW
+                  </h3>
+                </div>
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                  Saved Case Record
+                </span>
+              </div>
 
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase shrink-0 ${isAnyFormApproved ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'}`}>
-                    {isAnyFormApproved ? 'Approved Data' : 'Saved Clinical Data'}
-                  </span>
+              {/* SAVED CLINICAL PARAMETERS GRID */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Patient Age / Sex</span>
+                  <strong className="font-extrabold text-slate-900 dark:text-white text-xs block truncate">
+                    {norm.demographics.age && norm.demographics.age !== 'N/A' && norm.demographics.age !== '—' ? `${norm.demographics.age} Yrs` : 'Not documented'} / {norm.demographics.gender && norm.demographics.gender !== 'N/A' && norm.demographics.gender !== '—' ? norm.demographics.gender : 'Not documented'}
+                  </strong>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Department / Ward</span>
+                  <strong className="font-extrabold text-slate-900 dark:text-white text-xs block truncate">
+                    {norm.demographics.department && norm.demographics.department !== 'N/A' && norm.demographics.department !== '—' ? norm.demographics.department : 'Not documented'}
+                    {norm.demographics.ward && norm.demographics.ward !== 'N/A' && norm.demographics.ward !== '—' ? ` (${norm.demographics.ward})` : ''}
+                  </strong>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Final Diagnosis</span>
+                  <strong className="font-extrabold text-emerald-700 dark:text-emerald-400 text-xs block break-words">
+                    {norm.diagnosis.final && norm.diagnosis.final !== 'N/A' && norm.diagnosis.final !== '—' ? norm.diagnosis.final : 'Not documented'}
+                  </strong>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Chief Complaint(s)</span>
+                  <p className="font-medium text-slate-800 dark:text-slate-200 text-xs break-words">
+                    {norm.history.chiefComplaints && norm.history.chiefComplaints !== 'N/A' && norm.history.chiefComplaints !== '—' ? norm.history.chiefComplaints : 'Not documented'}
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Relevant Past Medical History</span>
+                  <p className="font-medium text-slate-800 dark:text-slate-200 text-xs break-words">
+                    {norm.history.pastMedicalHistory && norm.history.pastMedicalHistory !== 'N/A' && norm.history.pastMedicalHistory !== '—' ? norm.history.pastMedicalHistory : 'Not documented'}
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Relevant Social History</span>
+                  <p className="font-medium text-slate-800 dark:text-slate-200 text-xs break-words">
+                    {norm.demographics.socialHistory && norm.demographics.socialHistory !== 'N/A' && norm.demographics.socialHistory !== '—' ? norm.demographics.socialHistory : 'Not available in saved documentation.'}
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1 md:col-span-2 lg:col-span-3">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Documented Allergies</span>
+                  <p className="font-medium text-slate-800 dark:text-slate-200 text-xs break-words">
+                    {norm.demographics.allergyDrugs && norm.demographics.allergyDrugs !== 'N/A' && norm.demographics.allergyDrugs !== '—' ? norm.demographics.allergyDrugs : 'Not documented'}
+                  </p>
                 </div>
               </div>
 
-              {/* 14 SECTIONS RENDERER WITH 100% FLUID WRAPPING & EVIDENCE FRAMEWORK */}
-              <div className="space-y-6 min-w-0 w-full">
-                
-                {/* SECTION 1 — CASE OVERVIEW */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 min-w-0 w-full">
-                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <FileText className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                        SECTION 1 — CASE OVERVIEW
-                      </h3>
-                    </div>
-                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                      Documented Facts & Pathophysiologic Context
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs min-w-0">
-                    <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl min-w-0">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Case ID</span>
-                      <span className="font-mono font-bold text-slate-900 dark:text-white break-words">{norm.caseId}</span>
-                    </div>
-                    <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl min-w-0">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Patient / Age / Sex</span>
-                      <span className="font-bold text-slate-900 dark:text-white break-words">{norm.demographics.patientName} ({norm.demographics.age} Yrs / {norm.demographics.gender})</span>
-                    </div>
-                    <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl min-w-0">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">IP/OP Number</span>
-                      <span className="font-mono font-bold text-slate-900 dark:text-white break-words">{norm.demographics.ipOpNo}</span>
-                    </div>
-                    <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl min-w-0">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Department / Ward</span>
-                      <span className="font-bold text-slate-900 dark:text-white break-words">{norm.demographics.department} ({norm.demographics.wardBed})</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1 min-w-0">
-                    <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl space-y-2 min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800">
-                      <span className="text-[10px] font-black uppercase text-slate-400 block">DOCUMENTED CASE CLINICAL HISTORY</span>
-                      <p><strong className="text-slate-800 dark:text-slate-200">Chief Complaints:</strong> <span className="break-words text-slate-700 dark:text-slate-300">{norm.history.chiefComplaints}</span></p>
-                      <p><strong className="text-slate-800 dark:text-slate-200">Past Medical History:</strong> <span className="break-words text-slate-700 dark:text-slate-300">{norm.history.pastMedicalHistory}</span></p>
-                      <p><strong className="text-slate-800 dark:text-slate-200">Social History:</strong> <span className="break-words text-slate-700 dark:text-slate-300">{norm.demographics.socialHistory}</span></p>
-                    </div>
-
-                    <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl space-y-2 min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800">
-                      <span className="text-[10px] font-black uppercase text-slate-400 block">DOCUMENTED DIAGNOSIS & ALLERGIES</span>
-                      <p><strong className="text-slate-800 dark:text-slate-200">Provisional Diagnosis:</strong> <span className="break-words text-slate-700 dark:text-slate-300">{norm.diagnosis.provisional || 'Not available in saved documentation.'}</span></p>
-                      <p><strong className="text-slate-800 dark:text-slate-200">Official Final Diagnosis:</strong> <span className="text-emerald-700 dark:text-emerald-400 font-extrabold break-words">{norm.diagnosis.final}</span></p>
-                      <p><strong className="text-slate-800 dark:text-slate-200">Documented Allergies:</strong> <span className="break-words text-slate-700 dark:text-slate-300">{norm.demographics.allergyDrugs}</span></p>
-                    </div>
-                  </div>
-
-                  <div className="bg-emerald-50/60 dark:bg-emerald-950/30 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800/80 text-xs space-y-1.5 min-w-0 text-emerald-950 dark:text-emerald-200 leading-relaxed">
-                    <span className="text-[10px] font-extrabold uppercase text-emerald-700 dark:text-emerald-300 block">AI CASE SYNTHESIS & CLINICAL CONTEXT</span>
-                    <p className="break-words">
-                      Case overview integrates saved presentation for {norm.diagnosis.final || norm.history.chiefComplaints}. Pharmacotherapeutic evaluation focuses on active disease control, symptom resolution, organ function monitoring, and prevention of medication-related problems.
-                    </p>
-                  </div>
-                </div>
-
-                {/* SECTION 2 — PATIENT PROFILE ANALYSIS */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 min-w-0 w-full">
-                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <Brain className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                        SECTION 2 — PATIENT PROFILE ANALYSIS
-                      </h3>
-                    </div>
-                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800">
-                      Field-Specific Clinical Evidence
-                    </span>
-                  </div>
-
-                  {isProfileSaved ? (
-                    <div className="space-y-3 text-xs min-w-0">
-                      <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200/60 dark:border-slate-700/60 space-y-2 min-w-0">
-                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-extrabold text-[10px]">
-                          DOCUMENTED CASE INFORMATION
-                        </div>
-                        <p className="text-slate-700 dark:text-slate-300 leading-relaxed break-words">
-                          Height: {norm.demographics.height} • Weight: {norm.demographics.weight} • BMI: {norm.demographics.bmi} • Diet: {norm.demographics.diet}
-                        </p>
-                        <p className="text-slate-700 dark:text-slate-300 leading-relaxed break-words">
-                          Systemic Examination Findings: {norm.history.systemicExam}
-                        </p>
-                      </div>
-
-                      <div className="bg-indigo-50/60 dark:bg-indigo-950/40 p-4 rounded-xl border border-indigo-200/80 dark:border-indigo-800/80 space-y-2 text-indigo-950 dark:text-indigo-200 min-w-0">
-                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-200 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100 font-extrabold text-[10px]">
-                          FIELD-SPECIFIC CLINICAL INTERPRETATION
-                        </div>
-                        <p className="leading-relaxed pt-0.5 break-words">
-                          <strong>Age & Demographic Factor:</strong> Age ({norm.demographics.age} years) {isElderly ? 'represents an older age demographic where renal/hepatic drug clearance rates and sensitivity to polypharmacy warrant close clinical assessment.' : 'presents standard adult pharmacokinetic clearance profiles.'}
-                        </p>
-                        <p className="leading-relaxed break-words">
-                          <strong>Systemic Context:</strong> Documented findings for {norm.diagnosis.final !== 'N/A' ? norm.diagnosis.final : norm.history.chiefComplaints} require regular monitoring of baseline organ function and dietary adherence ({norm.demographics.diet}).
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-400 italic">Patient Profile documentation is not available in saved documentation.</p>
-                  )}
-                </div>
-
-                {/* SECTION 3 — INDIVIDUAL MEDICATION ANALYSIS */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 min-w-0 w-full">
-                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <Pill className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                        SECTION 3 — MEDICATION ANALYSIS
-                      </h3>
-                    </div>
-                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                      {evaluatedDrugs.length} Medication-Specific Evaluations
-                    </span>
-                  </div>
-
-                  {isProfileSaved && evaluatedDrugs.length > 0 ? (
-                    <div className="space-y-4 min-w-0">
-                      {evaluatedDrugs.map((d, idx) => {
-                        const specificAnalysis = getMedicationSpecificAnalysis(d);
-
-                        return (
-                          <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200/70 dark:border-slate-700/70 space-y-3 text-xs min-w-0">
-                            {/* STUDENT'S ORIGINAL UNTOUCHED MEDICATION ENTRY */}
-                            <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-700/60 pb-2 flex-wrap gap-2">
-                              <div className="space-y-1 min-w-0">
-                                <span className="font-extrabold text-slate-900 dark:text-white text-sm break-words block">
-                                  #{d.s_no} {d.trade_name} <span className="font-semibold text-slate-500 dark:text-slate-400">({d.generic_name})</span>
-                                </span>
-                                
-                                {specificAnalysis.isVerified && specificAnalysis.recognizedEntryType && (
-                                  <div className="flex items-center gap-2 text-[10px]">
-                                    <span className="px-2 py-0.5 rounded bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 font-bold border border-sky-200 dark:border-sky-800">
-                                      {specificAnalysis.recognizedEntryType}
-                                    </span>
-                                    {specificAnalysis.resolvedGeneric && (
-                                      <span className="text-slate-600 dark:text-slate-400 font-medium">
-                                        Active Ingredient: <strong className="text-slate-900 dark:text-white">{specificAnalysis.resolvedGeneric}</strong>
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-
-                              <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[10px] shrink-0">
-                                {d.route_of_admin} • {d.frequency}
-                              </span>
-                            </div>
-
-                            {/* UNVERIFIED / AMBIGUOUS ENTRY WARNING BANNER (Requirement 2 & 19) */}
-                            {specificAnalysis.needsVerificationBanner ? (
-                              <div className="bg-amber-50 dark:bg-amber-950/50 p-4 rounded-xl border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 space-y-1.5 leading-relaxed">
-                                <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-extrabold text-xs">
-                                  <AlertCircle className="w-4 h-4 shrink-0" />
-                                  <span>Medication Identity Requires Clinical Verification</span>
-                                </div>
-                                <p className="text-[11px]">
-                                  <strong>Entered Medication:</strong> {specificAnalysis.originalEntry}
-                                </p>
-                                {specificAnalysis.possibleMatch && (
-                                  <p className="text-[11px] text-amber-800 dark:text-amber-300 font-semibold">
-                                    <strong>Possible Clinical Match:</strong> {specificAnalysis.possibleMatch}
-                                  </p>
-                                )}
-                                <p className="text-[11px] italic text-amber-700 dark:text-amber-400 pt-0.5">
-                                  Action: Verify the medication name against the original prescription or clinical record before evaluating drug-specific clinical parameters.
-                                </p>
-                              </div>
-                            ) : (
-                              /* VERIFIED MEDICATION CLINICAL DATA */
-                              <>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] bg-white dark:bg-slate-900/60 p-3 rounded-lg border border-slate-200/60 dark:border-slate-800">
-                                  <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Documented Dose:</strong> {d.dose || 'Not available in saved documentation.'}</p>
-                                  <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Formulary Dose:</strong> {specificAnalysis.formularyDose}</p>
-                                  <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Start Date:</strong> {d.start_date}</p>
-                                  <p className="break-words"><strong className="text-slate-700 dark:text-slate-300">Stop Date:</strong> {d.stop_date}</p>
-                                </div>
-
-                                <div className="space-y-3 text-[11px] leading-relaxed bg-white dark:bg-slate-900/90 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
-                                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2 flex-wrap gap-2">
-                                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-                                      INDICATION & PHARMACOLOGICAL MECHANISM
-                                    </span>
-                                  </div>
-
-                                  <p className="break-words">
-                                    <strong className="text-slate-900 dark:text-white">Actual Drug Class:</strong>{' '}
-                                    <span className="text-slate-800 dark:text-slate-200 font-bold">
-                                      {specificAnalysis.drugClass}
-                                    </span>
-                                  </p>
-
-                                  <div className="space-y-1.5 border-t border-slate-100 dark:border-slate-800 pt-2">
-                                    <strong className="text-slate-900 dark:text-white block font-bold">Established Clinical Use (General Drug Reference):</strong>
-                                    <p className="break-words text-slate-700 dark:text-slate-300 pl-3 border-l-2 border-emerald-500 dark:border-emerald-600 font-medium">
-                                      {specificAnalysis.establishedUse}
-                                    </p>
-                                  </div>
-
-                                  <div className="border-t border-slate-100 dark:border-slate-800 pt-2">
-                                    <strong className="text-slate-900 dark:text-white block mb-1">Drug-Specific Mechanism of Action (MOA):</strong>
-                                    <p className="break-words leading-relaxed text-slate-600 dark:text-slate-300">
-                                      {specificAnalysis.mechanismOfAction}
-                                    </p>
-                                  </div>
-                                </div>
-
-                                {/* SPECIFIC MONITORING ADVICE */}
-                                <div className="bg-slate-100/70 dark:bg-slate-800/80 p-3 rounded-lg text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed border border-slate-200/50 dark:border-slate-700/50">
-                                  <strong className="text-slate-900 dark:text-white">Monitoring & Clinical Considerations:</strong> {specificAnalysis.monitoringAdvice}
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-400 italic">No prescribed medications available in saved documentation.</p>
-                  )}
-                </div>
-
-                {/* SECTION 4 — POTENTIAL MEDICATION-RELATED PROBLEMS (MRPs) */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 min-w-0 w-full">
-                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <AlertOctagon className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                        SECTION 4 — POTENTIAL MEDICATION-RELATED PROBLEMS (MRPs)
-                      </h3>
-                    </div>
-                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
-                      {caseMRPs.length} Evidence-Supported Case Issues
-                    </span>
-                  </div>
-
-                  {evaluatedDrugs.length > 0 && caseMRPs.length > 0 ? (
-                    <div className="space-y-3.5 text-xs min-w-0">
-                      {caseMRPs.map((mrp, idx) => (
-                        <div key={idx} className="bg-rose-50/50 dark:bg-rose-950/30 p-4 rounded-xl border border-rose-200/80 dark:border-rose-800/80 space-y-2 text-rose-950 dark:text-rose-200 min-w-0 leading-relaxed">
-                          <div className="flex items-center justify-between flex-wrap gap-2">
-                            <span className="font-extrabold text-xs">MRP #{idx + 1}: {mrp.category}</span>
-                            <span className="px-2 py-0.5 rounded-md bg-rose-200 dark:bg-rose-900 text-rose-900 dark:text-rose-100 font-extrabold text-[10px] shrink-0">
-                              {mrp.priority}
-                            </span>
-                          </div>
-                          <p className="break-words"><strong>Medications Involved:</strong> {mrp.medicationsInvolved}</p>
-                          <p className="break-words"><strong>Case Evidence (Documented Fact):</strong> {mrp.caseEvidence}</p>
-                          <p className="break-words"><strong>Established Pharmacological Rationale:</strong> {mrp.pharmacologicalRationale}</p>
-                          <p className="break-words"><strong>Suggested Preceptor Review:</strong> {mrp.preceptorReview}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-400 italic">No medication records available in saved documentation to evaluate MRPs.</p>
-                  )}
-                </div>
-
-                {/* SECTION 5 — DRUG–DRUG INTERACTION REVIEW */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 min-w-0 w-full">
-                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <Layers className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0" />
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                        SECTION 5 — DRUG–DRUG INTERACTION REVIEW
-                      </h3>
-                    </div>
-                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
-                      Pair-Specific Independent Assessment
-                    </span>
-                  </div>
-
-                  {drugPairs.length > 0 ? (
-                    <div className="space-y-3 text-xs min-w-0">
-                      {drugPairs.map((pair, idx) => {
-                        const interaction = getPairSpecificInteraction(pair.drug1, pair.drug2);
-
-                        return (
-                          <div key={idx} className={`p-4 rounded-xl border space-y-2 min-w-0 leading-relaxed ${
-                            interaction.isUncertain
-                              ? 'bg-amber-50/60 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800 text-amber-950 dark:text-amber-200'
-                              : interaction.hasInteraction
-                              ? 'bg-purple-50/60 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800 text-purple-950 dark:text-purple-200'
-                              : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-700/60 text-slate-700 dark:text-slate-300'
-                          }`}>
-                            <div className="flex items-center justify-between flex-wrap gap-2">
-                              <span className="font-extrabold text-xs break-words">
-                                Pair #{idx + 1}: {interaction.pairTitle || `${pair.drug1.trade_name} + ${pair.drug2.trade_name}`}
-                              </span>
-                              <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] shrink-0 ${
-                                interaction.isUncertain
-                                  ? 'bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100'
-                                  : interaction.hasInteraction
-                                  ? 'bg-purple-200 dark:bg-purple-900 text-purple-900 dark:text-purple-100'
-                                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-                              }`}>
-                                {interaction.severity}
-                              </span>
-                            </div>
-
-                            <p className="break-words"><strong>Potential Interaction Mechanism:</strong> {interaction.mechanism}</p>
-                            <p className="break-words"><strong>Clinical Significance:</strong> {interaction.clinicalSignificance}</p>
-                            <p className="break-words"><strong>Management & Monitoring Consideration:</strong> {interaction.managementConsideration}</p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-400 italic">Insufficient medication records in saved documentation to evaluate drug-drug interactions.</p>
-                  )}
-                </div>
-
-                {/* SECTION 6 — DRUG–DISEASE / CONDITION INTERACTION REVIEW */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 min-w-0 w-full">
-                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <HeartPulse className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                        SECTION 6 — DRUG–DISEASE / CONDITION INTERACTION REVIEW
-                      </h3>
-                    </div>
-                  </div>
-
-                  {isProfileSaved && (norm.diagnosis.final !== 'N/A' || norm.history.chiefComplaints) && evaluatedDrugs.length > 0 ? (
-                    <div className="space-y-3 text-xs min-w-0">
-                      <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl text-xs space-y-2.5 min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800">
-                        <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Documented Condition / Complaint:</strong> {norm.diagnosis.final !== 'N/A' ? norm.diagnosis.final : norm.history.chiefComplaints}</p>
-                        <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Documented Regimen:</strong> {evaluatedDrugs.map(d => `${d.trade_name} (${d.generic_name})`).join(', ')}</p>
-                        
-                        <div className="border-t border-slate-200 dark:border-slate-700 pt-2 space-y-1.5">
-                          <strong className="text-slate-900 dark:text-white block font-bold">Established Pharmacological Cautions:</strong>
-                          
-                          {evaluatedDrugs.some(d => (d.generic_name + d.trade_name).toLowerCase().includes('aspirin')) && (
-                            <p className="text-amber-800 dark:text-amber-300 break-words">
-                              • <strong>Aspirin in Epigastric Pain / GI Distress:</strong> Oral Aspirin inhibits gastric mucosal COX-1 prostaglandin synthesis, increasing gastric acid damage and mucosal bleeding risk in epigastric distress.
-                            </p>
-                          )}
-
-                          {evaluatedDrugs.some(d => (d.generic_name + d.trade_name).toLowerCase().includes('telm')) && (
-                            <p className="text-sky-800 dark:text-sky-300 break-words">
-                              • <strong>Telmisartan in Hyponatremia / Renal Clearance:</strong> Telmisartan (ARB) inhibits aldosterone secretion, decreasing distal tubular sodium retention. Monitor serum sodium (Na+: 125 mEq/L) and renal function.
-                            </p>
-                          )}
-
-                          {evaluatedDrugs.some(d => (d.generic_name + d.trade_name).toLowerCase().includes('buscopan') || (d.generic_name + d.trade_name).toLowerCase().includes('buscogast')) && (
-                            <p className="text-teal-800 dark:text-teal-300 break-words">
-                              • <strong>Buscopan in Visceral Spasm / Epigastric Pain:</strong> Antimuscarinic agent provides peripheral spasmolytic action for visceral smooth muscle spasm; contraindicated in mechanical GI stenosis or narrow-angle glaucoma.
-                            </p>
-                          )}
-                        </div>
-
-                        <p className="break-words pt-1"><strong className="text-slate-800 dark:text-slate-200">Preceptor Discussion Point:</strong> Evaluate whether active GI pain requires PPI gastroprotection and monitor baseline renal clearance parameters.</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-400 italic">Documented disease/condition data not available in saved documentation.</p>
-                  )}
-                </div>
-
-                {/* SECTION 7 — DOSE / REGIMEN / ADMINISTRATION REVIEW */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 min-w-0 w-full">
-                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <Clock className="w-5 h-5 text-sky-600 dark:text-sky-400 shrink-0" />
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                        SECTION 7 — DOSE / REGIMEN / ADMINISTRATION REVIEW
-                      </h3>
-                    </div>
-                  </div>
-
-                  {evaluatedDrugs.length > 0 ? (
-                    <div className="space-y-3 text-xs min-w-0">
-                      {evaluatedDrugs.map((d, idx) => {
-                        const specificAnalysis = getMedicationSpecificAnalysis(d);
-                        const dName = (d.generic_name !== '—' ? d.generic_name : d.trade_name).toLowerCase();
-                        
-                        let formularyInfo = specificAnalysis.formularyDose || 'Drug-specific dosing information could not be confidently retrieved. Verify against the applicable clinical reference.';
-                        let adminInfo = specificAnalysis.monitoringAdvice || 'Administer per verified clinical order with routine patient monitoring.';
-
-                        if (dName.includes('buscopan') || dName.includes('buscogast') || dName.includes('hyoscine')) {
-                          formularyInfo = 'Standard adult parenteral dose: 20 mg slow IV/IM (3-4 times daily, max 100 mg/day). Oral: 10-20 mg 3-4 times daily.';
-                          adminInfo = 'Administer slow IV injection over 1 minute. Documented 1.5 mg IV dose is sub-therapeutic; verify clinical order.';
-                        } else if (dName.includes('aspirin') || dName.includes('ecosprin')) {
-                          formularyInfo = 'Standard adult antiplatelet dose: 75 mg – 150 mg Oral OD. Analgesic dose: 300 mg – 600 mg Q4-6H.';
-                          adminInfo = 'Administer with or immediately after meals with a full glass of water to reduce gastric mucosal irritation.';
-                        } else if (dName.includes('telmisat') || dName.includes('telma')) {
-                          formularyInfo = 'Standard adult antihypertensive/renoprotective dose: 20 mg – 40 mg Oral OD (max 80 mg OD).';
-                          adminInfo = 'Administer once daily with or without food at approximately the same time each day. Monitor BP and electrolytes.';
-                        }
-
-                        return (
-                          <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800 space-y-1.5">
-                            <div className="flex items-center justify-between flex-wrap gap-2">
-                              <span className="break-words font-extrabold text-slate-900 dark:text-white text-xs">
-                                {d.trade_name} <span className="font-semibold text-slate-500 dark:text-slate-400">({d.generic_name})</span>
-                              </span>
-                              <span className="px-2 py-0.5 rounded-md bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 text-[10px] font-bold">
-                                {d.route_of_admin} • {d.frequency}
-                              </span>
-                            </div>
-
-                            <p className="break-words text-slate-700 dark:text-slate-300">
-                              <strong>Documented Dosing:</strong> {d.dose || 'Unspecified'} • Start: {d.start_date} • Stop: {d.stop_date}
-                            </p>
-                            <p className="text-slate-600 dark:text-slate-300 text-[11px]">
-                              <strong>Formulary Benchmark:</strong> {formularyInfo}
-                            </p>
-                            <p className="text-slate-600 dark:text-slate-300 text-[11px]">
-                              <strong>Administration & Educational Advice:</strong> {adminInfo}
-                            </p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-400 italic">Dosing and administration details not available in saved documentation.</p>
-                  )}
-                </div>
-
-                {/* SECTION 8 — LABORATORY & CLINICAL PARAMETER REVIEW */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 min-w-0 w-full">
-                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <Activity className="w-5 h-5 text-teal-600 dark:text-teal-400 shrink-0" />
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                        SECTION 8 — LABORATORY & CLINICAL PARAMETER REVIEW
-                      </h3>
-                    </div>
-                  </div>
-
-                  {isProfileSaved && norm.labs.length > 0 ? (
-                    <div className="space-y-3 text-xs min-w-0">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
-                        {norm.labs.map((lab, idx) => {
-                          const lName = String(lab.parameter_name).toLowerCase();
-                          let drugRelevance = 'Standard baseline clinical parameter.';
-
-                          if (lName.includes('wbc') || lName.includes('leukocyte')) {
-                            drugRelevance = 'Marked leukocytosis indicates active systemic bacterial infection or severe inflammation; evaluate antibiotic selection.';
-                          } else if (lName.includes('sodium') || lName.includes('na')) {
-                            drugRelevance = 'Hyponatremia (< 130 mEq/L) requires cautious monitoring with aldosterone-inhibiting drugs (Telmisartan) and diuretics.';
-                          } else if (lName.includes('creatinine') || lName.includes('bun') || lName.includes('urea')) {
-                            drugRelevance = 'Baseline renal clearance parameter essential for titrating renally excreted drugs (Aspirin, ARBs).';
-                          } else if (lName.includes('hb') || lName.includes('hemoglobin') || lName.includes('rbc')) {
-                            drugRelevance = 'Monitor baseline hematocrit for mucosal bleeding in patients receiving antiplatelet therapy (Aspirin).';
-                          } else if (lName.includes('sgot') || lName.includes('sgpt') || lName.includes('ast') || lName.includes('alt')) {
-                            drugRelevance = 'Baseline hepatic transaminase parameter to assess liver clearance safety.';
-                          }
-
-                          return (
-                            <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl space-y-1.5 min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800">
-                              <div className="flex items-center justify-between flex-wrap gap-1">
-                                <span className="font-extrabold text-slate-900 dark:text-white text-xs">{lab.parameter_name}</span>
-                                <span className={`px-2 py-0.5 rounded-md font-extrabold text-[10px] ${
-                                  lab.impression.includes('High') || lab.impression.includes('Low') || lab.impression.includes('Abnormal')
-                                    ? 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
-                                    : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
-                                }`}>
-                                  {lab.impression}
-                                </span>
-                              </div>
-
-                              <p className="text-slate-800 dark:text-slate-200">
-                                <strong>Result:</strong> {lab.test_value} {lab.unit} <span className="text-slate-400 text-[11px]">(Ref: {lab.normal_range})</span>
-                              </p>
-                              <p className="text-slate-600 dark:text-slate-400 text-[11px]">
-                                <strong>Clinical & Drug Relevance:</strong> {drugRelevance}
-                              </p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-400 italic font-semibold bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
-                      Not documented in the saved case.
-                    </p>
-                  )}
-                </div>
-
-                {/* SECTION 9 — ADR / SAFETY REVIEW */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 min-w-0 w-full">
-                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                        SECTION 9 — ADR / SAFETY REVIEW
-                      </h3>
-                    </div>
-                  </div>
-
-                  {isAdrSaved && (norm.adr.reactionTitle || norm.adr.suspectedMed) ? (
-                    <div className="bg-rose-50/50 dark:bg-rose-950/30 p-4 rounded-xl border border-rose-200/80 dark:border-rose-800/80 text-xs text-rose-950 dark:text-rose-200 space-y-1.5 min-w-0 leading-relaxed">
-                      <p className="break-words"><strong>Suspected Medication:</strong> {norm.adr.suspectedMed || 'Documented in ADR Log'}</p>
-                      <p className="break-words"><strong>Documented Reaction Title:</strong> {norm.adr.reactionTitle || 'Documented'}</p>
-                      <p className="break-words"><strong>Severity & Seriousness:</strong> {[norm.adr.severity, norm.adr.seriousness].filter(Boolean).join(' / ') || 'Documented'}</p>
-                      <p className="break-words"><strong>Causality (Naranjo/WHO):</strong> {norm.adr.causalityOpinion || 'Evaluated'}</p>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60 break-words">
-                      ADR documentation is not available.
-                    </p>
-                  )}
-                </div>
-
-                {/* SECTION 10 — PHARMACIST INTERVENTION REVIEW */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 min-w-0 w-full">
-                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <ShieldCheck className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                        SECTION 10 — PHARMACIST INTERVENTION REVIEW
-                      </h3>
-                    </div>
-                  </div>
-
-                  {isInterventionSaved ? (
-                    <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl text-xs space-y-1.5 min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800">
-                      <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Identified Issue:</strong> {norm.intervention.problemDescription || norm.intervention.prescriptionProblems || 'Documented'}</p>
-                      <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Intervention & Action Taken:</strong> {norm.intervention.actionsTaken || norm.intervention.recommendations || 'Documented'}</p>
-                      <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Physician Acceptance:</strong> {norm.intervention.physicianAcceptance || 'Documented'}</p>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60 break-words">
-                      Pharmacist Intervention documentation is not available.
-                    </p>
-                  )}
-                </div>
-
-                {/* SECTION 11 — PATIENT COUNSELLING REVIEW */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 min-w-0 w-full">
-                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <UserCheck className="w-5 h-5 text-teal-600 dark:text-teal-400 shrink-0" />
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                        SECTION 11 — PATIENT COUNSELLING REVIEW
-                      </h3>
-                    </div>
-                  </div>
-
-                  {isCounsellingSaved ? (
-                    <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl text-xs space-y-1.5 min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800">
-                      <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Disease Condition Counselled:</strong> {norm.counselling.diseaseCounselled || 'Documented'}</p>
-                      <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Medications Counselled:</strong> {norm.counselling.medicationsCounselled || 'Documented'}</p>
-                      <p className="break-words"><strong className="text-slate-800 dark:text-slate-200">Patient Understanding Ascertained:</strong> {norm.counselling.understandingAscertained ? 'Yes (Ascertained)' : 'No'}</p>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60 break-words">
-                      Patient Counselling documentation is not available in the saved case.
-                    </p>
-                  )}
-                </div>
-
-                {/* SECTION 12 — MISSING / UNAVAILABLE INFORMATION */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 min-w-0 w-full">
-                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                        SECTION 12 — MISSING / UNAVAILABLE INFORMATION
-                      </h3>
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl text-xs space-y-2 min-w-0 leading-relaxed border border-slate-200/60 dark:border-slate-800">
-                    <p className="font-extrabold text-slate-800 dark:text-slate-200">Clinically Relevant Missing Saved Case Data:</p>
-                    <ul className="list-disc pl-4 space-y-1.5 text-slate-600 dark:text-slate-400">
-                      {!isProfileSaved && <li className="break-words">Patient Profile documentation not available in saved documentation.</li>}
-                      {!isCounsellingSaved && <li className="break-words">Patient Counselling documentation not available in saved documentation.</li>}
-                      {!isInterventionSaved && <li className="break-words">Pharmacist Intervention documentation not available in saved documentation.</li>}
-                      {!isDirSaved && <li className="break-words">Drug Information Request documentation not available in saved documentation.</li>}
-                      {!isAdrSaved && <li className="break-words">ADR Documentation Log not available in saved documentation.</li>}
-                      {norm.labs.length === 0 && <li className="break-words">Baseline laboratory parameters (renal & hepatic function) not documented in saved case.</li>}
-                    </ul>
-                  </div>
-                </div>
-
-                {/* SECTION 13 — PRIORITY ISSUES FOR STUDENT REVIEW */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 min-w-0 w-full">
-                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <Layers className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                        SECTION 13 — PRIORITY ISSUES FOR STUDENT REVIEW
-                      </h3>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 text-xs min-w-0">
-                    <div className="bg-emerald-50/50 dark:bg-emerald-950/30 p-4 rounded-xl border border-emerald-200/80 dark:border-emerald-800/80 space-y-1.5 min-w-0 leading-relaxed">
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <span className="font-extrabold text-emerald-950 dark:text-emerald-200">High Priority Preceptor Discussion Point</span>
-                        <span className="px-2 py-0.5 rounded-md bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100 font-extrabold text-[10px] shrink-0">Priority #1</span>
-                      </div>
-                      <p className="text-emerald-900 dark:text-emerald-200 break-words">Review complete pharmacotherapeutic indication match and renal/hepatic clearance parameters with preceptor during case presentation.</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* SECTION 14 — LEARNING POINTS */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 min-w-0 w-full">
-                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <BookOpen className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                        SECTION 14 — LEARNING POINTS
-                      </h3>
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl text-xs space-y-2 text-slate-700 dark:text-slate-300 leading-relaxed min-w-0 border border-slate-200/60 dark:border-slate-800">
-                    <p className="break-words">• <strong>Clinical Pharmacotherapy:</strong> Ensure all prescribed drugs map directly to documented medical conditions for {norm.diagnosis.final || norm.history.chiefComplaints}.</p>
-                    <p className="break-words">• <strong>Medication Safety & Organ Clearance:</strong> Monitor baseline renal function (BUN/Creatinine) and serum electrolytes for long-term anti-inflammatory and laxative regimens.</p>
-                    <p className="break-words">• <strong>Patient Communication:</strong> Verify patient understanding of drug administration schedule, hydration goals, and potential side effects.</p>
-                  </div>
-                </div>
-
+              {/* SHORT CASE SUMMARY BOX */}
+              <div className="bg-emerald-50/60 dark:bg-emerald-950/30 p-4 rounded-xl border border-emerald-200/80 dark:border-emerald-800/80 space-y-1.5 min-w-0 text-xs leading-relaxed">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 block">
+                  CASE SUMMARY
+                </span>
+                <p className="text-slate-800 dark:text-slate-200 font-medium break-words">
+                  {generateFactualCaseSummary(norm)}
+                </p>
               </div>
             </div>
           )}

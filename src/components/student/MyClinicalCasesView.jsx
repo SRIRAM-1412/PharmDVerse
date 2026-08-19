@@ -50,6 +50,7 @@ export const MyClinicalCasesView = ({ student, initialFilter = 'All', targetCase
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [caseToDelete, setCaseToDelete] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const handleTriggerAction = (e, actionFn, caseObj, moduleName) => {
@@ -228,11 +229,21 @@ export const MyClinicalCasesView = ({ student, initialFilter = 'All', targetCase
 
   const handleConfirmDelete = async () => {
     if (!caseToDelete) return;
+    setDeleteError(null);
     setActionLoading(true);
-    await deleteClinicalCaseFromSupabase(caseToDelete.id);
-    setActionLoading(false);
-    setCaseToDelete(null);
-    await loadStudentCases();
+    try {
+      const res = await deleteClinicalCaseFromSupabase(caseToDelete.id);
+      if (res && res.error) {
+        setDeleteError(res.error.message || 'Failed to delete draft case.');
+      } else {
+        setCaseToDelete(null);
+        await loadStudentCases();
+      }
+    } catch (err) {
+      setDeleteError('Failed to delete draft case.');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const isFormReturned = (c, formKey, formTitle) => {
@@ -911,7 +922,7 @@ export const MyClinicalCasesView = ({ student, initialFilter = 'All', targetCase
       {caseToDelete && (
         <ModalWrapper
           isOpen={Boolean(caseToDelete)}
-          onClose={() => setCaseToDelete(null)}
+          onClose={() => { setCaseToDelete(null); setDeleteError(null); }}
           title="Delete Draft Case"
           subtitle={`Delete ${caseToDelete.case_id}?`}
           maxWidth="max-w-md"
@@ -930,7 +941,7 @@ export const MyClinicalCasesView = ({ student, initialFilter = 'All', targetCase
 
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
-                onClick={() => setCaseToDelete(null)}
+                onClick={() => { setCaseToDelete(null); setDeleteError(null); }}
                 className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300"
               >
                 Cancel

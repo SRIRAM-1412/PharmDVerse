@@ -141,39 +141,39 @@ export const AddNewCaseView = ({ student, onCancel, onSuccess }) => {
       <form onSubmit={handleSubmit} className="space-y-6">
         
         {/* AUTO-GENERATED CASE ID & READ-ONLY STUDENT DETAILS */}
-        <div className="p-5 rounded-3xl bg-slate-900 text-white shadow-xl space-y-4 border border-slate-800 relative overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+        <div className="p-5 rounded-3xl bg-gradient-to-r from-slate-50 via-emerald-50/40 to-teal-50/40 dark:from-slate-800/90 dark:via-slate-800/80 dark:to-slate-900/90 border border-slate-200/90 dark:border-slate-700/80 shadow-sm space-y-4 relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-slate-700/60">
             <div>
-              <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">Auto-Generated Case Identifier</span>
-              <h3 className="text-xl font-black font-mono tracking-tight text-white">
+              <span className="text-[10px] uppercase font-extrabold text-emerald-700 dark:text-emerald-400 tracking-wider">Auto-Generated Case Identifier</span>
+              <h3 className="text-xl font-black font-mono tracking-tight text-slate-900 dark:text-white">
                 {caseId || `${student?.colleges?.college_code || 'CLG'}-${new Date().getFullYear()}-XXXX (Generated after saving)`}
               </h3>
             </div>
 
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/80 shadow-2xs">
               Draft Case Entry
             </span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
             <div>
-              <span className="text-[10px] uppercase text-slate-400 font-medium block">Student Name</span>
-              <strong className="font-bold text-white">{student?.full_name}</strong>
+              <span className="text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold block">Student Name</span>
+              <strong className="font-extrabold text-slate-900 dark:text-white">{student?.full_name}</strong>
             </div>
 
             <div>
-              <span className="text-[10px] uppercase text-slate-400 font-medium block">Roll Number</span>
-              <strong className="font-mono font-bold text-emerald-300">{student?.roll_number}</strong>
+              <span className="text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold block">Roll Number</span>
+              <strong className="font-mono font-bold text-emerald-700 dark:text-emerald-400">{student?.roll_number}</strong>
             </div>
 
             <div>
-              <span className="text-[10px] uppercase text-slate-400 font-medium block">College</span>
-              <strong className="font-bold text-white truncate block">{student?.colleges?.college_name || 'Pharmacy College'}</strong>
+              <span className="text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold block">College</span>
+              <strong className="font-extrabold text-slate-900 dark:text-white truncate block">{student?.colleges?.college_name || 'Pharmacy College'}</strong>
             </div>
 
             <div>
-              <span className="text-[10px] uppercase text-slate-400 font-medium block">Assigned Preceptor</span>
-              <strong className="font-bold text-cyan-300">{assignedPreceptor ? assignedPreceptor.full_name : 'Unassigned'}</strong>
+              <span className="text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold block">Assigned Preceptor</span>
+              <strong className="font-bold text-teal-700 dark:text-teal-400">{assignedPreceptor ? assignedPreceptor.full_name : 'Unassigned'}</strong>
             </div>
           </div>
         </div>

@@ -125,30 +125,44 @@ export const generateClinicalCasePPTX = async ({
     try {
       // Subtle horizontal dividing line
       slide.addShape('line', {
-        x: startX, y: 5.1, w: contentW, h: 0,
+        x: startX, y: 5.05, w: contentW, h: 0,
         line: { color: 'E2E8F0', width: 0.75 }
       });
 
       // Left Footer: PharmDVerse • 17/08/2026
       const leftStr = `${footerLeftText}${showDateTime ? ` • ${todayStr}` : ''}`;
       slide.addText(leftStr, {
-        x: startX, y: 5.16, w: 3.2, h: 0.3,
-        fontFace, fontSize: 9, color: '64748B', align: 'left'
+        x: startX, y: 5.1, w: 3.2, h: 0.25,
+        fontFace, fontSize: 8.5, color: '64748B', align: 'left'
       });
 
       // Center Footer: Confidential Clinical Documentation (Bold)
       slide.addText(footerCenterText, {
-        x: startX + 2.5, y: 5.16, w: 4.0, h: 0.3,
-        fontFace, fontSize: 9, bold: true, color: '1E293B', align: 'center'
+        x: startX + 2.5, y: 5.1, w: 4.0, h: 0.25,
+        fontFace, fontSize: 8.5, bold: true, color: '1E293B', align: 'center'
       });
 
       // Right Footer: Slide 1 of 2
       if (showPageNum) {
         slide.addText(`Slide ${slideNum} of ${totalSlides}`, {
-          x: startX + 6.0, y: 5.16, w: 3.0, h: 0.3,
-          fontFace, fontSize: 9, color: '64748B', align: 'right'
+          x: startX + 6.0, y: 5.1, w: 3.0, h: 0.25,
+          fontFace, fontSize: 8.5, color: '64748B', align: 'right'
         });
       }
+
+      // APPROVED STATUS, APPROVED PRECEPTOR NAME AND DATE, TIME AT BOTTOM (BESIDE / BELOW CASE ID)
+      const statusStr = String(clinicalCase?.overall_case_status || clinicalCase?.status || 'APPROVED').toUpperCase();
+      const rawApprovalDate = clinicalCase?.approved_at || clinicalCase?.reviewed_at || clinicalCase?.updated_at;
+      const approvalDateTimeStr = rawApprovalDate 
+        ? new Date(rawApprovalDate).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
+        : new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+
+      const approvalPptStr = `CASE ID: ${caseId}  •  STATUS: ${statusStr}  •  APPROVED BY: ${preceptorName || 'FACULTY PRECEPTOR'}  •  APPROVED AT: ${approvalDateTimeStr}`;
+      
+      slide.addText(approvalPptStr, {
+        x: startX, y: 5.35, w: contentW, h: 0.22,
+        fontFace, fontSize: 8, bold: true, color: '059669', align: 'center'
+      });
     } catch (e) {
       console.warn('PPT Footer render warning:', e);
     }

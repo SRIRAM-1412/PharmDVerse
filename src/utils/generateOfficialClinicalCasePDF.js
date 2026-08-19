@@ -197,13 +197,13 @@ export const generateOfficialClinicalCasePDF = ({
   // --- FOOTER DRAWING ---
   const drawPageFooter = (pageNum, totalPages) => {
     doc.saveGraphicsState();
-    const textY = pageHeight - 8;
+    const textY = pageHeight - 12;
     doc.setDrawColor(203, 213, 225);
     doc.setLineWidth(0.3);
     doc.line(marginX, textY - 4, pageWidth - marginX, textY - 4);
 
     doc.setFont(fontFamily, 'normal');
-    doc.setFontSize(bodyFontSize); // 12pt
+    doc.setFontSize(10);
     doc.setTextColor(2, 132, 199);
 
     let leftStr = footerLeftText;
@@ -217,6 +217,22 @@ export const generateOfficialClinicalCasePDF = ({
     if (showPageNumber) {
       doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - marginX, textY, { align: 'right' });
     }
+
+    // BOTTOM APPROVAL METADATA LINE (STATUS, PRECEPTOR NAME, APPROVED DATE & TIME BESIDE / BELOW CASE ID)
+    const statusStr = String(clinicalCase?.overall_case_status || clinicalCase?.status || 'APPROVED').toUpperCase();
+    const preceptorStr = norm.preceptorName || clinicalCase?.preceptor_name || preceptor?.full_name || student?.assigned_preceptor || 'FACULTY PRECEPTOR';
+    const rawApprovalDate = clinicalCase?.approved_at || clinicalCase?.reviewed_at || clinicalCase?.updated_at;
+    const approvalDateTimeStr = rawApprovalDate 
+      ? new Date(rawApprovalDate).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
+      : new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+
+    doc.setFont('courier', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(5, 150, 105); // emerald-600
+
+    const approvalFooterStr = `CASE ID: ${norm.caseId}  •  STATUS: ${statusStr}  •  APPROVED BY: ${preceptorStr}  •  APPROVED AT: ${approvalDateTimeStr}`;
+    doc.text(approvalFooterStr, pageWidth / 2, textY + 5, { align: 'center', maxWidth: 180 });
+
     doc.restoreGraphicsState();
   };
 
