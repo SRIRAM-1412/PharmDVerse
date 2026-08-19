@@ -733,6 +733,58 @@ const evaluateLabResultStatus = (labRecord, knowledgeRecord, norm = {}) => {
 };
 
 /**
+ * Smart Lab Unit Extractor.
+ * Extracts unit from explicit record unit, reference_range, test_value, or test_name.
+ */
+const extractLabUnit = (labRecord) => {
+  let u = labRecord?.unit || labRecord?.test_unit;
+  if (u && String(u).trim() !== '' && String(u).trim() !== 'N/A' && String(u).trim() !== '—') {
+    return String(u).trim();
+  }
+
+  const rawRef = String(labRecord?.reference_range || '').trim();
+  const rawVal = String(labRecord?.test_value || '').trim();
+  const rawName = String(labRecord?.test_name || labRecord?.parameter_name || '').trim();
+
+  // 1. Extract unit trailing reference range (e.g. "11-16.5 %" -> "%", "4000-11000 cells/cu.mm" -> "cells/cu.mm", "135-145 mEq/L" -> "mEq/L", "< 200 mg/dL" -> "mg/dL")
+  if (rawRef) {
+    const cleaned = rawRef
+      .replace(/^[<>=~]*\s*/, '')
+      .replace(/^[0-9.,\s]+[-–to\s]+[0-9.,\s]+/, '')
+      .replace(/^[0-9.,\s]+/, '')
+      .trim();
+
+    if (cleaned && cleaned !== '-' && cleaned !== '—' && !/^[0-9.,]+$/.test(cleaned)) {
+      return cleaned;
+    }
+  }
+
+  // 2. Extract unit trailing test_value (e.g. "13.9 %" -> "%")
+  if (rawVal) {
+    const cleanedVal = rawVal
+      .replace(/^[<>=~]*\s*/, '')
+      .replace(/^[0-9.,\s]+/, '')
+      .trim();
+
+    if (cleanedVal && cleanedVal !== '-' && cleanedVal !== '—' && !/^[0-9.,]+$/.test(cleanedVal)) {
+      return cleanedVal;
+    }
+  }
+
+  // 3. Extract unit from parameter name if formatted like "HB %" or "WBC (cells/mm³)"
+  if (rawName.includes('%')) return '%';
+  const matchParen = rawName.match(/\(([^)]+)\)/);
+  if (matchParen && matchParen[1]) {
+    const pStr = matchParen[1].trim();
+    if (!['AST', 'ALT', 'CK', 'CK-MB', 'AST/SGOT', 'ALT/SGPT'].includes(pStr.toUpperCase())) {
+      return pStr;
+    }
+  }
+
+  return 'Not specified';
+};
+
+/**
  * Student Role AI Clinical Case Analysis View.
  * Educational Analysis Engine Triggered by SAVED Form Data.
  */
@@ -1303,28 +1355,33 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                             </div>
 
                             {/* RESULT & REFERENCE RANGE GRID */}
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                              <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
-                                <span className="text-[10px] uppercase font-bold text-slate-400 block">Actual Result</span>
-                                <strong className="font-mono font-extrabold text-slate-900 dark:text-white text-xs block truncate">
-                                  {labItem.test_value !== undefined && labItem.test_value !== null && String(labItem.test_value).trim() !== '' ? `${labItem.test_value} ${labItem.unit || ''}`.trim() : 'Result not documented'}
-                                </strong>
-                              </div>
+                            {(() => {
+                              const fetchedUnit = extractLabUnit(labItem);
+                              return (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                                  <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
+                                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Actual Result</span>
+                                    <strong className="font-mono font-extrabold text-slate-900 dark:text-white text-xs block truncate">
+                                      {labItem.test_value !== undefined && labItem.test_value !== null && String(labItem.test_value).trim() !== '' ? String(labItem.test_value).trim() : 'Result not documented'}
+                                    </strong>
+                                  </div>
 
-                              <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
-                                <span className="text-[10px] uppercase font-bold text-slate-400 block">Reference Range</span>
-                                <strong className="font-mono font-bold text-slate-700 dark:text-slate-300 text-xs block truncate">
-                                  {labItem.reference_range !== undefined && labItem.reference_range !== null && String(labItem.reference_range).trim() !== '' ? `${labItem.reference_range} ${labItem.unit || ''}`.trim() : 'Reference range not documented'}
-                                </strong>
-                              </div>
+                                  <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
+                                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Reference Range</span>
+                                    <strong className="font-mono font-bold text-slate-700 dark:text-slate-300 text-xs block truncate">
+                                      {labItem.reference_range !== undefined && labItem.reference_range !== null && String(labItem.reference_range).trim() !== '' ? String(labItem.reference_range).trim() : 'Reference range not documented'}
+                                    </strong>
+                                  </div>
 
-                              <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 col-span-2 sm:col-span-1">
-                                <span className="text-[10px] uppercase font-bold text-slate-400 block">Unit</span>
-                                <strong className="font-mono font-bold text-slate-700 dark:text-slate-300 text-xs block truncate">
-                                  {labItem.unit || 'Not specified'}
-                                </strong>
-                              </div>
-                            </div>
+                                  <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 col-span-2 sm:col-span-1">
+                                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Unit</span>
+                                    <strong className="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-xs block truncate">
+                                      {fetchedUnit}
+                                    </strong>
+                                  </div>
+                                </div>
+                              );
+                            })()}
 
                             {/* CLINICAL SIGNIFICANCE FROM KNOWLEDGE BASE */}
                             <div className="space-y-1 text-xs">
