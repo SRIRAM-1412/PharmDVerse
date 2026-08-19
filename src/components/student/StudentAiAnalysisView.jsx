@@ -422,12 +422,26 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
 
   const selectedCase = cases.find(c => String(c.id) === String(selectedCaseId)) || cases[0];
 
-  // Detect form SAVED statuses dynamically (NEW TRIGGER RULE: SAVED DATA)
-  const profileRecord = modulesData?.profile || {};
-  const counsellingRecord = modulesData?.counselling || {};
-  const interventionRecord = modulesData?.intervention || {};
-  const dirRecord = modulesData?.dir || {};
-  const adrRecord = modulesData?.adr || {};
+  // Detect form SAVED statuses dynamically for both NEW and EXISTING cases
+  const profileRecord = (modulesData?.profile && Object.keys(modulesData.profile).length > 0)
+    ? modulesData.profile
+    : (selectedCase?.profile || selectedCase || {});
+
+  const counsellingRecord = (modulesData?.counselling && Object.keys(modulesData.counselling).length > 0)
+    ? modulesData.counselling
+    : (selectedCase?.counselling || {});
+
+  const interventionRecord = (modulesData?.intervention && Object.keys(modulesData.intervention).length > 0)
+    ? modulesData.intervention
+    : (selectedCase?.intervention || {});
+
+  const dirRecord = (modulesData?.dir && Object.keys(modulesData.dir).length > 0)
+    ? modulesData.dir
+    : (selectedCase?.dir || {});
+
+  const adrRecord = (modulesData?.adr && Object.keys(modulesData.adr).length > 0)
+    ? modulesData.adr
+    : (selectedCase?.adr || {});
 
   const isProfileSaved = checkIsFormSaved(profileRecord, 'profile');
   const isCounsellingSaved = checkIsFormSaved(counsellingRecord, 'counselling');
@@ -447,7 +461,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
     profileRecord, counsellingRecord, interventionRecord, dirRecord, adrRecord
   ].some(f => String(f?.status || f?.approval_status || '').toLowerCase().includes('approved') || f?.is_approved === true);
 
-  // Normalize only SAVED modules for safe, accurate clinical extraction
+  // Normalize only SAVED modules for safe, accurate clinical extraction (for both new & existing cases)
   const norm = buildNormalizedApprovedCaseData({
     clinicalCase: selectedCase || {},
     student,
@@ -457,9 +471,9 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
       intervention: isInterventionSaved ? interventionRecord : {},
       dir: isDirSaved ? dirRecord : {},
       adr: isAdrSaved ? adrRecord : {},
-      vitals: isProfileSaved ? (modulesData?.vitals || []) : [],
-      labs: isProfileSaved ? (modulesData?.labs || []) : [],
-      drugs: isProfileSaved ? (modulesData?.drugs || []) : []
+      vitals: isProfileSaved ? (modulesData?.vitals || selectedCase?.vital_signs || selectedCase?.vitals || []) : [],
+      labs: isProfileSaved ? (modulesData?.labs || selectedCase?.lab_investigations || selectedCase?.labs || []) : [],
+      drugs: isProfileSaved ? (modulesData?.drugs || selectedCase?.prescribed_drugs || selectedCase?.drugs || []) : []
     }
   });
 
