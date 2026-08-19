@@ -186,11 +186,17 @@ export const generateOfficialClinicalCasePDF = ({
 
     // Sub-header Banner Bar
     doc.setFillColor(15, 23, 42);
-    doc.rect(marginX, 30.5, contentWidth, 6.5, 'F');
+    doc.rect(marginX, 30.5, contentWidth, 7.5, 'F');
     doc.setFont('courier', 'bold');
-    doc.setFontSize(10);
+    doc.setFontSize(9.5);
     doc.setTextColor(255, 255, 255);
-    doc.text(`${getFormTitleBanner()}  •  CASE ID: ${norm.caseId}`, pageWidth / 2, 35, { align: 'center' });
+    doc.text(getFormTitleBanner(), marginX + 3, 35.5, { align: 'left', maxWidth: 110 });
+
+    doc.setFontSize(8.5);
+    doc.text(`(CASE ID: ${norm.caseId})`, pageWidth - marginX - 3, 33.5, { align: 'right' });
+    doc.setFontSize(7.5);
+    doc.setTextColor(52, 211, 153); // Emerald-400 green
+    doc.text('APPROVED', pageWidth - marginX - 3, 36.8, { align: 'right' });
     doc.restoreGraphicsState();
   };
 

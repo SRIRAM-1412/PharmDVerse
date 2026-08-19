@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchCollegeByIdFromSupabase } from '../../services/supabaseService';
 
-export const PharmDVerseDocumentHeader = ({ college: initialCollege, branding, documentTitle, caseId }) => {
+export const PharmDVerseDocumentHeader = ({ college: initialCollege, branding, documentTitle, caseId, status = 'APPROVED' }) => {
   const [currentCollege, setCurrentCollege] = useState(initialCollege);
 
   useEffect(() => {
@@ -47,6 +47,8 @@ export const PharmDVerseDocumentHeader = ({ college: initialCollege, branding, d
   // SINGLE SOURCE OF TRUTH FOR AUTONOMOUS STATUS
   const isAutonomous = Boolean(currentCollege?.is_autonomous ?? currentCollege?.isAutonomous);
 
+  const displayStatus = String(status || 'APPROVED').toUpperCase();
+
   return (
     <div className="space-y-2 mb-6 text-slate-900 font-serif">
       
@@ -91,15 +93,20 @@ export const PharmDVerseDocumentHeader = ({ college: initialCollege, branding, d
       </div>
 
       {/* HEADER ROW 2 */}
-      <div className={`flex items-center text-xs font-extrabold font-mono border-b-2 border-slate-900 pb-1 px-1 gap-2 ${documentTitle ? 'justify-between' : 'justify-end'}`}>
+      <div className={`flex items-start text-xs font-extrabold font-mono border-b-2 border-slate-900 pb-1.5 px-1 gap-2 ${documentTitle ? 'justify-between' : 'justify-end'}`}>
         {documentTitle && (
-          <span className="font-serif font-black uppercase tracking-wider text-slate-900 text-xs sm:text-sm truncate max-w-[68%]">
+          <span className="font-serif font-black uppercase tracking-wider text-slate-900 text-xs sm:text-sm truncate max-w-[65%] self-center">
             {documentTitle}
           </span>
         )}
-        <span className="text-slate-900 text-xs sm:text-sm font-mono font-black whitespace-nowrap shrink-0">
-          Case ID : {caseId || 'CLG-2026-000001'}
-        </span>
+        <div className="flex flex-col items-end shrink-0 text-right">
+          <span className="text-slate-900 text-xs sm:text-sm font-mono font-black whitespace-nowrap">
+            (CASE ID: {caseId || 'CLG-2026-000001'})
+          </span>
+          <span className="text-[11px] sm:text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 uppercase tracking-widest leading-none mt-0.5">
+            {displayStatus}
+          </span>
+        </div>
       </div>
 
     </div>
