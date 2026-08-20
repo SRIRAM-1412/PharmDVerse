@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { resolveTradeNameToGeneric, parsePrescriptionInput } from '../utils/prescriptionParserService';
 
 /**
  * SHA-256 Password Hashing Helper
@@ -3055,6 +3056,79 @@ export const fetchDrugKnowledgeFromSupabase = async (searchQuery) => {
   }
 
   try {
+    // 0. Trade Name -> FDC / Generic Name Resolution Step
+    const resolved = resolveTradeNameToGeneric(rawTerm);
+    if (resolved && resolved.activeIngredients && resolved.activeIngredients.length > 0) {
+      const activeIngredients = resolved.activeIngredients;
+
+      // Look up each active ingredient independently in public.drug_knowledge
+      const ingredientResults = await Promise.all(
+        activeIngredients.map(async (ing) => {
+          const ingClean = normalizeDrugSearchInput(ing);
+          let { data: l1Data } = await supabase
+            .from('drug_knowledge')
+            .select('*')
+            .ilike('generic_name', ingClean);
+
+          if (!Array.isArray(l1Data) || l1Data.length === 0) {
+            const { data: l1SubData } = await supabase
+              .from('drug_knowledge')
+              .select('*')
+              .ilike('generic_name', `%${ingClean}%`);
+            if (Array.isArray(l1SubData) && l1SubData.length > 0) {
+              l1Data = l1SubData;
+            }
+          }
+
+          if (!Array.isArray(l1Data) || l1Data.length === 0) {
+            const { data: l2Data } = await supabase
+              .from('drug_knowledge')
+              .select('*')
+              .ilike('brand_names', `%${ingClean}%`);
+            if (Array.isArray(l2Data) && l2Data.length > 0) {
+              l1Data = l2Data;
+            }
+          }
+
+          if (Array.isArray(l1Data) && l1Data.length > 0) {
+            return { ingredient: ing, status: 'FOUND', data: l1Data[0] };
+          }
+          return { ingredient: ing, status: 'NOT_FOUND', data: null, message: 'Drug not found in Drug Knowledge Database' };
+        })
+      );
+
+      const foundIngredients = ingredientResults.filter(r => r.status === 'FOUND');
+      if (foundIngredients.length > 0) {
+        const primaryData = foundIngredients[0].data;
+        const result = {
+          status: 'FOUND',
+          data: primaryData,
+          resolvedTradeName: resolved.extractedTradeName,
+          dosageForm: resolved.dosageForm,
+          extractedStrength: resolved.extractedStrength,
+          extractedFrequency: resolved.extractedFrequency,
+          genericNameDisplay: resolved.genericNameDisplay,
+          activeIngredients: resolved.activeIngredients,
+          ingredientCount: resolved.ingredientCount,
+          ingredientKnowledge: ingredientResults,
+          message: `✓ Drug found in database (${resolved.ingredientCount} active ingredient${resolved.ingredientCount > 1 ? 's' : ''})`,
+          matchLevel: resolved.ingredientCount > 1 ? `FDC Match (${resolved.genericNameDisplay})` : 'Generic Match',
+          searchTerm: rawTerm
+        };
+        DRUG_KNOWLEDGE_CACHE.set(cleanQuery, result);
+        return result;
+      }
+    } else if (resolved && resolved.status === 'UNRESOLVED_TRADE_NAME') {
+      const unresolvedResult = {
+        status: 'UNRESOLVED_TRADE_NAME',
+        data: null,
+        message: 'Trade name could not be confidently resolved.',
+        searchTerm: rawTerm
+      };
+      DRUG_KNOWLEDGE_CACHE.set(cleanQuery, unresolvedResult);
+      return unresolvedResult;
+    }
+
     // LEVEL 1: Exact or compound generic_name match
     let { data: level1Data, error: level1Err } = await supabase
       .from('drug_knowledge')

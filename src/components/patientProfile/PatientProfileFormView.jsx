@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserCheck, Stethoscope, Activity, FileText, FlaskConical, Pill, Save, Eye, Send, ArrowLeft, Plus, Trash2, Loader2, CheckCircle2, AlertTriangle, RotateCcw } from 'lucide-react';
 import { fetchPatientProfileByCaseIdFromSupabase, saveOrUpdatePatientProfileInSupabase, saveLabInvestigationsInSupabase, savePrescribedDrugsInSupabase, saveStudentFormSectionInSupabase, fetchDrugKnowledgeFromSupabase } from '../../services/supabaseService';
+import { resolveTradeNameToGeneric } from '../../utils/prescriptionParserService';
 import { PatientProfilePDFPreviewModal } from './PatientProfilePDFPreviewModal';
 import { InlineActionNotification } from '../common/InlineActionNotification';
 import { useInlineNotification } from '../../hooks/useInlineNotification';
@@ -1262,12 +1263,26 @@ export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOn
                         type="text"
                         value={d.trade_name}
                         onChange={(e) => {
+                          const rawVal = e.target.value;
                           const copy = [...prescribedDrugs];
-                          copy[idx].trade_name = e.target.value.replace(/[^A-Za-z0-9\s-]/g, '').toUpperCase();
+                          copy[idx].trade_name = rawVal;
+                          const resolved = resolveTradeNameToGeneric(rawVal);
+                          if (resolved && resolved.status === 'RESOLVED' && resolved.genericNameDisplay) {
+                            copy[idx].generic_name = resolved.genericNameDisplay;
+                            if (resolved.dosageForm && resolved.dosageForm !== 'Oral' && (!copy[idx].route_of_admin || copy[idx].route_of_admin === 'Oral')) {
+                              copy[idx].route_of_admin = resolved.dosageForm === 'Injection' ? 'IV' : resolved.dosageForm;
+                            }
+                            if (resolved.extractedStrength && !copy[idx].dose) {
+                              copy[idx].dose = resolved.extractedStrength;
+                            }
+                            if (resolved.extractedFrequency && !copy[idx].frequency) {
+                              copy[idx].frequency = resolved.extractedFrequency;
+                            }
+                          }
                           setPrescribedDrugs(copy);
                         }}
-                        placeholder="Enter trade name"
-                        className="w-36 h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent font-bold uppercase"
+                        placeholder="Enter trade name (e.g. Tab. Augmentin 625)"
+                        className="w-44 h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent font-bold"
                       />
                     </td>
                     <td className="p-2">
@@ -1276,11 +1291,11 @@ export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOn
                         value={d.generic_name}
                         onChange={(e) => {
                           const copy = [...prescribedDrugs];
-                          copy[idx].generic_name = e.target.value.replace(/[^A-Za-z\s]/g, '').toUpperCase();
+                          copy[idx].generic_name = e.target.value;
                           setPrescribedDrugs(copy);
                         }}
-                        placeholder="Enter generic name"
-                        className="w-40 h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent font-semibold uppercase"
+                        placeholder="Generic active ingredient(s)"
+                        className="w-48 h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent font-semibold"
                       />
                     </td>
                     <td className="p-2">
