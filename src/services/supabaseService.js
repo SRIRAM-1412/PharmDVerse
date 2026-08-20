@@ -3055,8 +3055,8 @@ export const fetchDrugKnowledgeFromSupabase = async (searchQuery) => {
   }
 
   try {
-    // LEVEL 1: Exact normalized generic_name match
-    const { data: level1Data, error: level1Err } = await supabase
+    // LEVEL 1: Exact or compound generic_name match
+    let { data: level1Data, error: level1Err } = await supabase
       .from('drug_knowledge')
       .select('*')
       .ilike('generic_name', cleanQuery);
@@ -3069,6 +3069,16 @@ export const fetchDrugKnowledgeFromSupabase = async (searchQuery) => {
         message: 'Unable to connect to drug database',
         searchTerm: rawTerm
       };
+    }
+
+    if (!Array.isArray(level1Data) || level1Data.length === 0) {
+      const { data: level1SubData, error: level1SubErr } = await supabase
+        .from('drug_knowledge')
+        .select('*')
+        .ilike('generic_name', `%${cleanQuery}%`);
+      if (!level1SubErr && Array.isArray(level1SubData)) {
+        level1Data = level1SubData;
+      }
     }
 
     if (Array.isArray(level1Data) && level1Data.length > 0) {
