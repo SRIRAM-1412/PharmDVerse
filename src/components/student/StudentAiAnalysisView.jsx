@@ -7,7 +7,7 @@ import {
 import { fetchStudentCasesFromSupabase, fetchCaseModuleStatusesFromSupabase, fetchLabParameterKnowledgeFromSupabase, fetchMultipleDrugKnowledgeFromSupabase } from '../../services/supabaseService';
 import { buildNormalizedApprovedCaseData } from '../../utils/buildNormalizedApprovedCaseData';
 import { resolveClinicalEntityKnowledge } from '../../services/clinicalKnowledgeService';
-import { evaluatePairwiseDrugInteraction, runAiClinicalCaseAnalysis } from '../../services/aiAnalysisService';
+import { evaluatePairwiseDrugInteraction, runAiClinicalCaseAnalysis, synthesizeSection4DrugAiInterpretation } from '../../services/aiAnalysisService';
 
 /**
  * Helper to determine if a form object has SAVED/PERSISTED data in Supabase for the selected case.
@@ -944,6 +944,17 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
     loadDrugKnowledge();
   }, [JSON.stringify(evaluatedDrugs)]);
 
+  // STEP 5B: Execute Section 4 AI Interpretation Synthesis Engine
+  const section4AiSynthesis = synthesizeSection4DrugAiInterpretation({
+    norm,
+    drugKnowledgeResults: section4DrugKnowledge,
+    labs: (Array.isArray(modulesData?.labs) && modulesData.labs.length > 0)
+      ? modulesData.labs
+      : (Array.isArray(selectedCase?.lab_investigations) && selectedCase.lab_investigations.length > 0
+        ? selectedCase.lab_investigations
+        : (Array.isArray(selectedCase?.labs) ? selectedCase.labs : (Array.isArray(norm.labs) ? norm.labs : [])))
+  });
+
   // Calculate pairs of documented drugs for individual pair analysis
   const drugPairs = [];
   for (let i = 0; i < evaluatedDrugs.length; i++) {
@@ -1615,6 +1626,175 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                         </div>
                       );
                     })}
+                  </div>
+                )}
+
+                {/* STEP 5B — AI CLINICAL MEDICATION INTERPRETATION & SYNTHESIS */}
+                {section4DrugKnowledge.length > 0 && section4AiSynthesis && (
+                  <div className="space-y-5 pt-6 border-t-2 border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <Brain className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                          STEP 5B — AI CLINICAL MEDICATION INTERPRETATION
+                        </h4>
+                      </div>
+                      <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                        Synthesized with Section 3 Labs & Patient Record
+                      </span>
+                    </div>
+
+                    {/* 1. MEDICATION-RELATED PROBLEMS (MRPs) */}
+                    {section4AiSynthesis.mrpList && section4AiSynthesis.mrpList.length > 0 && (
+                      <div className="space-y-3">
+                        <h5 className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                          <AlertTriangle className="w-4 h-4 text-amber-500" />
+                          <span>Identified Medication-Related Problems (MRPs)</span>
+                        </h5>
+
+                        <div className="space-y-3">
+                          {section4AiSynthesis.mrpList.map((mrp, idx) => (
+                            <div key={idx} className="p-4 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/80 space-y-2 text-xs">
+                              <div className="flex items-start justify-between flex-wrap gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 border border-amber-300">
+                                    {mrp.priority}
+                                  </span>
+                                  <strong className="font-extrabold text-slate-900 dark:text-white">
+                                    {mrp.category}
+                                  </strong>
+                                </div>
+                                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                                  Confidence: {mrp.confidence}
+                                </span>
+                              </div>
+
+                              <p className="text-slate-800 dark:text-slate-200 text-xs">
+                                <strong>Medication(s) Involved:</strong> {mrp.medicationsInvolved}
+                              </p>
+
+                              <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-amber-200/60 dark:border-amber-800/60 space-y-1">
+                                <span className="text-[10px] uppercase font-bold text-amber-800 dark:text-amber-300 block">Case Evidence</span>
+                                <p className="text-slate-700 dark:text-slate-300 text-[11px] leading-relaxed">{mrp.caseEvidence}</p>
+                              </div>
+
+                              <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-amber-200/60 dark:border-amber-800/60 space-y-1">
+                                <span className="text-[10px] uppercase font-bold text-amber-800 dark:text-amber-300 block">Pharmacological Rationale & Database Fact</span>
+                                <p className="text-slate-700 dark:text-slate-300 text-[11px] leading-relaxed">{mrp.pharmacologicalRationale}</p>
+                              </div>
+
+                              <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-1">
+                                <span className="text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-300 block">Suggested Clinical Consideration</span>
+                                <p className="text-emerald-900 dark:text-emerald-200 text-[11px] font-semibold leading-relaxed">{mrp.suggestedConsideration}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 2. DRUG-DRUG INTERACTIONS */}
+                    {section4AiSynthesis.interactionConcerns && section4AiSynthesis.interactionConcerns.length > 0 && (
+                      <div className="space-y-3">
+                        <h5 className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                          <Layers className="w-4 h-4 text-indigo-500" />
+                          <span>Drug-Drug Interaction Analysis</span>
+                        </h5>
+
+                        <div className="space-y-3">
+                          {section4AiSynthesis.interactionConcerns.map((inter, idx) => (
+                            <div key={idx} className="p-4 rounded-xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-200/80 dark:border-indigo-800/80 space-y-2 text-xs">
+                              <div className="flex items-center justify-between flex-wrap gap-2">
+                                <strong className="font-extrabold text-indigo-900 dark:text-indigo-200 text-xs">
+                                  {inter.drugsInvolved}
+                                </strong>
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-200 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100">
+                                  {inter.confidence}
+                                </span>
+                              </div>
+                              <p className="text-slate-700 dark:text-slate-300 text-[11px]"><strong>Mechanism:</strong> {inter.mechanism}</p>
+                              <p className="text-slate-700 dark:text-slate-300 text-[11px]"><strong>Clinical Significance:</strong> {inter.clinicalSignificance}</p>
+                              <p className="text-indigo-800 dark:text-indigo-300 font-semibold text-[11px]"><strong>Clinical Consideration:</strong> {inter.recommendation}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3. DRUG-DISEASE & CONTRAINDICATION ANALYSIS */}
+                    {section4AiSynthesis.contraindicationConcerns && section4AiSynthesis.contraindicationConcerns.length > 0 && (
+                      <div className="space-y-3">
+                        <h5 className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                          <AlertOctagon className="w-4 h-4 text-rose-500" />
+                          <span>Drug-Disease & Contraindication Analysis</span>
+                        </h5>
+
+                        <div className="space-y-3">
+                          {section4AiSynthesis.contraindicationConcerns.map((c, idx) => (
+                            <div key={idx} className="p-4 rounded-xl bg-rose-50/40 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-800/80 space-y-2 text-xs">
+                              <div className="flex items-center justify-between flex-wrap gap-2">
+                                <strong className="font-extrabold text-rose-900 dark:text-rose-200 text-xs">
+                                  {c.drugLabel} — {c.matchedCondition}
+                                </strong>
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-200 dark:bg-rose-900 text-rose-900 dark:text-rose-100">
+                                  {c.confidence}
+                                </span>
+                              </div>
+                              <p className="text-slate-700 dark:text-slate-300 text-[11px]">{c.reasoning}</p>
+                              <p className="text-rose-800 dark:text-rose-300 font-semibold text-[11px]"><strong>Consideration:</strong> {c.clinicalConsideration}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 4. ADVERSE EFFECT ASSOCIATIONS */}
+                    {section4AiSynthesis.adverseEffectConcerns && section4AiSynthesis.adverseEffectConcerns.length > 0 && (
+                      <div className="space-y-3">
+                        <h5 className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                          <HeartPulse className="w-4 h-4 text-amber-500" />
+                          <span>Possible Medication-Related Adverse Effects</span>
+                        </h5>
+
+                        <div className="space-y-3">
+                          {section4AiSynthesis.adverseEffectConcerns.map((adv, idx) => (
+                            <div key={idx} className="p-4 rounded-xl bg-amber-50/40 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/80 space-y-2 text-xs">
+                              <div className="flex items-center justify-between flex-wrap gap-2">
+                                <strong className="font-extrabold text-amber-900 dark:text-amber-200 text-xs">
+                                  {adv.drugLabel} — {adv.patientSymptom}
+                                </strong>
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100">
+                                  {adv.confidence}
+                                </span>
+                              </div>
+                              <p className="text-slate-700 dark:text-slate-300 text-[11px]">{adv.reasoning}</p>
+                              <p className="text-amber-800 dark:text-amber-300 font-semibold text-[11px]"><strong>Clinical Assessment Note:</strong> {adv.clinicalConsideration}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 5. PRIORITIZED SAFETY & MONITORING PARAMETERS (SECTION 3 LAB SYNTHESIZED) */}
+                    {section4AiSynthesis.monitoringPriorities && section4AiSynthesis.monitoringPriorities.length > 0 && (
+                      <div className="space-y-3">
+                        <h5 className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                          <Activity className="w-4 h-4 text-cyan-500" />
+                          <span>Prioritized Safety & Laboratory Monitoring Parameters</span>
+                        </h5>
+
+                        <div className="space-y-2 text-xs">
+                          {section4AiSynthesis.monitoringPriorities.map((mon, idx) => (
+                            <div key={idx} className={`p-3 rounded-lg border text-xs leading-relaxed ${
+                              mon.isHighPriority ? 'bg-cyan-50 dark:bg-cyan-950/40 border-cyan-300 dark:border-cyan-800' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+                            }`}>
+                              <strong className="text-slate-900 dark:text-white font-extrabold block">{mon.drugLabel}</strong>
+                              <p className="text-slate-700 dark:text-slate-300 mt-1">{mon.priorityNote}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
