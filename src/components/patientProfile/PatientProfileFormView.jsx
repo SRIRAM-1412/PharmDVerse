@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserCheck, Stethoscope, Activity, FileText, FlaskConical, Pill, Save, Eye, Send, ArrowLeft, Plus, Trash2, Loader2, CheckCircle2, AlertTriangle, RotateCcw } from 'lucide-react';
-import { fetchPatientProfileByCaseIdFromSupabase, saveOrUpdatePatientProfileInSupabase, saveLabInvestigationsInSupabase, savePrescribedDrugsInSupabase, saveStudentFormSectionInSupabase } from '../../services/supabaseService';
+import { fetchPatientProfileByCaseIdFromSupabase, saveOrUpdatePatientProfileInSupabase, saveLabInvestigationsInSupabase, savePrescribedDrugsInSupabase, saveStudentFormSectionInSupabase, fetchDrugKnowledgeFromSupabase } from '../../services/supabaseService';
 import { PatientProfilePDFPreviewModal } from './PatientProfilePDFPreviewModal';
 import { InlineActionNotification } from '../common/InlineActionNotification';
 import { useInlineNotification } from '../../hooks/useInlineNotification';
@@ -205,6 +205,26 @@ export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOn
   const [prescribedDrugs, setPrescribedDrugs] = useState([
     { s_no: 1, trade_name: '', generic_name: '', route_of_admin: 'Oral', dose: '', frequency: 'OD', start_date: '', stop_date: '' }
   ]);
+
+  const [drugStatusMap, setDrugStatusMap] = useState({});
+
+  useEffect(() => {
+    let isMounted = true;
+    const checkDrugStatuses = async () => {
+      const newMap = {};
+      for (let i = 0; i < prescribedDrugs.length; i++) {
+        const d = prescribedDrugs[i];
+        const searchVal = d.generic_name || d.trade_name;
+        if (searchVal && searchVal.trim()) {
+          const res = await fetchDrugKnowledgeFromSupabase(searchVal);
+          if (isMounted) newMap[i] = res;
+        }
+      }
+      if (isMounted) setDrugStatusMap(newMap);
+    };
+    checkDrugStatuses();
+    return () => { isMounted = false; };
+  }, [JSON.stringify(prescribedDrugs)]);
 
   // 9. Discharge Summary
   const [dischargeSummary, setDischargeSummary] = useState('');
@@ -1225,62 +1245,80 @@ export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOn
                 <th className="p-2">Freq</th>
                 <th className="p-2">Start Date</th>
                 <th className="p-2">Stop Date</th>
+                <th className="p-2">DB Status</th>
                 {!isReadOnly && <th className="p-2 text-center">Action</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {prescribedDrugs.map((d, idx) => (
-                <tr key={idx} className={isReturned ? 'bg-violet-50/40 dark:bg-violet-950/20 border-l-4 border-l-violet-500' : ''}>
-                  <td className="p-2 font-mono font-bold text-center">{idx + 1}</td>
-                  <td className="p-2">
-                    <input
-                      id={`field-med-name-${idx}`}
-                      data-field-id={`field-med-name-${idx}`}
-                      type="text"
-                      value={d.trade_name}
-                      onChange={(e) => {
-                        const copy = [...prescribedDrugs];
-                        copy[idx].trade_name = e.target.value.replace(/[^A-Za-z0-9\s-]/g, '').toUpperCase();
-                        setPrescribedDrugs(copy);
-                      }}
-                      placeholder="Enter trade name"
-                      className="w-36 h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent font-bold uppercase"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <input
-                      type="text"
-                      value={d.generic_name}
-                      onChange={(e) => {
-                        const copy = [...prescribedDrugs];
-                        copy[idx].generic_name = e.target.value.replace(/[^A-Za-z\s]/g, '').toUpperCase();
-                        setPrescribedDrugs(copy);
-                      }}
-                      placeholder="Enter generic name"
-                      className="w-40 h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent font-semibold uppercase"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <select value={d.route_of_admin} onChange={(e) => { const copy = [...prescribedDrugs]; copy[idx].route_of_admin = e.target.value; setPrescribedDrugs(copy); }} className="w-20 h-8 px-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent">
-                      <option value="Oral">Oral</option>
-                      <option value="IV">IV</option>
-                      <option value="IM">IM</option>
-                      <option value="SC">SC</option>
-                      <option value="Inhalation">Inhalation</option>
-                      <option value="Topical">Topical</option>
-                    </select>
-                  </td>
-                  <td className="p-2"><input type="text" value={d.dose} onChange={(e) => { const copy = [...prescribedDrugs]; copy[idx].dose = e.target.value; setPrescribedDrugs(copy); }} placeholder="Enter dose" className="w-24 h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent font-mono font-bold" /></td>
-                  <td className="p-2"><input type="text" value={d.frequency} onChange={(e) => { const copy = [...prescribedDrugs]; copy[idx].frequency = e.target.value; setPrescribedDrugs(copy); }} placeholder="Enter frequency" className="w-24 h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent font-bold" /></td>
-                  <td className="p-2"><input type="date" value={d.start_date} onChange={(e) => { const copy = [...prescribedDrugs]; copy[idx].start_date = e.target.value; setPrescribedDrugs(copy); }} className="w-28 h-8 px-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent font-mono text-[11px]" /></td>
-                  <td className="p-2"><input type="date" value={d.stop_date} onChange={(e) => { const copy = [...prescribedDrugs]; copy[idx].stop_date = e.target.value; setPrescribedDrugs(copy); }} className="w-28 h-8 px-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent font-mono text-[11px]" /></td>
-                  <td className="p-2 text-center">
-                    {prescribedDrugs.length > 1 && (
-                      <button type="button" onClick={() => handleRemoveDrugRow(idx)} className="p-1 text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {prescribedDrugs.map((d, idx) => {
+                const statusInfo = drugStatusMap[idx];
+                return (
+                  <tr key={idx} className={isReturned ? 'bg-violet-50/40 dark:bg-violet-950/20 border-l-4 border-l-violet-500' : ''}>
+                    <td className="p-2 font-mono font-bold text-center">{idx + 1}</td>
+                    <td className="p-2">
+                      <input
+                        id={`field-med-name-${idx}`}
+                        data-field-id={`field-med-name-${idx}`}
+                        type="text"
+                        value={d.trade_name}
+                        onChange={(e) => {
+                          const copy = [...prescribedDrugs];
+                          copy[idx].trade_name = e.target.value.replace(/[^A-Za-z0-9\s-]/g, '').toUpperCase();
+                          setPrescribedDrugs(copy);
+                        }}
+                        placeholder="Enter trade name"
+                        className="w-36 h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent font-bold uppercase"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <input
+                        type="text"
+                        value={d.generic_name}
+                        onChange={(e) => {
+                          const copy = [...prescribedDrugs];
+                          copy[idx].generic_name = e.target.value.replace(/[^A-Za-z\s]/g, '').toUpperCase();
+                          setPrescribedDrugs(copy);
+                        }}
+                        placeholder="Enter generic name"
+                        className="w-40 h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent font-semibold uppercase"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <select value={d.route_of_admin} onChange={(e) => { const copy = [...prescribedDrugs]; copy[idx].route_of_admin = e.target.value; setPrescribedDrugs(copy); }} className="w-20 h-8 px-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent">
+                        <option value="Oral">Oral</option>
+                        <option value="IV">IV</option>
+                        <option value="IM">IM</option>
+                        <option value="SC">SC</option>
+                        <option value="Inhalation">Inhalation</option>
+                        <option value="Topical">Topical</option>
+                      </select>
+                    </td>
+                    <td className="p-2"><input type="text" value={d.dose} onChange={(e) => { const copy = [...prescribedDrugs]; copy[idx].dose = e.target.value; setPrescribedDrugs(copy); }} placeholder="Enter dose" className="w-24 h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent font-mono font-bold" /></td>
+                    <td className="p-2"><input type="text" value={d.frequency} onChange={(e) => { const copy = [...prescribedDrugs]; copy[idx].frequency = e.target.value; setPrescribedDrugs(copy); }} placeholder="Enter frequency" className="w-24 h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent font-bold" /></td>
+                    <td className="p-2"><input type="date" value={d.start_date} onChange={(e) => { const copy = [...prescribedDrugs]; copy[idx].start_date = e.target.value; setPrescribedDrugs(copy); }} className="w-28 h-8 px-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent font-mono text-[11px]" /></td>
+                    <td className="p-2"><input type="date" value={d.stop_date} onChange={(e) => { const copy = [...prescribedDrugs]; copy[idx].stop_date = e.target.value; setPrescribedDrugs(copy); }} className="w-28 h-8 px-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent font-mono text-[11px]" /></td>
+                    <td className="p-2">
+                      {statusInfo ? (
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded border whitespace-nowrap ${
+                          statusInfo.status === 'FOUND' ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800' :
+                          statusInfo.status === 'NOT_FOUND' ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800' :
+                          statusInfo.status === 'ERROR' ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800' :
+                          'bg-slate-100 text-slate-700 border-slate-300'
+                        }`} title={statusInfo.message}>
+                          {statusInfo.status === 'FOUND' ? '✓ Found in DB' : statusInfo.status === 'NOT_FOUND' ? '⚠️ Not in DB' : '⚠️ DB Error'}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 italic">Enter drug</span>
+                      )}
+                    </td>
+                    <td className="p-2 text-center">
+                      {prescribedDrugs.length > 1 && (
+                        <button type="button" onClick={() => handleRemoveDrugRow(idx)} className="p-1 text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

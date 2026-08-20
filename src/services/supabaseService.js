@@ -2978,6 +2978,243 @@ export const fetchLabParameterKnowledgeFromSupabase = async () => {
   }
 };
 
+/**
+ * SECTION 4 — STEP 5A: DRUG KNOWLEDGE SUPABASE RETRIEVAL ENGINE
+ */
+const DRUG_KNOWLEDGE_CACHE = new Map();
 
+const CONTROLLED_DRUG_SYNONYMS = {
+  'adrenaline': 'Adrenaline',
+  'epinephrine': 'Adrenaline',
+  'adrenaline / epinephrine': 'Adrenaline',
+  'epinephrine / adrenaline': 'Adrenaline',
 
+  'noradrenaline': 'Noradrenaline',
+  'norepinephrine': 'Noradrenaline',
+  'noradrenaline / norepinephrine': 'Noradrenaline',
+  'norepinephrine / noradrenaline': 'Noradrenaline',
 
+  'salbutamol': 'Salbutamol',
+  'albuterol': 'Salbutamol',
+  'salbutamol / albuterol': 'Salbutamol',
+  'albuterol / salbutamol': 'Salbutamol',
+
+  'lidocaine': 'Lidocaine',
+  'lignocaine': 'Lidocaine',
+  'lidocaine / lignocaine': 'Lidocaine',
+  'lignocaine / lidocaine': 'Lidocaine',
+
+  'vitamin k': 'Vitamin K',
+  'vitamin k1': 'Vitamin K',
+  'phytonadione': 'Vitamin K',
+  'phytomenadione': 'Vitamin K',
+
+  'normal saline': 'Sodium Chloride 0.9%',
+  '0.9% normal saline': 'Sodium Chloride 0.9%',
+  'sodium chloride 0.9%': 'Sodium Chloride 0.9%',
+  'saline': 'Sodium Chloride 0.9%',
+
+  'paracetamol': 'Paracetamol',
+  'acetaminophen': 'Paracetamol',
+  'paracetamol (acetaminophen)': 'Paracetamol',
+
+  'hyoscine': 'Hyoscine Butylbromide',
+  'buscopan': 'Hyoscine Butylbromide',
+  'buscogast': 'Hyoscine Butylbromide',
+  'scopolamine butylbromide': 'Hyoscine Butylbromide'
+};
+
+export const normalizeDrugSearchInput = (input) => {
+  if (!input) return '';
+  return String(input)
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+};
+
+/**
+ * Fetch a single drug knowledge record from public.drug_knowledge in Supabase.
+ * Executes a 3-level controlled search strategy.
+ */
+export const fetchDrugKnowledgeFromSupabase = async (searchQuery) => {
+  const rawTerm = String(searchQuery || '').trim();
+  const cleanQuery = normalizeDrugSearchInput(rawTerm);
+
+  if (!cleanQuery) {
+    return {
+      status: 'EMPTY',
+      data: null,
+      message: 'No drug name provided for search',
+      searchTerm: rawTerm
+    };
+  }
+
+  // Check in-memory cache
+  if (DRUG_KNOWLEDGE_CACHE.has(cleanQuery)) {
+    return DRUG_KNOWLEDGE_CACHE.get(cleanQuery);
+  }
+
+  try {
+    // LEVEL 1: Exact normalized generic_name match
+    const { data: level1Data, error: level1Err } = await supabase
+      .from('drug_knowledge')
+      .select('*')
+      .ilike('generic_name', cleanQuery);
+
+    if (level1Err) {
+      return {
+        status: 'ERROR',
+        data: null,
+        error: level1Err.message,
+        message: 'Unable to connect to drug database',
+        searchTerm: rawTerm
+      };
+    }
+
+    if (Array.isArray(level1Data) && level1Data.length > 0) {
+      if (level1Data.length === 1) {
+        const result = {
+          status: 'FOUND',
+          data: level1Data[0],
+          message: '✓ Drug found in database',
+          matchLevel: 'LEVEL 1 (Generic Match)',
+          searchTerm: rawTerm
+        };
+        DRUG_KNOWLEDGE_CACHE.set(cleanQuery, result);
+        return result;
+      } else {
+        const result = {
+          status: 'MULTIPLE_MATCHES',
+          data: level1Data,
+          message: 'Multiple matching drug records found in database',
+          matchLevel: 'LEVEL 1 (Multiple Generic Matches)',
+          searchTerm: rawTerm
+        };
+        return result;
+      }
+    }
+
+    // LEVEL 2: Brand name match
+    const { data: level2Data, error: level2Err } = await supabase
+      .from('drug_knowledge')
+      .select('*')
+      .ilike('brand_names', `%${cleanQuery}%`);
+
+    if (level2Err) {
+      return {
+        status: 'ERROR',
+        data: null,
+        error: level2Err.message,
+        message: 'Unable to connect to drug database',
+        searchTerm: rawTerm
+      };
+    }
+
+    if (Array.isArray(level2Data) && level2Data.length > 0) {
+      const exactBrandMatch = level2Data.find(row => {
+        if (!row.brand_names) return false;
+        const brands = row.brand_names.split(',').map(b => b.trim().toLowerCase());
+        return brands.includes(cleanQuery);
+      });
+
+      const matchedRecord = exactBrandMatch || level2Data[0];
+      if (level2Data.length === 1 || exactBrandMatch) {
+        const result = {
+          status: 'FOUND',
+          data: matchedRecord,
+          message: '✓ Drug found in database',
+          matchLevel: 'LEVEL 2 (Brand Match)',
+          searchTerm: rawTerm
+        };
+        DRUG_KNOWLEDGE_CACHE.set(cleanQuery, result);
+        return result;
+      } else {
+        const result = {
+          status: 'MULTIPLE_MATCHES',
+          data: level2Data,
+          message: 'Multiple drug records match brand name',
+          matchLevel: 'LEVEL 2 (Multiple Brand Matches)',
+          searchTerm: rawTerm
+        };
+        return result;
+      }
+    }
+
+    // LEVEL 3: Controlled Synonym / Equivalent Name match
+    const mappedGeneric = CONTROLLED_DRUG_SYNONYMS[cleanQuery];
+    if (mappedGeneric) {
+      const { data: level3Data, error: level3Err } = await supabase
+        .from('drug_knowledge')
+        .select('*')
+        .ilike('generic_name', mappedGeneric);
+
+      if (level3Err) {
+        return {
+          status: 'ERROR',
+          data: null,
+          error: level3Err.message,
+          message: 'Unable to connect to drug database',
+          searchTerm: rawTerm
+        };
+      }
+
+      if (Array.isArray(level3Data) && level3Data.length > 0) {
+        const result = {
+          status: 'FOUND',
+          data: level3Data[0],
+          message: '✓ Drug found in database',
+          matchLevel: 'LEVEL 3 (Equivalent Name Match)',
+          searchTerm: rawTerm
+        };
+        DRUG_KNOWLEDGE_CACHE.set(cleanQuery, result);
+        return result;
+      }
+    }
+
+    // NOT FOUND
+    const notFoundResult = {
+      status: 'NOT_FOUND',
+      data: null,
+      message: 'Drug not found in Drug Knowledge Database',
+      searchTerm: rawTerm
+    };
+    DRUG_KNOWLEDGE_CACHE.set(cleanQuery, notFoundResult);
+    return notFoundResult;
+
+  } catch (err) {
+    return {
+      status: 'ERROR',
+      data: null,
+      error: err.message,
+      message: 'Unable to connect to drug database',
+      searchTerm: rawTerm
+    };
+  }
+};
+
+/**
+ * Batch lookup for multiple prescribed drugs
+ */
+export const fetchMultipleDrugKnowledgeFromSupabase = async (drugList = []) => {
+  if (!Array.isArray(drugList) || drugList.length === 0) {
+    return { success: true, results: [] };
+  }
+
+  const results = await Promise.all(
+    drugList.map(async (drugItem) => {
+      const rawName = drugItem.generic_name || drugItem.trade_name || drugItem.brand_name || drugItem.drug_name || '';
+      const lookupRes = await fetchDrugKnowledgeFromSupabase(rawName);
+      return {
+        prescribedDrug: drugItem,
+        searchTerm: rawName,
+        status: lookupRes.status,
+        data: lookupRes.data,
+        message: lookupRes.message,
+        matchLevel: lookupRes.matchLevel || null,
+        error: lookupRes.error || null
+      };
+    })
+  );
+
+  return { success: true, results };
+};

@@ -4,7 +4,7 @@ import {
   ArrowRight, RefreshCw, AlertTriangle, FileText, CheckCircle, Clock, Info, 
   Pill, AlertOctagon, Activity, HeartPulse, UserCheck, BookOpen, Layers
 } from 'lucide-react';
-import { fetchStudentCasesFromSupabase, fetchCaseModuleStatusesFromSupabase, fetchLabParameterKnowledgeFromSupabase } from '../../services/supabaseService';
+import { fetchStudentCasesFromSupabase, fetchCaseModuleStatusesFromSupabase, fetchLabParameterKnowledgeFromSupabase, fetchMultipleDrugKnowledgeFromSupabase } from '../../services/supabaseService';
 import { buildNormalizedApprovedCaseData } from '../../utils/buildNormalizedApprovedCaseData';
 import { resolveClinicalEntityKnowledge } from '../../services/clinicalKnowledgeService';
 import { evaluatePairwiseDrugInteraction, runAiClinicalCaseAnalysis } from '../../services/aiAnalysisService';
@@ -811,6 +811,8 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
   const [loadingModules, setLoadingModules] = useState(false);
 
   const [labKnowledgeList, setLabKnowledgeList] = useState([]);
+  const [section4DrugKnowledge, setSection4DrugKnowledge] = useState([]);
+  const [loadingDrugKnowledge, setLoadingDrugKnowledge] = useState(false);
 
   // Load standard lab parameter knowledge records from Supabase for Section 3
   useEffect(() => {
@@ -921,6 +923,26 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
   });
 
   const evaluatedDrugs = isProfileSaved ? norm.drugs : [];
+
+  // SECTION 4 — STEP 5A: Fetch drug knowledge from Supabase public.drug_knowledge table
+  useEffect(() => {
+    const loadDrugKnowledge = async () => {
+      if (!evaluatedDrugs || evaluatedDrugs.length === 0) {
+        setSection4DrugKnowledge([]);
+        return;
+      }
+      setLoadingDrugKnowledge(true);
+      const res = await fetchMultipleDrugKnowledgeFromSupabase(evaluatedDrugs);
+      if (res.success && Array.isArray(res.results)) {
+        setSection4DrugKnowledge(res.results);
+      } else {
+        setSection4DrugKnowledge([]);
+      }
+      setLoadingDrugKnowledge(false);
+    };
+
+    loadDrugKnowledge();
+  }, [JSON.stringify(evaluatedDrugs)]);
 
   // Calculate pairs of documented drugs for individual pair analysis
   const drugPairs = [];
@@ -1422,6 +1444,179 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                     </div>
                   );
                 })()}
+              </div>
+
+              {/* SECTION 4 — DRUG KNOWLEDGE (STEP 5A SUPABASE CONNECTED) */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5 min-w-0 w-full">
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <Pill className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                      SECTION 4 — DRUG KNOWLEDGE
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                    Supabase Connected (public.drug_knowledge)
+                  </span>
+                </div>
+
+                {loadingDrugKnowledge ? (
+                  <div className="p-6 text-center">
+                    <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Querying Supabase drug_knowledge database...</p>
+                  </div>
+                ) : section4DrugKnowledge.length === 0 ? (
+                  <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 text-center space-y-2">
+                    <AlertCircle className="w-8 h-8 text-amber-500 mx-auto" />
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">No Prescribed Medications Documented</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                      No prescribed drugs are currently recorded in the saved patient profile for this selected case.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {section4DrugKnowledge.map((item, idx) => {
+                      const drug = item.prescribedDrug || {};
+                      const status = item.status;
+                      const dbData = item.data || {};
+                      const trade = drug.trade_name || drug.brand_name || '—';
+                      const generic = drug.generic_name || drug.drug_name || '—';
+
+                      return (
+                        <div key={idx} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-3 min-w-0">
+                          {/* DRUG HEADER & STATUS BADGE */}
+                          <div className="flex items-start justify-between flex-wrap gap-2">
+                            <div>
+                              <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wide">
+                                {trade !== '—' ? `${trade} (${generic})` : generic}
+                              </h4>
+                              <span className="text-[10px] font-semibold text-slate-400 block mt-0.5">
+                                Route: {drug.route_of_admin || 'Oral'} | Dose: {drug.dose || 'As directed'} | Freq: {drug.frequency || 'OD'}
+                              </span>
+                            </div>
+
+                            {/* STEP 5A DB STATUS BADGE */}
+                            <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border flex items-center gap-1.5 ${
+                              status === 'FOUND' ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800' :
+                              status === 'NOT_FOUND' ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800' :
+                              status === 'ERROR' ? 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800' :
+                              'bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-800'
+                            }`}>
+                              {status === 'FOUND' && <CheckCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />}
+                              {status === 'NOT_FOUND' && <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />}
+                              {status === 'ERROR' && <AlertOctagon className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />}
+                              <span>{item.message || (status === 'FOUND' ? '✓ Drug found in database' : '⚠️ Drug not found in Drug Knowledge Database')}</span>
+                            </span>
+                          </div>
+
+                          {/* RETRIEVED SUPABASE KNOWLEDGE RECORD (WHEN FOUND) */}
+                          {status === 'FOUND' && dbData && (
+                            <div className="space-y-3 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                                <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-0.5">
+                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Generic Name</span>
+                                  <strong className="font-extrabold text-emerald-700 dark:text-emerald-400 text-xs block truncate">
+                                    {dbData.generic_name}
+                                  </strong>
+                                </div>
+
+                                <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-0.5">
+                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Brand Names</span>
+                                  <span className="font-medium text-slate-800 dark:text-slate-200 text-xs block truncate">
+                                    {dbData.brand_names || 'N/A'}
+                                  </span>
+                                </div>
+
+                                <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-0.5">
+                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Primary Drug Class</span>
+                                  <span className="font-medium text-indigo-600 dark:text-indigo-400 text-xs block truncate">
+                                    {dbData.primary_drug_class || dbData.drug_class || 'N/A'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                                <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                                    Established Clinical Uses
+                                  </span>
+                                  <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed break-words">
+                                    {dbData.established_uses || 'N/A'}
+                                  </p>
+                                </div>
+
+                                <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                                    Mechanism of Action
+                                  </span>
+                                  <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed break-words">
+                                    {dbData.mechanism_of_action || 'N/A'}
+                                  </p>
+                                </div>
+
+                                <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                                    Normal Dose Range
+                                  </span>
+                                  <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed break-words font-mono text-[11px]">
+                                    {dbData.normal_dose_range || 'N/A'}
+                                  </p>
+                                </div>
+
+                                <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-600 dark:text-rose-400 block">
+                                    Contraindications
+                                  </span>
+                                  <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed break-words">
+                                    {dbData.contraindications || 'N/A'}
+                                  </p>
+                                </div>
+
+                                <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">
+                                    Side Effects & Adverse Effects
+                                  </span>
+                                  <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed break-words">
+                                    {dbData.side_effects_adverse_effects || 'N/A'}
+                                  </p>
+                                </div>
+
+                                <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 block">
+                                    Monitoring Parameters
+                                  </span>
+                                  <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed break-words">
+                                    {dbData.monitoring_parameters || 'N/A'}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* UNKNOWN / NOT FOUND DRUG STATE */}
+                          {status === 'NOT_FOUND' && (
+                            <div className="p-3 rounded-lg bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+                              <span className="font-extrabold uppercase text-[10px] block">Database Status Note</span>
+                              <p className="text-[11px] leading-relaxed">
+                                "{trade !== '—' ? `${trade} (${generic})` : generic}" is retained in the patient's prescription workflow. It was not found in the verified 681-drug Supabase database and has not been automatically inserted.
+                              </p>
+                            </div>
+                          )}
+
+                          {/* DATABASE CONNECTION ERROR STATE */}
+                          {status === 'ERROR' && (
+                            <div className="p-3 rounded-lg bg-rose-50/80 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-900 dark:text-rose-200 space-y-1">
+                              <span className="font-extrabold uppercase text-[10px] block">Database Connection Error</span>
+                              <p className="text-[11px] leading-relaxed">
+                                Unable to connect to Supabase drug database: {item.error || 'Network error'}. The entered drug name has been preserved.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           )}
