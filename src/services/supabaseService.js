@@ -2075,7 +2075,7 @@ export const fetchCaseModuleStatusesMapFromSupabase = async (caseIds = []) => {
     const [casesRes, profilesRes, counsellingRes, interventionRes, dirRes, adrRes] = await Promise.all([
       supabase.from('clinical_cases').select('id, profile_completed, counselling_completed').in('id', caseIds),
       supabase.from('patient_profiles').select('id, clinical_case_id, status, final_diagnosis').in('clinical_case_id', caseIds),
-      supabase.from('patient_counselling').select('id, clinical_case_id, status').in('clinical_case_id', caseIds),
+      supabase.from('patient_counselling').select('id, clinical_case_id, status, disease_counselled, medications_counselled').in('clinical_case_id', caseIds),
       supabase.from('pharmacist_interventions').select('id, clinical_case_id, status').in('clinical_case_id', caseIds),
       supabase.from('drug_information_requests').select('id, clinical_case_id, status').in('clinical_case_id', caseIds),
       supabase.from('adr_reports').select('id, clinical_case_id, approval_status').in('clinical_case_id', caseIds)
@@ -2110,23 +2110,27 @@ export const fetchCaseModuleStatusesMapFromSupabase = async (caseIds = []) => {
 
       if (hasCompletedColumns) {
         // Primary: use the DB boolean flag
-        // Fallback: child record at a terminal status (backward compat)
+        // Fallback: child record at a terminal status OR filled required fields
         const isProfileRecordSubmitted = p ? COMPLETED_STATUSES.includes(p.status) : false;
         isProfileCompleted = !!caseRecord.profile_completed || isProfileRecordSubmitted;
 
-        const isCounsellingRecordSubmitted = c ? COMPLETED_STATUSES.includes(c.status) : false;
+        const isCounsellingRecordSubmitted = c
+          ? (COMPLETED_STATUSES.includes(c.status) || Boolean(c.disease_counselled?.trim() && c.medications_counselled?.trim()))
+          : false;
         isCounsellingCompleted = !!caseRecord.counselling_completed || isCounsellingRecordSubmitted;
       } else {
         // Fallback when columns don't exist in DB yet
         isProfileCompleted = p ? COMPLETED_STATUSES.includes(p.status) : false;
-        isCounsellingCompleted = c ? COMPLETED_STATUSES.includes(c.status) : false;
+        isCounsellingCompleted = c
+          ? (COMPLETED_STATUSES.includes(c.status) || Boolean(c.disease_counselled?.trim() && c.medications_counselled?.trim()))
+          : false;
       }
 
       // ---------------------------------------------------------------
       // MODULE DOT STATUS — what color dot to show
       // Grey = No record (Not Started)
       // Amber = Draft record exists
-      // Green = Terminal status (Submitted/Completed/Approved/Reviewed)
+      // Green = Terminal status / Completed (Submitted/Completed/Approved/Reviewed)
       // ---------------------------------------------------------------
       const resolveModuleStatus = (record, statusField = 'status') => {
         if (!record) return 'Not Started';
@@ -2138,8 +2142,8 @@ export const fetchCaseModuleStatusesMapFromSupabase = async (caseIds = []) => {
       };
 
       // patient_profiles, patient_counselling, pharmacist_interventions, drug_information_requests: use 'status'
-      const profileStatusVal = resolveModuleStatus(p, 'status');
-      const counsellingStatusVal = resolveModuleStatus(c, 'status');
+      const profileStatusVal = isProfileCompleted ? 'Completed' : resolveModuleStatus(p, 'status');
+      const counsellingStatusVal = isCounsellingCompleted ? 'Completed' : resolveModuleStatus(c, 'status');
       const interventionStatusVal = resolveModuleStatus(i, 'status');
       const dirStatusVal = resolveModuleStatus(d, 'status');
       // adr_reports: uses 'approval_status'
@@ -2264,7 +2268,7 @@ export const submitCompleteClinicalCaseInSupabase = async (clinicalCase, caseMod
     const [caseCheck, profileCheck, counsellingCheck] = await Promise.all([
       supabase.from('clinical_cases').select('profile_completed, counselling_completed').eq('id', caseId).maybeSingle(),
       supabase.from('patient_profiles').select('status').eq('clinical_case_id', caseId).maybeSingle(),
-      supabase.from('patient_counselling').select('status').eq('clinical_case_id', caseId).maybeSingle()
+      supabase.from('patient_counselling').select('status, disease_counselled, medications_counselled').eq('clinical_case_id', caseId).maybeSingle()
     ]);
 
     const isProfileCompleted = caseCheck.data?.profile_completed || 
@@ -2273,9 +2277,9 @@ export const submitCompleteClinicalCaseInSupabase = async (clinicalCase, caseMod
        profileCheck.data.status !== 'Not Started');
 
     const isCounsellingCompleted = caseCheck.data?.counselling_completed || 
-      (counsellingCheck.data?.status && 
-       counsellingCheck.data.status !== 'Draft' && 
-       counsellingCheck.data.status !== 'Not Started');
+      (counsellingCheck.data && 
+       ((counsellingCheck.data.status && counsellingCheck.data.status !== 'Draft' && counsellingCheck.data.status !== 'Not Started') ||
+        Boolean(counsellingCheck.data.disease_counselled?.trim() && counsellingCheck.data.medications_counselled?.trim())));
 
     if (!isProfileCompleted || !isCounsellingCompleted) {
       return {

@@ -237,13 +237,11 @@ export const PatientCounsellingFormView = ({ clinicalCase, student, onBack, isRe
     }
   };
 
-  // Validate required fields for Counselling completion
+  // Validate required fields for Counselling completion (Disease Counselled + Medications Counselled)
   const isCounsellingComplete = () => {
     return (
-      diseaseCounselled.trim().length > 0 &&
-      medicationsCounselled.trim().length > 0 &&
-      (!majorBarriersInvolved || barrierDetails.trim().length > 0) &&
-      (counsellingProvidedTo !== 'Patient representative' || representativeReasons.length > 0 || representativeOtherReason.trim().length > 0)
+      diseaseCounselled && diseaseCounselled.trim().length > 0 &&
+      medicationsCounselled && medicationsCounselled.trim().length > 0
     );
   };
 
