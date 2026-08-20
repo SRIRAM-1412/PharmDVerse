@@ -4,18 +4,18 @@
  */
 
 const DOSAGE_FORM_PATTERNS = [
-  { form: 'Injection', regex: /^(inj\.?|injection)\s+/i },
-  { form: 'Tablet', regex: /^(tab\.?|tablet)\s+/i },
-  { form: 'Capsule', regex: /^(cap\.?|capsule)\s+/i },
-  { form: 'Syrup', regex: /^(syp\.?|syr\.?|syrup)\s+/i },
-  { form: 'Nebulization', regex: /^(neb\.?|nebulization|nebule)\s+/i },
-  { form: 'Inhalation', regex: /^(inh\.?|inhaler|inhalation)\s+/i },
-  { form: 'Cream', regex: /^(cream)\s+/i },
-  { form: 'Ointment', regex: /^(oint\.?|ointment)\s+/i },
-  { form: 'Ophthalmic drops', regex: /^(eye\s+drops?|ophth\.?\s+drops?)\s+/i },
-  { form: 'Otology drops', regex: /^(ear\s+drops?|otology\s+drops?)\s+/i },
-  { form: 'Solution', regex: /^(sol\.?|solution)\s+/i },
-  { form: 'Suspension', regex: /^(susp\.?|suspension)\s+/i }
+  { form: 'Injection', abbr: 'Inj.', regex: /^(inj\.?|injection)\s+/i },
+  { form: 'Tablet', abbr: 'Tab.', regex: /^(tab\.?|tablet)\s+/i },
+  { form: 'Capsule', abbr: 'Cap.', regex: /^(cap\.?|capsule)\s+/i },
+  { form: 'Syrup', abbr: 'Syp.', regex: /^(syp\.?|syr\.?|syrup)\s+/i },
+  { form: 'Nebulization', abbr: 'Neb.', regex: /^(neb\.?|nebulization|nebule)\s+/i },
+  { form: 'Inhalation', abbr: 'Inh.', regex: /^(inh\.?|inhaler|inhalation)\s+/i },
+  { form: 'Cream', abbr: 'Cream', regex: /^(cream)\s+/i },
+  { form: 'Ointment', abbr: 'Oint.', regex: /^(oint\.?|ointment)\s+/i },
+  { form: 'Ophthalmic drops', abbr: 'Ophth.', regex: /^(eye\s+drops?|ophth\.?\s+drops?)\s+/i },
+  { form: 'Otology drops', abbr: 'Ear drops', regex: /^(ear\s+drops?|otology\s+drops?)\s+/i },
+  { form: 'Solution', abbr: 'Sol.', regex: /^(sol\.?|solution)\s+/i },
+  { form: 'Suspension', abbr: 'Susp.', regex: /^(susp\.?|suspension)\s+/i }
 ];
 
 const KNOWN_GENERIC_NAMES = new Set([
@@ -133,6 +133,7 @@ export const parsePrescriptionInput = (rawInput) => {
   if (!rawInput || typeof rawInput !== 'string') {
     return {
       dosageForm: 'Oral',
+      dosageFormAbbr: 'Tab.',
       extractedTradeName: '',
       extractedStrength: '',
       extractedFrequency: '',
@@ -141,20 +142,17 @@ export const parsePrescriptionInput = (rawInput) => {
   }
 
   let text = rawInput.trim();
-  let dosageForm = null;
+  let dosageForm = 'Oral';
+  let dosageFormAbbr = 'Tab.';
 
-  // 1. Extract Dosage Form Prefix
+  // 1. Extract Dosage Form Prefix with FULL STOP '.' guarantee
   for (const item of DOSAGE_FORM_PATTERNS) {
     if (item.regex.test(text)) {
       dosageForm = item.form;
+      dosageFormAbbr = item.abbr;
       text = text.replace(item.regex, '').trim();
       break;
     }
-  }
-
-  // Default dosage form if unstated
-  if (!dosageForm) {
-    dosageForm = 'Oral';
   }
 
   // 2. Extract Frequency Instructions (1-0-1, OD, BD, TDS, etc.)
@@ -185,27 +183,39 @@ export const parsePrescriptionInput = (rawInput) => {
   // Clean remaining trade name
   const extractedTradeName = text.trim();
 
+  // Formatted Trade Name with full stop '.' between dosage form abbreviation and brand name
+  const capTrade = extractedTradeName ? extractedTradeName.charAt(0).toUpperCase() + extractedTradeName.slice(1) : '';
+  const formattedTradeName = capTrade ? `${dosageFormAbbr} ${capTrade}${extractedStrength ? ' ' + extractedStrength : ''}` : rawInput;
+
   return {
     dosageForm,
+    dosageFormAbbr,
     extractedTradeName,
     extractedStrength,
     extractedFrequency,
+    formattedTradeName,
     cleanInput: rawInput.trim()
   };
 };
 
 /**
  * Resolve clean trade name into active generic ingredient(s).
- * Supports single drug, 2-drug, 3-drug, 4-drug, or 5+ drug combinations.
+ * Enforces FULL STOP '.' between Dosage Abbreviation & Brand Name for Trade Name,
+ * and '+' symbol with spaces between active ingredients for Generic Name Display.
  */
 export const resolveTradeNameToGeneric = (rawInput) => {
   const parsed = parsePrescriptionInput(rawInput);
   const tradeClean = parsed.extractedTradeName.toLowerCase();
 
+  // Helper to format generic display string with ' + ' symbol between drugs
+  const formatGenericDisplay = (ingredients) => {
+    return ingredients.join(' + ');
+  };
+
   // Case A: Explicit Plus ("+") or Slash ("/") notation (e.g. "Amoxicillin + Clavulanic acid")
   if (rawInput.includes('+') || (rawInput.includes('/') && !rawInput.match(/\d+\/\d+/))) {
     const parts = rawInput
-      .replace(/^(inj\.?|tab\.?|cap\.?|syp\.?)\s+/i, '')
+      .replace(/^(inj\.?|tab\.?|cap\.?|syp\.?|neb\.?|inh\.?)\s+/i, '')
       .split(/\s*[\+\/]\s*/)
       .map(p => p.replace(/\d+\s*(mg|g|mcg)?/gi, '').trim())
       .filter(Boolean);
@@ -215,10 +225,12 @@ export const resolveTradeNameToGeneric = (rawInput) => {
       return {
         status: 'RESOLVED',
         dosageForm: parsed.dosageForm,
+        dosageFormAbbr: parsed.dosageFormAbbr,
         extractedTradeName: parsed.extractedTradeName || rawInput,
+        formattedTradeName: parsed.formattedTradeName,
         extractedStrength: parsed.extractedStrength,
         extractedFrequency: parsed.extractedFrequency,
-        genericNameDisplay: activeIngredients.join(' + '),
+        genericNameDisplay: formatGenericDisplay(activeIngredients),
         activeIngredients,
         ingredientCount: activeIngredients.length
       };
@@ -231,10 +243,12 @@ export const resolveTradeNameToGeneric = (rawInput) => {
     return {
       status: 'RESOLVED',
       dosageForm: parsed.dosageForm,
+      dosageFormAbbr: parsed.dosageFormAbbr,
       extractedTradeName: parsed.extractedTradeName,
+      formattedTradeName: parsed.formattedTradeName,
       extractedStrength: parsed.extractedStrength,
       extractedFrequency: parsed.extractedFrequency,
-      genericNameDisplay: activeIngredients.join(' + '),
+      genericNameDisplay: formatGenericDisplay(activeIngredients),
       activeIngredients,
       ingredientCount: activeIngredients.length
     };
@@ -249,10 +263,12 @@ export const resolveTradeNameToGeneric = (rawInput) => {
       return {
         status: 'RESOLVED',
         dosageForm: parsed.dosageForm,
+        dosageFormAbbr: parsed.dosageFormAbbr,
         extractedTradeName: parsed.extractedTradeName,
+        formattedTradeName: parsed.formattedTradeName,
         extractedStrength: parsed.extractedStrength,
         extractedFrequency: parsed.extractedFrequency,
-        genericNameDisplay: activeIngredients.join(' + '),
+        genericNameDisplay: formatGenericDisplay(activeIngredients),
         activeIngredients,
         ingredientCount: activeIngredients.length
       };
@@ -265,7 +281,9 @@ export const resolveTradeNameToGeneric = (rawInput) => {
     return {
       status: 'GENERIC_DIRECT',
       dosageForm: parsed.dosageForm,
+      dosageFormAbbr: parsed.dosageFormAbbr,
       extractedTradeName: parsed.extractedTradeName,
+      formattedTradeName: parsed.formattedTradeName,
       extractedStrength: parsed.extractedStrength,
       extractedFrequency: parsed.extractedFrequency,
       genericNameDisplay: capName,
@@ -278,7 +296,9 @@ export const resolveTradeNameToGeneric = (rawInput) => {
   return {
     status: 'UNRESOLVED_TRADE_NAME',
     dosageForm: parsed.dosageForm,
+    dosageFormAbbr: parsed.dosageFormAbbr,
     extractedTradeName: rawInput,
+    formattedTradeName: parsed.formattedTradeName,
     extractedStrength: parsed.extractedStrength,
     extractedFrequency: parsed.extractedFrequency,
     genericNameDisplay: 'Trade name could not be confidently resolved.',
