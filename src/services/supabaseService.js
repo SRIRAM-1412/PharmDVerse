@@ -1,5 +1,6 @@
-import { supabase } from '../lib/supabaseClient';
-import { resolveTradeNameToGeneric, parsePrescriptionInput } from '../utils/prescriptionParserService';
+import { supabase } from '../lib/supabaseClient.js';
+import { resolveTradeNameToGeneric, parsePrescriptionInput } from '../utils/prescriptionParserService.js';
+import { resolveClinicalEntityKnowledge } from './clinicalKnowledgeService.js';
 
 /**
  * SHA-256 Password Hashing Helper
@@ -16,6 +17,16 @@ export const hashPassword = async (password) => {
   } catch (err) {
     console.error('Password hashing error:', err);
     return null;
+  }
+};
+
+export const setSupabaseAdminHeader = () => {
+  try {
+    if (supabase && typeof supabase.setHeader === 'function') {
+      supabase.setHeader('x-super-admin', 'true');
+    }
+  } catch (e) {
+    // Ignore header error if not supported in custom transport
   }
 };
 
@@ -787,18 +798,26 @@ export const fetchPatientProfileByCaseIdFromSupabase = async (clinicalCaseId) =>
       .maybeSingle();
 
     if (profileErr) return { success: false, error: profileErr.message };
-    if (!profile) return { success: true, profile: null, labInvestigations: [], prescribedDrugs: [] };
-
-    const [labRes, drugRes] = await Promise.all([
+    const [labRes, drugRes, otherInvRes] = await Promise.all([
       supabase.from('patient_lab_investigations').select('*').eq('patient_profile_id', profile.id).order('created_at', { ascending: true }),
-      supabase.from('patient_prescribed_drugs').select('*').eq('patient_profile_id', profile.id).order('s_no', { ascending: true })
+      supabase.from('patient_prescribed_drugs').select('*').eq('patient_profile_id', profile.id).order('s_no', { ascending: true }),
+      supabase.from('patient_other_investigations').select('*, other_investigation_knowledge(description, expected_findings, clinical_significance)').eq('patient_profile_id', profile.id).order('created_at', { ascending: true })
     ]);
+
+    const formattedOtherInvs = (otherInvRes.data || []).map(item => ({
+      ...item,
+      master_knowledge: item.other_investigation_knowledge || null
+    }));
 
     return {
       success: true,
-      profile,
+      profile: {
+        ...profile,
+        patient_other_investigations: formattedOtherInvs
+      },
       labInvestigations: labRes.data || [],
-      prescribedDrugs: drugRes.data || []
+      prescribedDrugs: drugRes.data || [],
+      otherInvestigations: formattedOtherInvs
     };
   } catch (err) {
     return { success: false, error: err.message };
@@ -1300,6 +1319,143 @@ export const authenticatePreceptorInSupabase = async (username, password, curren
     await supabase.from('preceptors').update({ last_login_at: new Date().toISOString(), failed_login_attempts: 0 }).eq('id', preceptor.id);
 
     return { success: true, preceptor };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+export const authenticateSuperAdminInSupabase = async (email, password) => {
+  try {
+    const trimmedEmail = (email || '').trim().toLowerCase();
+    const trimmedPassword = (password || '').trim();
+    if (!trimmedEmail || !trimmedPassword) {
+      return { success: false, error: 'Email and Password are required.' };
+    }
+
+    const inputHash = await hashPassword(trimmedPassword);
+    if (!inputHash) return { success: false, error: 'Invalid password format' };
+
+    const { data: superAdmin, error } = await supabase
+      .from('super_admin')
+      .select('id, name, email, password_hash, role, is_active')
+      .eq('email', trimmedEmail)
+      .maybeSingle();
+
+    if (error || !superAdmin) {
+      return { success: false, error: 'Invalid Email Address or Password.' };
+    }
+
+    if (superAdmin.is_active === false) {
+      return { success: false, error: 'This Super Admin account is currently inactive.' };
+    }
+
+    if (superAdmin.password_hash !== inputHash) {
+      return { success: false, error: 'Invalid Email Address or Password.' };
+    }
+
+    // Update last_login timestamp
+    const nowIso = new Date().toISOString();
+    await supabase
+      .from('super_admin')
+      .update({ last_login: nowIso, updated_at: nowIso })
+      .eq('id', superAdmin.id);
+
+    const { password_hash, ...sanitizedAdmin } = superAdmin;
+    return { success: true, superAdmin: sanitizedAdmin };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+export const fetchSuperAdminProfileFromSupabase = async (adminId) => {
+  try {
+    if (!adminId) return { success: false, error: 'Admin ID required.' };
+    setSupabaseAdminHeader();
+    const { data, error } = await supabase
+      .from('super_admin')
+      .select('id, name, email, role, is_active, last_login, created_at, updated_at')
+      .eq('id', adminId)
+      .maybeSingle();
+
+    if (error || !data) return { success: false, error: error?.message || 'Super Admin profile not found.' };
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+export const updateSuperAdminProfileInSupabase = async (adminId, { name, email }) => {
+  try {
+    const trimmedName = (name || '').trim();
+    const trimmedEmail = (email || '').trim().toLowerCase();
+
+    if (!adminId || !trimmedName || !trimmedEmail) {
+      return { success: false, error: 'Admin ID, Name, and Email are required.' };
+    }
+
+    setSupabaseAdminHeader();
+    const nowIso = new Date().toISOString();
+    const { data, error } = await supabase
+      .from('super_admin')
+      .update({
+        name: trimmedName,
+        email: trimmedEmail,
+        updated_at: nowIso
+      })
+      .eq('id', adminId)
+      .select('id, name, email, role, is_active, last_login, created_at, updated_at')
+      .single();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+export const changeSuperAdminPasswordInSupabase = async (adminId, currentPassword, newPassword) => {
+  try {
+    const trimmedCurrent = (currentPassword || '').trim();
+    const trimmedNew = (newPassword || '').trim();
+
+    if (!adminId || !trimmedCurrent || !trimmedNew) {
+      return { success: false, error: 'Current password and new password are required.' };
+    }
+
+    if (trimmedNew.length < 8) {
+      return { success: false, error: 'New password must be at least 8 characters long.' };
+    }
+
+    setSupabaseAdminHeader();
+    const { data: superAdmin, error: fetchErr } = await supabase
+      .from('super_admin')
+      .select('id, password_hash')
+      .eq('id', adminId)
+      .maybeSingle();
+
+    if (fetchErr || !superAdmin) {
+      return { success: false, error: 'Super Admin record not found.' };
+    }
+
+    const currentHash = await hashPassword(trimmedCurrent);
+    if (superAdmin.password_hash !== currentHash) {
+      return { success: false, error: 'Current password is incorrect.' };
+    }
+
+    const newHash = await hashPassword(trimmedNew);
+    const nowIso = new Date().toISOString();
+
+    const { error: updateErr } = await supabase
+      .from('super_admin')
+      .update({
+        password_hash: newHash,
+        updated_at: nowIso
+      })
+      .eq('id', adminId);
+
+    if (updateErr) return { success: false, error: updateErr.message };
+
+    return { success: true, message: 'Password updated successfully.' };
   } catch (err) {
     return { success: false, error: err.message };
   }
@@ -2761,56 +2917,36 @@ export const fetchCollegeClinicalCasesFromSupabase = async (collegeId) => {
 };
 
 export const sendEmailInBackground = async (notificationId, recipientEmail, subject, title, caseId, studentName, timestamp) => {
-  // Execute in background
+  // Execute asynchronously in background without blocking UI workflow
   setTimeout(async () => {
     try {
-      console.log(`✉️ [SMTP Send] Initiating email delivery to: ${recipientEmail}`);
+      if (!notificationId) return;
 
-      // Simulating a minor network latency for mock SMTP send
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      const body = `
-=========================================================
-PharmDVerse Workflow Update
-=========================================================
-
-Notification: ${title}
-Case ID: ${caseId || 'N/A'}
-Student Name: ${studentName || 'N/A'}
-Timestamp: ${timestamp}
-
----------------------------------------------------------
-Please click the link below to login to PharmDVerse:
-https://pharmdverse.cloud/login
-=========================================================
-      `.trim();
-
-      console.log(`✉️ [SMTP Send] Mail content:\n${body}`);
-
-      // Update notification record as Sent in DB
-      await supabase
+      // 1. Idempotency Check: prevent duplicate triggers if already marked sent
+      const { data: currentNotif } = await supabase
         .from('notifications')
-        .update({
-          email_sent: true,
-          email_sent_at: new Date().toISOString(),
-          email_delivery_status: 'Sent',
-          email_recipient: recipientEmail
-        })
-        .eq('id', notificationId);
-      
-      console.log(`✉️ [SMTP Success] Email sent successfully to: ${recipientEmail}`);
+        .select('email_sent, email_delivery_status')
+        .eq('id', notificationId)
+        .maybeSingle();
+
+      if (currentNotif && (currentNotif.email_sent === true || currentNotif.email_delivery_status === 'Sent')) {
+        console.log(`✉️ [Email Guard] Notification ${notificationId} already delivered. Skipping duplicate trigger.`);
+        return;
+      }
+
+      // 2. Server-side Endpoint Dispatch (Zero secrets in browser/client bundle)
+      const res = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationId })
+      });
+
+      if (!res.ok) {
+        console.warn(`✉️ [Server Email Service] Server response: ${res.status}`);
+      }
     } catch (err) {
-      console.error(`✉️ [SMTP Error] Email sending failed:`, err.message);
-      // Update notification record as Failed in DB (does not throw or break UI)
-      await supabase
-        .from('notifications')
-        .update({
-          email_sent: false,
-          email_delivery_status: 'Failed',
-          email_error_message: err.message,
-          email_recipient: recipientEmail
-        })
-        .eq('id', notificationId);
+      console.warn(`✉️ [Email Delivery Notice] Non-blocking server dispatch notice:`, err.message);
+      // Clinical workflow remains 100% successful even if server-side email dispatch encounters notices
     }
   }, 0);
 };
@@ -2869,8 +3005,26 @@ export const createWorkflowNotificationInSupabase = async ({
       if (prec) recipientEmail = prec.email;
     }
 
+    // 2b. Deduplication Guard: Prevent creating duplicate notifications within 60 seconds
+    if (recipientUserId && clinicalCaseId && notificationType) {
+      const sixtySecsAgo = new Date(Date.now() - 60000).toISOString();
+      const { data: recentDup } = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('recipient_user_id', recipientUserId)
+        .eq('clinical_case_id', clinicalCaseId)
+        .eq('notification_type', notificationType)
+        .gte('created_at', sixtySecsAgo)
+        .maybeSingle();
+
+      if (recentDup) {
+        console.warn(`[Notification Guard] Duplicate notification "${notificationType}" for case ${clinicalCaseId} ignored.`);
+        return { success: true, deduplicated: true, id: recentDup.id };
+      }
+    }
+
     // 3. Insert notification record with status 'Pending'
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('notifications')
       .insert([{
         recipient_user_id: recipientUserId,
@@ -2891,16 +3045,14 @@ export const createWorkflowNotificationInSupabase = async ({
         email_sent: false,
         email_delivery_status: 'Pending',
         email_recipient: recipientEmail
-      }])
-      .select();
+      }]);
 
     if (error) return { success: false, error: error.message };
-    const notification = data[0];
 
     // 4. Trigger Email in Background if recipient email is available
     if (recipientEmail) {
       sendEmailInBackground(
-        notification.id,
+        null,
         recipientEmail,
         `PharmDVerse: ${title}`,
         title,
@@ -2910,7 +3062,7 @@ export const createWorkflowNotificationInSupabase = async ({
       );
     }
 
-    return { success: true, data: notification };
+    return { success: true };
   } catch (err) {
     return { success: false, error: err.message };
   }
@@ -2984,6 +3136,323 @@ export const fetchLabParameterKnowledgeFromSupabase = async () => {
 };
 
 /**
+ * Super Admin: Fetch all lab parameter knowledge records (including inactive).
+ */
+export const fetchLabParameterKnowledgeForAdmin = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('lab_parameter_knowledge')
+      .select('*')
+      .order('category', { ascending: true })
+      .order('parameter_name', { ascending: true });
+
+    if (error) return { success: false, data: [], error: error.message };
+    return { success: true, data: data || [] };
+  } catch (err) {
+    return { success: false, data: [], error: err.message };
+  }
+};
+
+/**
+ * Super Admin: Create a new laboratory parameter knowledge master record.
+ */
+export const createLabParameterKnowledgeInSupabase = async (payload) => {
+  try {
+    const normName = (payload.normalized_name || payload.parameter_name || '').toLowerCase().trim();
+    if (!payload.parameter_name || !normName || !payload.category || !payload.evaluation_type) {
+      return { success: false, error: 'Parameter Name, Category, and Evaluation Type are required.' };
+    }
+
+    // Duplicate check
+    const { data: existing } = await supabase
+      .from('lab_parameter_knowledge')
+      .select('id, parameter_name')
+      .or(`normalized_name.eq.${normName},parameter_name.ilike.${payload.parameter_name.trim()}`)
+      .maybeSingle();
+
+    if (existing) {
+      return { success: false, error: `A parameter with normalized name "${normName}" already exists ("${existing.parameter_name}").` };
+    }
+
+    const recordPayload = {
+      parameter_name: payload.parameter_name.trim(),
+      normalized_name: normName,
+      category: payload.category,
+      evaluation_type: payload.evaluation_type,
+      increased_significance: payload.increased_significance || null,
+      decreased_significance: payload.decreased_significance || null,
+      positive_significance: payload.positive_significance || null,
+      negative_significance: payload.negative_significance || null,
+      present_significance: payload.present_significance || null,
+      absent_significance: payload.absent_significance || null,
+      context_notes: payload.context_notes || null,
+      source_reference: payload.source_reference || null,
+      is_active: payload.is_active ?? true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('lab_parameter_knowledge')
+      .insert([recordPayload])
+      .select()
+      .single();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, record: data };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Super Admin: Update an existing laboratory parameter knowledge master record.
+ */
+export const updateLabParameterKnowledgeInSupabase = async (id, payload) => {
+  try {
+    if (!id) return { success: false, error: 'Parameter Record ID is required.' };
+
+    const normName = (payload.normalized_name || payload.parameter_name || '').toLowerCase().trim();
+
+    // Duplicate check excluding self
+    const { data: existing } = await supabase
+      .from('lab_parameter_knowledge')
+      .select('id, parameter_name')
+      .neq('id', id)
+      .or(`normalized_name.eq.${normName},parameter_name.ilike.${payload.parameter_name.trim()}`)
+      .maybeSingle();
+
+    if (existing) {
+      return { success: false, error: `Another parameter with normalized name "${normName}" already exists ("${existing.parameter_name}").` };
+    }
+
+    const updatePayload = {
+      parameter_name: payload.parameter_name.trim(),
+      normalized_name: normName,
+      category: payload.category,
+      evaluation_type: payload.evaluation_type,
+      increased_significance: payload.increased_significance || null,
+      decreased_significance: payload.decreased_significance || null,
+      positive_significance: payload.positive_significance || null,
+      negative_significance: payload.negative_significance || null,
+      present_significance: payload.present_significance || null,
+      absent_significance: payload.absent_significance || null,
+      context_notes: payload.context_notes || null,
+      source_reference: payload.source_reference || null,
+      is_active: payload.is_active ?? true,
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('lab_parameter_knowledge')
+      .update(updatePayload)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, record: data };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Super Admin: Fetch all Other Investigation Knowledge records.
+ */
+export const fetchOtherInvestigationKnowledgeForAdmin = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('other_investigation_knowledge')
+      .select('*')
+      .order('category', { ascending: true })
+      .order('investigation_name', { ascending: true });
+
+    if (error) return { success: false, data: [], error: error.message };
+    return { success: true, data: data || [] };
+  } catch (err) {
+    return { success: false, data: [], error: err.message };
+  }
+};
+
+/**
+ * Super Admin: Create a new Other Investigation Knowledge master record.
+ */
+export const createOtherInvestigationKnowledgeInSupabase = async (payload) => {
+  try {
+    const normName = (payload.normalized_name || payload.investigation_name || '').toLowerCase().trim();
+    if (!payload.investigation_name || !normName || !payload.category) {
+      return { success: false, error: 'Investigation Name and Category are required.' };
+    }
+
+    // Duplicate check
+    const { data: existing } = await supabase
+      .from('other_investigation_knowledge')
+      .select('id, investigation_name')
+      .or(`normalized_name.eq.${normName},investigation_name.ilike.${payload.investigation_name.trim()}`)
+      .maybeSingle();
+
+    if (existing) {
+      return { success: false, error: `An investigation with normalized name "${normName}" already exists ("${existing.investigation_name}").` };
+    }
+
+    const recordPayload = {
+      investigation_name: payload.investigation_name.trim(),
+      normalized_name: normName,
+      category: payload.category,
+      description: payload.description || null,
+      expected_findings: payload.expected_findings || null,
+      clinical_significance: payload.clinical_significance || null,
+      is_active: payload.is_active ?? true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('other_investigation_knowledge')
+      .insert([recordPayload])
+      .select()
+      .single();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, record: data };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Super Admin: Update an existing Other Investigation Knowledge master record.
+ */
+export const updateOtherInvestigationKnowledgeInSupabase = async (id, payload) => {
+  try {
+    if (!id) return { success: false, error: 'Investigation Record ID is required.' };
+
+    const normName = (payload.normalized_name || payload.investigation_name || '').toLowerCase().trim();
+
+    // Duplicate check excluding self
+    const { data: existing } = await supabase
+      .from('other_investigation_knowledge')
+      .select('id, investigation_name')
+      .neq('id', id)
+      .or(`normalized_name.eq.${normName},investigation_name.ilike.${payload.investigation_name.trim()}`)
+      .maybeSingle();
+
+    if (existing) {
+      return { success: false, error: `Another investigation with normalized name "${normName}" already exists ("${existing.investigation_name}").` };
+    }
+
+    const updatePayload = {
+      investigation_name: payload.investigation_name.trim(),
+      normalized_name: normName,
+      category: payload.category,
+      description: payload.description || null,
+      expected_findings: payload.expected_findings || null,
+      clinical_significance: payload.clinical_significance || null,
+      is_active: payload.is_active ?? true,
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('other_investigation_knowledge')
+      .update(updatePayload)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, record: data };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Student: Fetch active Other Investigation Master records for selection dropdown.
+ */
+export const fetchActiveOtherInvestigationKnowledgeFromSupabase = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('other_investigation_knowledge')
+      .select('*')
+      .eq('is_active', true)
+      .order('category', { ascending: true })
+      .order('investigation_name', { ascending: true });
+
+    if (error) return { success: false, data: [], error: error.message };
+    return { success: true, data: data || [] };
+  } catch (err) {
+    return { success: false, data: [], error: err.message };
+  }
+};
+
+/**
+ * Fetch structured child records for a patient from public.patient_other_investigations.
+ */
+export const fetchPatientOtherInvestigationsFromSupabase = async (patientProfileId) => {
+  try {
+    if (!patientProfileId) return { success: true, data: [] };
+
+    const { data, error } = await supabase
+      .from('patient_other_investigations')
+      .select('*')
+      .eq('patient_profile_id', patientProfileId)
+      .order('created_at', { ascending: true });
+
+    if (error) return { success: false, data: [], error: error.message };
+    return { success: true, data: data || [] };
+  } catch (err) {
+    return { success: false, data: [], error: err.message };
+  }
+};
+
+/**
+ * Save / update structured child records in public.patient_other_investigations.
+ */
+export const savePatientOtherInvestigationsInSupabase = async (patientProfileId, investigationsArray = []) => {
+  try {
+    if (!patientProfileId) return { success: false, error: 'Patient profile ID is required.' };
+
+    // 1. Delete existing records for this profile
+    const { error: delErr } = await supabase
+      .from('patient_other_investigations')
+      .delete()
+      .eq('patient_profile_id', patientProfileId);
+
+    if (delErr) console.warn('Warning clearing existing patient_other_investigations:', delErr.message);
+
+    // 2. Filter valid rows
+    const validRows = (investigationsArray || [])
+      .filter(item => item && (item.investigation_name || '').trim() && (item.finding_result || '').trim())
+      .map(item => ({
+        patient_profile_id: patientProfileId,
+        investigation_knowledge_id: item.investigation_knowledge_id || null,
+        investigation_name: (item.investigation_name || '').trim(),
+        test_date: item.test_date || null,
+        finding_result: (item.finding_result || '').trim(),
+        remarks: (item.remarks || '').trim() || null,
+        created_at: item.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
+
+    if (validRows.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    // 3. Insert new structured records
+    const { data, error } = await supabase
+      .from('patient_other_investigations')
+      .insert(validRows)
+      .select();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data: data || [] };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+/**
  * SECTION 4 — STEP 5A: DRUG KNOWLEDGE SUPABASE RETRIEVAL ENGINE
  */
 const DRUG_KNOWLEDGE_CACHE = new Map();
@@ -3023,10 +3492,12 @@ const CONTROLLED_DRUG_SYNONYMS = {
   'acetaminophen': 'Paracetamol',
   'paracetamol (acetaminophen)': 'Paracetamol',
 
-  'hyoscine': 'Hyoscine Butylbromide',
-  'buscopan': 'Hyoscine Butylbromide',
-  'buscogast': 'Hyoscine Butylbromide',
-  'scopolamine butylbromide': 'Hyoscine Butylbromide'
+  'hydrochlorthiazide': 'Hydrochlorothiazide',
+  'hydrochlorothiazid': 'Hydrochlorothiazide',
+  'hctz': 'Hydrochlorothiazide',
+  'levocetrizine': 'Levocetirizine',
+  'levocetirizin': 'Levocetirizine',
+  'telimisartan': 'Telmisartan'
 };
 
 export const normalizeDrugSearchInput = (input) => {
@@ -3035,6 +3506,73 @@ export const normalizeDrugSearchInput = (input) => {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, ' ');
+};
+
+/**
+ * Single Active Ingredient Lookup Helper with 5-tier Fuzzy Matching Strategy
+ */
+export const lookupSingleIngredientInSupabase = async (ingName) => {
+  const ingClean = normalizeDrugSearchInput(ingName);
+  if (!ingClean) return null;
+
+  // 1. Synonym Lookup
+  const synonym = CONTROLLED_DRUG_SYNONYMS[ingClean];
+  if (synonym) {
+    const { data: synData } = await supabase
+      .from('drug_knowledge')
+      .select('*')
+      .ilike('generic_name', synonym);
+    if (Array.isArray(synData) && synData.length > 0) {
+      return synData[0];
+    }
+  }
+
+  // 2. Exact ILIKE match
+  let { data: l1Data } = await supabase
+    .from('drug_knowledge')
+    .select('*')
+    .ilike('generic_name', ingClean);
+  if (Array.isArray(l1Data) && l1Data.length > 0) {
+    return l1Data[0];
+  }
+
+  // 3. Substring ILIKE match
+  let { data: subData } = await supabase
+    .from('drug_knowledge')
+    .select('*')
+    .ilike('generic_name', `%${ingClean}%`);
+  if (Array.isArray(subData) && subData.length > 0) {
+    return subData[0];
+  }
+
+  // 4. Prefix Fuzzy Fallback for common typos / variations
+  let fuzzyPattern = null;
+  if (ingClean.includes('hydrochlor') || ingClean.includes('hydrochlort')) fuzzyPattern = 'hydrochlor%';
+  else if (ingClean.includes('levocet') || ingClean.includes('levoceti')) fuzzyPattern = 'levocet%';
+  else if (ingClean.includes('telm') || ingClean.includes('telim')) fuzzyPattern = 'telm%';
+  else if (ingClean.includes('amoxicill') || ingClean.includes('amox')) fuzzyPattern = 'amoxicill%';
+  else if (ingClean.includes('paracet') || ingClean.includes('acetamin')) fuzzyPattern = 'paracet%';
+
+  if (fuzzyPattern) {
+    let { data: fuzData } = await supabase
+      .from('drug_knowledge')
+      .select('*')
+      .ilike('generic_name', fuzzyPattern);
+    if (Array.isArray(fuzData) && fuzData.length > 0) {
+      return fuzData[0];
+    }
+  }
+
+  // 5. Brand Names ILIKE match
+  let { data: bndData } = await supabase
+    .from('drug_knowledge')
+    .select('*')
+    .ilike('brand_names', `%${ingClean}%`);
+  if (Array.isArray(bndData) && bndData.length > 0) {
+    return bndData[0];
+  }
+
+  return null;
 };
 
 /**
@@ -3068,34 +3606,9 @@ export const fetchDrugKnowledgeFromSupabase = async (searchQuery) => {
       // Look up each active ingredient independently in public.drug_knowledge
       const ingredientResults = await Promise.all(
         activeIngredients.map(async (ing) => {
-          const ingClean = normalizeDrugSearchInput(ing);
-          let { data: l1Data } = await supabase
-            .from('drug_knowledge')
-            .select('*')
-            .ilike('generic_name', ingClean);
-
-          if (!Array.isArray(l1Data) || l1Data.length === 0) {
-            const { data: l1SubData } = await supabase
-              .from('drug_knowledge')
-              .select('*')
-              .ilike('generic_name', `%${ingClean}%`);
-            if (Array.isArray(l1SubData) && l1SubData.length > 0) {
-              l1Data = l1SubData;
-            }
-          }
-
-          if (!Array.isArray(l1Data) || l1Data.length === 0) {
-            const { data: l2Data } = await supabase
-              .from('drug_knowledge')
-              .select('*')
-              .ilike('brand_names', `%${ingClean}%`);
-            if (Array.isArray(l2Data) && l2Data.length > 0) {
-              l1Data = l2Data;
-            }
-          }
-
-          if (Array.isArray(l1Data) && l1Data.length > 0) {
-            return { ingredient: ing, status: 'FOUND', data: l1Data[0] };
+          const matchData = await lookupSingleIngredientInSupabase(ing);
+          if (matchData) {
+            return { ingredient: ing, status: 'FOUND', data: matchData };
           }
           return { ingredient: ing, status: 'NOT_FOUND', data: null, message: 'Drug not found in Drug Knowledge Database' };
         })
@@ -3122,18 +3635,9 @@ export const fetchDrugKnowledgeFromSupabase = async (searchQuery) => {
         DRUG_KNOWLEDGE_CACHE.set(cleanQuery, result);
         return result;
       }
-    } else if (resolved && resolved.status === 'UNRESOLVED_TRADE_NAME') {
-      const unresolvedResult = {
-        status: 'UNRESOLVED_TRADE_NAME',
-        data: null,
-        message: 'Trade name could not be confidently resolved.',
-        searchTerm: rawTerm
-      };
-      DRUG_KNOWLEDGE_CACHE.set(cleanQuery, unresolvedResult);
-      return unresolvedResult;
     }
 
-    // LEVEL 1: Exact or compound generic_name match
+    // LEVEL 1: Exact or compound generic_name match in public.drug_knowledge
     let { data: level1Data, error: level1Err } = await supabase
       .from('drug_knowledge')
       .select('*')
@@ -3290,13 +3794,38 @@ export const fetchMultipleDrugKnowledgeFromSupabase = async (drugList = []) => {
 
   const results = await Promise.all(
     drugList.map(async (drugItem) => {
-      const rawName = drugItem.generic_name || drugItem.trade_name || drugItem.brand_name || drugItem.drug_name || '';
-      const lookupRes = await fetchDrugKnowledgeFromSupabase(rawName);
+      const genericSearch = (drugItem.generic_name || '').trim();
+      const tradeSearch = (drugItem.trade_name || drugItem.brand_name || '').trim();
+      
+      // Try generic_name lookup first
+      let lookupRes = null;
+      if (genericSearch && genericSearch !== '—') {
+        lookupRes = await fetchDrugKnowledgeFromSupabase(genericSearch);
+      }
+      
+      // Fallback to trade_name lookup if generic_name lookup failed or was empty
+      if ((!lookupRes || lookupRes.status === 'NOT_FOUND' || lookupRes.status === 'UNRESOLVED_TRADE_NAME') && tradeSearch && tradeSearch !== '—') {
+        const tradeLookupRes = await fetchDrugKnowledgeFromSupabase(tradeSearch);
+        if (tradeLookupRes && tradeLookupRes.status === 'FOUND') {
+          lookupRes = tradeLookupRes;
+        }
+      }
+
+      if (!lookupRes) {
+        lookupRes = {
+          status: 'UNRESOLVED_TRADE_NAME',
+          data: null,
+          message: 'Trade name could not be confidently resolved.',
+          searchTerm: tradeSearch || genericSearch
+        };
+      }
+
       return {
         prescribedDrug: drugItem,
-        searchTerm: rawName,
+        searchTerm: genericSearch || tradeSearch,
         status: lookupRes.status,
         data: lookupRes.data,
+        ingredientKnowledge: lookupRes.ingredientKnowledge || (lookupRes.data ? [{ ingredient: lookupRes.data.generic_name, status: 'FOUND', data: lookupRes.data }] : []),
         message: lookupRes.message,
         matchLevel: lookupRes.matchLevel || null,
         error: lookupRes.error || null
@@ -3305,4 +3834,937 @@ export const fetchMultipleDrugKnowledgeFromSupabase = async (drugList = []) => {
   );
 
   return { success: true, results };
+};
+
+/**
+ * Fetch all drug knowledge master records for Super Admin portal
+ */
+export const fetchAllDrugKnowledgeFromSupabase = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('drug_knowledge')
+      .select('*')
+      .order('generic_name', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching all drug knowledge:', error.message);
+      return { success: false, data: [], error: error.message };
+    }
+
+    return { success: true, data: data || [] };
+  } catch (err) {
+    console.error('Error in fetchAllDrugKnowledgeFromSupabase:', err.message);
+    return { success: false, data: [], error: err.message };
+  }
+};
+
+/**
+ * Check if generic drug name already exists in public.drug_knowledge (case-insensitive)
+ */
+export const checkGenericDrugExistsInSupabase = async (genericName) => {
+  try {
+    if (!genericName || !genericName.trim()) return { exists: false, drug: null };
+
+    const { data, error } = await supabase
+      .from('drug_knowledge')
+      .select('*')
+      .ilike('generic_name', genericName.trim())
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error checking generic drug existence:', error.message);
+      return { exists: false, drug: null };
+    }
+
+    return { exists: !!data, drug: data || null };
+  } catch (err) {
+    console.error('Error in checkGenericDrugExistsInSupabase:', err.message);
+    return { exists: false, drug: null };
+  }
+};
+
+/**
+ * Add a new verified generic drug record to public.drug_knowledge
+ */
+export const addDrugKnowledgeToSupabase = async (drugPayload) => {
+  try {
+    const cleanGeneric = (drugPayload.generic_name || '').trim();
+    if (!cleanGeneric) {
+      return { success: false, error: 'Generic Name is required.' };
+    }
+
+    // Check duplicate
+    const checkRes = await checkGenericDrugExistsInSupabase(cleanGeneric);
+    if (checkRes.exists) {
+      return { success: false, error: 'Drug already exists.', existingDrug: checkRes.drug };
+    }
+
+    const payload = {
+      generic_name: cleanGeneric,
+      brand_names: (drugPayload.brand_names || '').trim() || null,
+      drug_class: (drugPayload.drug_class || '').trim() || null,
+      established_uses: (drugPayload.established_uses || '').trim() || null,
+      mechanism_of_action: (drugPayload.mechanism_of_action || '').trim() || null,
+      normal_dose_range: (drugPayload.normal_dose_range || '').trim() || null,
+      contraindications: (drugPayload.contraindications || '').trim() || null,
+      side_effects_adverse_effects: (drugPayload.side_effects_adverse_effects || '').trim() || null,
+      monitoring_parameters: (drugPayload.monitoring_parameters || '').trim() || null,
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('drug_knowledge')
+      .insert([payload])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to add drug knowledge:', error.message);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, drug: data };
+  } catch (err) {
+    console.error('Error in addDrugKnowledgeToSupabase:', err.message);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Update an existing generic drug record in public.drug_knowledge
+ */
+export const updateDrugKnowledgeInSupabase = async (id, drugPayload) => {
+  try {
+    if (!id) return { success: false, error: 'Drug ID is required.' };
+
+    const payload = {
+      generic_name: (drugPayload.generic_name || '').trim(),
+      brand_names: (drugPayload.brand_names || '').trim() || null,
+      drug_class: (drugPayload.drug_class || '').trim() || null,
+      established_uses: (drugPayload.established_uses || '').trim() || null,
+      mechanism_of_action: (drugPayload.mechanism_of_action || '').trim() || null,
+      normal_dose_range: (drugPayload.normal_dose_range || '').trim() || null,
+      contraindications: (drugPayload.contraindications || '').trim() || null,
+      side_effects_adverse_effects: (drugPayload.side_effects_adverse_effects || '').trim() || null,
+      monitoring_parameters: (drugPayload.monitoring_parameters || '').trim() || null,
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('drug_knowledge')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to update drug knowledge:', error.message);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, drug: data };
+  } catch (err) {
+    console.error('Error in updateDrugKnowledgeInSupabase:', err.message);
+    return { success: false, error: err.message };
+  }
+};
+
+// ====================================================================
+// SINGLE ACTIVE SESSION MANAGEMENT SERVICES (public.active_sessions)
+// ====================================================================
+
+/**
+ * Check if a user currently has an active session in public.active_sessions
+ */
+export const checkExistingActiveSessionInSupabase = async (userId, userRole) => {
+  try {
+    if (!userId || !userRole) return { hasActiveSession: false, activeSession: null };
+
+    const { data, error } = await supabase
+      .from('active_sessions')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('user_role', userRole)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error checking active session:', error.message);
+      return { hasActiveSession: false, activeSession: null };
+    }
+
+    return {
+      hasActiveSession: !!data,
+      activeSession: data || null
+    };
+  } catch (err) {
+    console.error('Error in checkExistingActiveSessionInSupabase:', err.message);
+    return { hasActiveSession: false, activeSession: null };
+  }
+};
+
+/**
+ * Create a new active session for a user (generates a cryptographically secure token)
+ */
+export const createActiveSessionInSupabase = async (userId, userRole) => {
+  try {
+    if (!userId || !userRole) return { success: false, error: 'User ID and Role are required' };
+
+    const sessionToken = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : `token_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+
+    const payload = {
+      user_id: userId,
+      user_role: userRole,
+      session_token: sessionToken,
+      is_active: true,
+      login_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('active_sessions')
+      .insert([payload])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to create active session:', error.message);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, sessionToken, activeSession: data };
+  } catch (err) {
+    console.error('Error creating active session:', err.message);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Invalidate previous active session and create a new active session
+ */
+export const invalidateAndCreateNewActiveSessionInSupabase = async (userId, userRole) => {
+  try {
+    if (!userId || !userRole) return { success: false, error: 'User ID and Role are required' };
+
+    // 1. Invalidate previous active sessions
+    await supabase
+      .from('active_sessions')
+      .update({ is_active: false })
+      .eq('user_id', userId)
+      .eq('user_role', userRole)
+      .eq('is_active', true);
+
+    // 2. Create new active session
+    return await createActiveSessionInSupabase(userId, userRole);
+  } catch (err) {
+    console.error('Error invalidating and creating active session:', err.message);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Invalidate an active session by token (used during normal logout)
+ */
+export const invalidateActiveSessionByTokenInSupabase = async (sessionToken) => {
+  try {
+    if (!sessionToken) return { success: true };
+
+    const { error } = await supabase
+      .from('active_sessions')
+      .update({ is_active: false })
+      .eq('session_token', sessionToken);
+
+    if (error) {
+      console.error('Failed to invalidate session token:', error.message);
+    }
+    return { success: true };
+  } catch (err) {
+    console.error('Error invalidating session token:', err.message);
+    return { success: true };
+  }
+};
+
+/**
+ * Verify if a session token is still active in public.active_sessions
+ */
+export const verifyActiveSessionTokenInSupabase = async (sessionToken) => {
+  try {
+    if (!sessionToken) return false;
+
+    const { data, error } = await supabase
+      .from('active_sessions')
+      .select('is_active')
+      .eq('session_token', sessionToken)
+      .maybeSingle();
+
+    if (error || !data) return false;
+    return !!data.is_active;
+  } catch (err) {
+    console.error('Error verifying active session token:', err.message);
+    return false;
+  }
+};
+
+// ====================================================================
+// SECTION 5 — DRUG-DRUG & DRUG-FOOD INTERACTION MASTER SERVICES
+// ====================================================================
+
+/**
+ * Fetch all Drug-Drug Interaction Master records for Super Admin.
+ */
+export const fetchDrugDrugInteractionsForAdmin = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('drug_drug_interaction_knowledge')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data: data || [] };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Create a new Drug-Drug Interaction Master record in Supabase.
+ * Computes unordered pair_key to enforce duplicate protection.
+ */
+export const createDrugDrugInteractionInSupabase = async (payload) => {
+  try {
+    const drugA = (payload.drug_a_generic || '').trim();
+    const drugB = (payload.drug_b_generic || '').trim();
+
+    if (!drugA || !drugB) {
+      return { success: false, error: 'Both Drug A and Drug B generic names are required.' };
+    }
+
+    const normA = normalizeDrugSearchInput(drugA);
+    const normB = normalizeDrugSearchInput(drugB);
+
+    if (normA === normB) {
+      return { success: false, error: 'Drug A and Drug B cannot be the same drug.' };
+    }
+
+    const pairKey = [normA, normB].sort().join(':::');
+
+    // Duplicate check
+    const { data: existing } = await supabase
+      .from('drug_drug_interaction_knowledge')
+      .select('id, drug_a_generic, drug_b_generic')
+      .eq('pair_key', pairKey)
+      .maybeSingle();
+
+    if (existing) {
+      return { success: false, error: `Interaction record already exists for ${existing.drug_a_generic} + ${existing.drug_b_generic}. Duplicate pairs are not allowed.` };
+    }
+
+    const insertPayload = {
+      drug_a_generic: drugA,
+      drug_a_normalized: normA,
+      drug_b_generic: drugB,
+      drug_b_normalized: normB,
+      pair_key: pairKey,
+      interaction_description: (payload.interaction_description || '').trim(),
+      mechanism: (payload.mechanism || '').trim() || null,
+      clinical_significance: (payload.clinical_significance || '').trim() || null,
+      severity: payload.severity || 'Major',
+      management: (payload.management || '').trim() || null,
+      monitoring: (payload.monitoring || '').trim() || null,
+      source_reference: (payload.source_reference || '').trim() || null,
+      is_active: payload.is_active !== undefined ? payload.is_active : true
+    };
+
+    setSupabaseAdminHeader();
+    const { data, error } = await supabase
+      .from('drug_drug_interaction_knowledge')
+      .insert([insertPayload])
+      .select();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data: data?.[0] };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Update an existing Drug-Drug Interaction Master record in Supabase.
+ */
+export const updateDrugDrugInteractionInSupabase = async (id, payload) => {
+  try {
+    const drugA = (payload.drug_a_generic || '').trim();
+    const drugB = (payload.drug_b_generic || '').trim();
+
+    if (!id) return { success: false, error: 'Record ID is required for update.' };
+    if (!drugA || !drugB) return { success: false, error: 'Both Drug A and Drug B generic names are required.' };
+
+    const normA = normalizeDrugSearchInput(drugA);
+    const normB = normalizeDrugSearchInput(drugB);
+
+    if (normA === normB) {
+      return { success: false, error: 'Drug A and Drug B cannot be the same drug.' };
+    }
+
+    const pairKey = [normA, normB].sort().join(':::');
+
+    // Duplicate check excluding current ID
+    const { data: existing } = await supabase
+      .from('drug_drug_interaction_knowledge')
+      .select('id, drug_a_generic, drug_b_generic')
+      .eq('pair_key', pairKey)
+      .neq('id', id)
+      .maybeSingle();
+
+    if (existing) {
+      return { success: false, error: `Interaction record already exists for ${existing.drug_a_generic} + ${existing.drug_b_generic}. Duplicate pairs are not allowed.` };
+    }
+
+    const updatePayload = {
+      drug_a_generic: drugA,
+      drug_a_normalized: normA,
+      drug_b_generic: drugB,
+      drug_b_normalized: normB,
+      pair_key: pairKey,
+      interaction_description: (payload.interaction_description || '').trim(),
+      mechanism: (payload.mechanism || '').trim() || null,
+      clinical_significance: (payload.clinical_significance || '').trim() || null,
+      severity: payload.severity || 'Major',
+      management: (payload.management || '').trim() || null,
+      monitoring: (payload.monitoring || '').trim() || null,
+      source_reference: (payload.source_reference || '').trim() || null,
+      is_active: payload.is_active !== undefined ? payload.is_active : true,
+      updated_at: new Date().toISOString()
+    };
+
+    setSupabaseAdminHeader();
+    const { data, error } = await supabase
+      .from('drug_drug_interaction_knowledge')
+      .update(updatePayload)
+      .eq('id', id)
+      .select();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data: data?.[0] };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Toggle active status of a Drug-Drug Interaction Master record.
+ */
+export const toggleDrugDrugInteractionStatusInSupabase = async (id, isActive) => {
+  try {
+    setSupabaseAdminHeader();
+    const { data, error } = await supabase
+      .from('drug_drug_interaction_knowledge')
+      .update({ is_active: isActive, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data: data?.[0] };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Fetch all Drug-Food Interaction Master records for Super Admin.
+ */
+export const fetchDrugFoodInteractionsForAdmin = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('drug_food_interaction_knowledge')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data: data || [] };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Create a new Drug-Food Interaction Master record in Supabase.
+ */
+export const createDrugFoodInteractionInSupabase = async (payload) => {
+  try {
+    const drugName = (payload.drug_generic || '').trim();
+    const foodName = (payload.food_or_beverage || '').trim();
+
+    if (!drugName || !foodName) {
+      return { success: false, error: 'Both Drug generic name and Food/Beverage item are required.' };
+    }
+
+    const normDrug = normalizeDrugSearchInput(drugName);
+    const normFood = foodName.toLowerCase().trim();
+
+    // Duplicate check
+    const { data: existing } = await supabase
+      .from('drug_food_interaction_knowledge')
+      .select('id, drug_generic, food_or_beverage')
+      .eq('drug_normalized', normDrug)
+      .eq('food_normalized', normFood)
+      .maybeSingle();
+
+    if (existing) {
+      return { success: false, error: `Interaction record already exists for ${existing.drug_generic} + ${existing.food_or_beverage}. Duplicate drug-food combinations are not allowed.` };
+    }
+
+    const insertPayload = {
+      drug_generic: drugName,
+      drug_normalized: normDrug,
+      food_or_beverage: foodName,
+      food_normalized: normFood,
+      interaction_description: (payload.interaction_description || '').trim(),
+      mechanism: (payload.mechanism || '').trim() || null,
+      clinical_significance: (payload.clinical_significance || '').trim() || null,
+      severity: payload.severity || 'Major',
+      management: (payload.management || '').trim() || null,
+      counselling_point: (payload.counselling_point || '').trim() || null,
+      source_reference: (payload.source_reference || '').trim() || null,
+      is_active: payload.is_active !== undefined ? payload.is_active : true
+    };
+
+    setSupabaseAdminHeader();
+    const { data, error } = await supabase
+      .from('drug_food_interaction_knowledge')
+      .insert([insertPayload])
+      .select();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data: data?.[0] };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Update an existing Drug-Food Interaction Master record in Supabase.
+ */
+export const updateDrugFoodInteractionInSupabase = async (id, payload) => {
+  try {
+    const drugName = (payload.drug_generic || '').trim();
+    const foodName = (payload.food_or_beverage || '').trim();
+
+    if (!id) return { success: false, error: 'Record ID is required for update.' };
+    if (!drugName || !foodName) return { success: false, error: 'Both Drug generic name and Food/Beverage item are required.' };
+
+    const normDrug = normalizeDrugSearchInput(drugName);
+    const normFood = foodName.toLowerCase().trim();
+
+    // Duplicate check excluding current ID
+    const { data: existing } = await supabase
+      .from('drug_food_interaction_knowledge')
+      .select('id, drug_generic, food_or_beverage')
+      .eq('drug_normalized', normDrug)
+      .eq('food_normalized', normFood)
+      .neq('id', id)
+      .maybeSingle();
+
+    if (existing) {
+      return { success: false, error: `Interaction record already exists for ${existing.drug_generic} + ${existing.food_or_beverage}. Duplicate drug-food combinations are not allowed.` };
+    }
+
+    const updatePayload = {
+      drug_generic: drugName,
+      drug_normalized: normDrug,
+      food_or_beverage: foodName,
+      food_normalized: normFood,
+      interaction_description: (payload.interaction_description || '').trim(),
+      mechanism: (payload.mechanism || '').trim() || null,
+      clinical_significance: (payload.clinical_significance || '').trim() || null,
+      severity: payload.severity || 'Major',
+      management: (payload.management || '').trim() || null,
+      counselling_point: (payload.counselling_point || '').trim() || null,
+      source_reference: (payload.source_reference || '').trim() || null,
+      is_active: payload.is_active !== undefined ? payload.is_active : true,
+      updated_at: new Date().toISOString()
+    };
+
+    setSupabaseAdminHeader();
+    const { data, error } = await supabase
+      .from('drug_food_interaction_knowledge')
+      .update(updatePayload)
+      .eq('id', id)
+      .select();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data: data?.[0] };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Toggle active status of a Drug-Food Interaction Master record.
+ */
+export const toggleDrugFoodInteractionStatusInSupabase = async (id, isActive) => {
+  try {
+    setSupabaseAdminHeader();
+    const { data, error } = await supabase
+      .from('drug_food_interaction_knowledge')
+      .update({ is_active: isActive, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data: data?.[0] };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * SECTION 5A — Deterministic Drug-Drug Interaction Evaluation Service
+ * Evaluates student's prescribed drugs against public.drug_drug_interaction_knowledge master.
+ */
+export const evaluateSection5ADrugInteractionsInSupabase = async (prescribedDrugs) => {
+  try {
+    if (!Array.isArray(prescribedDrugs) || prescribedDrugs.length === 0) {
+      return {
+        success: true,
+        hasInteractions: false,
+        interactionCount: 0,
+        interactions: [],
+        evaluatedPairsCount: 0,
+        evaluatedIngredients: [],
+        message: 'No prescribed drugs provided for interaction analysis.'
+      };
+    }
+
+    // 1. Extract and normalize all active generic ingredients across prescribed drugs
+    const ingredientMap = new Map();
+
+    for (const drug of prescribedDrugs) {
+      const termsToTry = [];
+      if (drug.generic_name && drug.generic_name.trim() !== '—') {
+        termsToTry.push(drug.generic_name.trim());
+      }
+      if (drug.trade_name && drug.trade_name.trim() !== '—') {
+        termsToTry.push(drug.trade_name.trim());
+      }
+      if (termsToTry.length === 0 && drug.brand_name && drug.brand_name.trim() !== '—') {
+        termsToTry.push(drug.brand_name.trim());
+      }
+
+      for (const term of termsToTry) {
+        const resolved = resolveTradeNameToGeneric(term);
+        const clinicalKnowledge = resolveClinicalEntityKnowledge(term);
+        let ingredients = [];
+
+        if (resolved && Array.isArray(resolved.activeIngredients) && resolved.activeIngredients.length > 0) {
+          ingredients = resolved.activeIngredients;
+        } else if (clinicalKnowledge && clinicalKnowledge.genericName) {
+          ingredients = [clinicalKnowledge.genericName];
+        } else {
+          ingredients = [term];
+        }
+
+        for (const ing of ingredients) {
+          const norm = normalizeDrugSearchInput(ing);
+          if (norm && !ingredientMap.has(norm)) {
+            ingredientMap.set(norm, {
+              display: ing,
+              normalized: norm,
+              originalDrug: term
+            });
+          }
+        }
+      }
+    }
+
+    const uniqueIngredients = Array.from(ingredientMap.values());
+    if (uniqueIngredients.length < 2) {
+      return {
+        success: true,
+        hasInteractions: false,
+        interactionCount: 0,
+        interactions: [],
+        evaluatedPairsCount: 0,
+        evaluatedIngredients: uniqueIngredients.map(i => i.display),
+        message: 'No clinically relevant drug–drug interactions were identified from the current interaction knowledge base.'
+      };
+    }
+
+    // 2. Generate unique unordered drug pairs
+    const pairMap = new Map();
+    for (let i = 0; i < uniqueIngredients.length; i++) {
+      for (let j = i + 1; j < uniqueIngredients.length; j++) {
+        const itemA = uniqueIngredients[i];
+        const itemB = uniqueIngredients[j];
+        if (itemA.normalized === itemB.normalized) continue;
+
+        const pairKey = [itemA.normalized, itemB.normalized].sort().join(':::');
+        if (!pairMap.has(pairKey)) {
+          pairMap.set(pairKey, { itemA, itemB, pairKey });
+        }
+      }
+    }
+
+    const pairKeys = Array.from(pairMap.keys());
+    if (pairKeys.length === 0) {
+      return {
+        success: true,
+        hasInteractions: false,
+        interactionCount: 0,
+        interactions: [],
+        evaluatedPairsCount: 0,
+        evaluatedIngredients: uniqueIngredients.map(i => i.display),
+        message: 'No clinically relevant drug–drug interactions were identified from the current interaction knowledge base.'
+      };
+    }
+
+    // 3. Query public.drug_drug_interaction_knowledge for active master interactions
+    const { data: matchedRecords, error } = await supabase
+      .from('drug_drug_interaction_knowledge')
+      .select('*')
+      .in('pair_key', pairKeys)
+      .eq('is_active', true);
+
+    if (error) {
+      console.error('Error querying drug_drug_interaction_knowledge:', error.message);
+      return { success: false, error: error.message };
+    }
+
+    const detectedInteractions = (matchedRecords || []).map(rec => {
+      const pairInfo = pairMap.get(rec.pair_key);
+      return {
+        id: rec.id,
+        drugAGeneric: rec.drug_a_generic,
+        drugBGeneric: rec.drug_b_generic,
+        pairTitle: `${rec.drug_a_generic} + ${rec.drug_b_generic}`,
+        severity: rec.severity || 'Major',
+        interactionDescription: rec.interaction_description,
+        mechanism: rec.mechanism || 'Pharmacokinetic / Receptor-level interaction.',
+        clinicalSignificance: rec.clinical_significance || 'Altered drug clearance or additive clinical effect.',
+        management: rec.management || 'Clinical monitoring and dose adjustment as appropriate.',
+        monitoring: rec.monitoring || 'Standard laboratory and vital sign monitoring.',
+        sourceReference: rec.source_reference || 'Pharmacopoeia Master Reference',
+        originalPrescribedA: pairInfo?.itemA?.originalDrug || rec.drug_a_generic,
+        originalPrescribedB: pairInfo?.itemB?.originalDrug || rec.drug_b_generic
+      };
+    });
+
+    return {
+      success: true,
+      hasInteractions: detectedInteractions.length > 0,
+      interactionCount: detectedInteractions.length,
+      interactions: detectedInteractions,
+      evaluatedPairsCount: pairKeys.length,
+      evaluatedIngredients: uniqueIngredients.map(i => i.display),
+      message: detectedInteractions.length > 0
+        ? `Identified ${detectedInteractions.length} clinically relevant drug-drug interaction(s) across ${pairKeys.length} evaluated pair(s).`
+        : 'No clinically relevant drug–drug interactions were identified from the current interaction knowledge base.'
+    };
+  } catch (err) {
+    console.error('Error in evaluateSection5ADrugInteractionsInSupabase:', err);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * SECTION 5B — Deterministic Drug-Food / Dietary Interaction Evaluation Service
+ * Evaluates student's prescribed drugs against public.drug_food_interaction_knowledge master.
+ */
+export const evaluateSection5BDrugFoodInteractionsInSupabase = async (prescribedDrugs) => {
+  try {
+    if (!Array.isArray(prescribedDrugs) || prescribedDrugs.length === 0) {
+      return {
+        success: true,
+        hasInteractions: false,
+        interactionCount: 0,
+        interactions: [],
+        evaluatedDrugsCount: 0,
+        evaluatedIngredients: [],
+        message: 'No prescribed drugs provided for drug–food interaction analysis.'
+      };
+    }
+
+    // 1. Extract and normalize all active generic ingredients across prescribed drugs
+    const ingredientMap = new Map();
+
+    for (const drug of prescribedDrugs) {
+      const termsToTry = [];
+      if (drug.generic_name && drug.generic_name.trim() !== '—') {
+        termsToTry.push(drug.generic_name.trim());
+      }
+      if (drug.trade_name && drug.trade_name.trim() !== '—') {
+        termsToTry.push(drug.trade_name.trim());
+      }
+      if (termsToTry.length === 0 && drug.brand_name && drug.brand_name.trim() !== '—') {
+        termsToTry.push(drug.brand_name.trim());
+      }
+
+      for (const term of termsToTry) {
+        const resolved = resolveTradeNameToGeneric(term);
+        const clinicalKnowledge = resolveClinicalEntityKnowledge(term);
+        let ingredients = [];
+
+        if (resolved && Array.isArray(resolved.activeIngredients) && resolved.activeIngredients.length > 0) {
+          ingredients = resolved.activeIngredients;
+        } else if (clinicalKnowledge && clinicalKnowledge.genericName) {
+          ingredients = [clinicalKnowledge.genericName];
+        } else {
+          ingredients = [term];
+        }
+
+        for (const ing of ingredients) {
+          const norm = normalizeDrugSearchInput(ing);
+          if (norm && !ingredientMap.has(norm)) {
+            ingredientMap.set(norm, ing);
+          }
+        }
+      }
+    }
+
+    const normDrugNames = Array.from(ingredientMap.keys());
+    const displayIngredients = Array.from(ingredientMap.values());
+
+    if (normDrugNames.length === 0) {
+      return {
+        success: true,
+        hasInteractions: false,
+        interactionCount: 0,
+        interactions: [],
+        evaluatedDrugsCount: 0,
+        evaluatedIngredients: [],
+        message: 'No clinically relevant drug–food interactions were identified from the current interaction knowledge base.'
+      };
+    }
+
+    // 2. Query public.drug_food_interaction_knowledge for active master records
+    const { data: matchedRecords, error } = await supabase
+      .from('drug_food_interaction_knowledge')
+      .select('*')
+      .in('drug_normalized', normDrugNames)
+      .eq('is_active', true)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error querying drug_food_interaction_knowledge:', error.message);
+      return { success: false, error: error.message };
+    }
+
+    // 3. Deduplicate results by (drug_normalized + ':::' + food_normalized)
+    const seenPairs = new Set();
+    const detectedInteractions = [];
+
+    for (const rec of (matchedRecords || [])) {
+      const pairKey = `${rec.drug_normalized}:::${rec.food_normalized}`;
+      if (seenPairs.has(pairKey)) continue;
+      seenPairs.add(pairKey);
+
+      detectedInteractions.push({
+        id: rec.id,
+        drugGeneric: rec.drug_generic,
+        foodOrBeverage: rec.food_or_beverage,
+        pairTitle: `${rec.drug_generic} + ${rec.food_or_beverage}`,
+        severity: rec.severity || 'Major',
+        interactionDescription: rec.interaction_description,
+        mechanism: rec.mechanism || 'Pharmacokinetic / Gastrointestinal absorption or enzymatic interaction.',
+        clinicalSignificance: rec.clinical_significance || 'Altered drug absorption, bioavailability, or clinical efficacy.',
+        management: rec.management || 'Dietary timing separation or avoidance recommendation.',
+        counsellingPoint: rec.counselling_point || 'Counsel patient on proper dietary intake timing relative to drug administration.',
+        sourceReference: rec.source_reference || 'Pharmacopoeia Master Reference'
+      });
+    }
+
+    return {
+      success: true,
+      hasInteractions: detectedInteractions.length > 0,
+      interactionCount: detectedInteractions.length,
+      interactions: detectedInteractions,
+      evaluatedDrugsCount: normDrugNames.length,
+      evaluatedIngredients: displayIngredients,
+      message: detectedInteractions.length > 0
+        ? `Identified ${detectedInteractions.length} clinically relevant drug–food interaction(s) across ${normDrugNames.length} evaluated drug(s).`
+        : 'No clinically relevant drug–food interactions were identified from the current interaction knowledge base.'
+    };
+  } catch (err) {
+    console.error('Error in evaluateSection5BDrugFoodInteractionsInSupabase:', err);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * SUPER ADMIN BULK INSERT SERVICES FOR MASTER DATA
+ */
+export const bulkInsertDrugKnowledgeInSupabase = async (records) => {
+  try {
+    setSupabaseAdminHeader();
+    const { data, error } = await supabase
+      .from('drug_knowledge')
+      .insert(records)
+      .select();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+export const bulkInsertLabParametersInSupabase = async (records) => {
+  try {
+    setSupabaseAdminHeader();
+    const { data, error } = await supabase
+      .from('lab_parameter_knowledge')
+      .insert(records)
+      .select();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+export const bulkInsertOtherInvestigationsInSupabase = async (records) => {
+  try {
+    setSupabaseAdminHeader();
+    const { data, error } = await supabase
+      .from('other_investigation_knowledge')
+      .insert(records)
+      .select();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+export const bulkInsertDrugDrugInteractionsInSupabase = async (records) => {
+  try {
+    setSupabaseAdminHeader();
+    const { data, error } = await supabase
+      .from('drug_drug_interaction_knowledge')
+      .insert(records)
+      .select();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+export const bulkInsertDrugFoodInteractionsInSupabase = async (records) => {
+  try {
+    setSupabaseAdminHeader();
+    const { data, error } = await supabase
+      .from('drug_food_interaction_knowledge')
+      .insert(records)
+      .select();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
 };

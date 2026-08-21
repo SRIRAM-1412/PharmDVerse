@@ -1,11 +1,9 @@
 /**
  * Super Admin & Portal Authentication Session Service
+ * Database-backed Super Admin authentication & single active session support
  */
 
-export const DEV_ADMIN_CREDENTIALS = {
-  email: "tsriramireddy1999@gmail.com",
-  password: "9440251915"
-};
+import { authenticateSuperAdminInSupabase, invalidateActiveSessionByTokenInSupabase } from './supabaseService';
 
 const PORTAL_SESSION_KEY = 'pharmdverse_active_portal_session';
 
@@ -50,31 +48,26 @@ export const clearActiveSession = () => {
 };
 
 /**
- * Authenticate Super Admin user
+ * Authenticate Super Admin user via Supabase database
  * @param {string} email 
  * @param {string} password 
- * @returns {Promise<{success: boolean, user?: object, error?: string}>}
+ * @returns {Promise<{success: boolean, superAdmin?: object, error?: string}>}
  */
 export const authenticateSuperAdmin = async (email, password) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const trimmedEmail = (email || '').trim().toLowerCase();
-      const trimmedPassword = (password || '').trim();
-
-      if (trimmedEmail === DEV_ADMIN_CREDENTIALS.email.toLowerCase() && trimmedPassword === DEV_ADMIN_CREDENTIALS.password) {
-        const userSession = {
-          email: DEV_ADMIN_CREDENTIALS.email,
-          role: "super_admin",
-          authenticatedAt: new Date().toISOString()
-        };
-        localStorage.setItem('pharmdverse_super_admin_session', JSON.stringify(userSession));
-        saveActiveSession({ viewMode: 'admin', userRole: 'super_admin' });
-        resolve({ success: true, user: userSession });
-      } else {
-        resolve({ success: false, error: "Invalid email or password." });
-      }
-    }, 550);
-  });
+  const result = await authenticateSuperAdminInSupabase(email, password);
+  if (result.success && result.superAdmin) {
+    const userSession = {
+      id: result.superAdmin.id,
+      name: result.superAdmin.name,
+      email: result.superAdmin.email,
+      role: 'super_admin',
+      authenticatedAt: new Date().toISOString()
+    };
+    localStorage.setItem('pharmdverse_super_admin_session', JSON.stringify(userSession));
+    saveActiveSession({ viewMode: 'admin', userRole: 'super_admin', userId: result.superAdmin.id });
+    return { success: true, superAdmin: result.superAdmin };
+  }
+  return { success: false, error: result.error || 'Invalid Email Address or Password.' };
 };
 
 /**
@@ -93,9 +86,32 @@ export const getActiveAdminSession = () => {
 };
 
 /**
- * Logout Super Admin session
+ * Update stored Super Admin profile fields in localStorage session
  */
-export const logoutSuperAdmin = () => {
-  localStorage.removeItem('pharmdverse_super_admin_session');
-  clearActiveSession();
+export const updateStoredSuperAdminSession = (updatedFields) => {
+  const current = getActiveAdminSession();
+  if (current) {
+    const updated = { ...current, ...updatedFields };
+    localStorage.setItem('pharmdverse_super_admin_session', JSON.stringify(updated));
+    return updated;
+  }
+  return null;
+};
+
+/**
+ * Logout Super Admin session and invalidate active_sessions record
+ */
+export const logoutSuperAdmin = async (sessionToken = null) => {
+  try {
+    const currentSession = getActiveSession();
+    const tokenToInvalidate = sessionToken || currentSession?.sessionToken;
+    if (tokenToInvalidate) {
+      await invalidateActiveSessionByTokenInSupabase(tokenToInvalidate);
+    }
+  } catch (err) {
+    console.error('Error during super admin session invalidation:', err);
+  } finally {
+    localStorage.removeItem('pharmdverse_super_admin_session');
+    clearActiveSession();
+  }
 };

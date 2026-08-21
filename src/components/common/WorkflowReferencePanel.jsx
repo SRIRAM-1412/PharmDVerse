@@ -40,11 +40,11 @@ export const WorkflowReferencePanel = ({ role = 'student' }) => {
   const studentSteps = [
     { title: 'Student Login', icon: LogIn, bg: 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300' },
     { title: 'Add New Case', icon: PlusCircle, bg: 'bg-blue-500 text-white shadow-xs' },
-    { title: 'My Cases', icon: FolderKanban, bg: 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300' },
-    { title: 'Clinical Doc', icon: FileText, bg: 'bg-sky-100 text-sky-700 dark:bg-sky-900/60 dark:text-sky-300' },
+    { title: 'My Clinical Cases', icon: FolderKanban, bg: 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300' },
+    { title: 'Clinical Documentation', icon: FileText, bg: 'bg-sky-100 text-sky-700 dark:bg-sky-900/60 dark:text-sky-300' },
     { title: 'Save Forms', icon: ClipboardCheck, bg: 'bg-teal-100 text-teal-700 dark:bg-teal-900/60 dark:text-teal-300' },
     { title: 'AI Case Analysis', icon: Sparkles, bg: 'bg-emerald-500 text-white shadow-xs' },
-    { title: 'Review & Modify', icon: RotateCcw, bg: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300' },
+    { title: 'Pre-Submission Review / Review & Modify', icon: RotateCcw, bg: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300' },
     { title: 'Submit', icon: Send, bg: 'bg-amber-500 text-white shadow-xs' },
     { title: 'Track Status', icon: Eye, bg: 'bg-purple-100 text-purple-700 dark:bg-purple-900/60 dark:text-purple-300' },
     { title: 'Approved Case', icon: CheckCircle2, bg: 'bg-emerald-600 text-white shadow-xs' },
@@ -65,8 +65,8 @@ export const WorkflowReferencePanel = ({ role = 'student' }) => {
   const adminSteps = [
     { title: 'Admin Login', icon: Building2, bg: 'bg-purple-100 text-purple-700 dark:bg-purple-900/60 dark:text-purple-300' },
     { title: 'Dashboard', icon: LayoutDashboard, bg: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300' },
-    { title: 'Student & Case Management', icon: Users, bg: 'bg-purple-600 text-white shadow-xs' },
-    { title: 'All College Cases', icon: Landmark, bg: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300' },
+    { title: 'Preceptor & Student Management', icon: Users, bg: 'bg-purple-600 text-white shadow-xs' },
+    { title: 'Assignment & All Cases', icon: Landmark, bg: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300' },
     { title: 'Case Status & Monitoring', icon: BarChart3, bg: 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300' },
     { title: 'Approved Cases', icon: ShieldCheck, bg: 'bg-emerald-600 text-white shadow-xs' },
     { title: 'Download PDF/PPT', icon: FileDown, bg: 'bg-purple-100 text-purple-700 dark:bg-purple-900/60 dark:text-purple-300' }
@@ -345,14 +345,14 @@ export const WorkflowReferencePanel = ({ role = 'student' }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-900/60 space-y-3">
                     <h5 className="font-extrabold text-sm text-purple-900 dark:text-purple-300 flex items-center gap-2">
-                      <Sliders className="w-4 h-4 text-purple-600 dark:text-purple-400" /> PDF & PPT Branding Controls
+                      <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" /> Institutional Management Scope
                     </h5>
-                    <ul className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
-                      <li className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50">• Customize College & Hospital Logos</li>
-                      <li className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50">• Configure PDF Header, Footer & Watermark</li>
-                      <li className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50">• Configure PPT Header, Footer & Watermark</li>
-                      <li className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50">• Configure PDF/PPT Typography & Layout</li>
-                      <li className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50">• Save College-Specific Format Settings</li>
+                    <ul className="space-y-2 text-xs text-slate-700 dark:text-slate-300 font-medium">
+                      <li className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50">• <strong>Preceptor Management:</strong> Add/Edit Preceptors & Faculty Roster</li>
+                      <li className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50">• <strong>Student Management:</strong> Add/Edit Students & Academic Promotion</li>
+                      <li className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50">• <strong>Assignment Management:</strong> Assign Students to Faculty Preceptors</li>
+                      <li className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50">• <strong>Clinical Case Management:</strong> Monitor Status & Approved Cases</li>
+                      <li className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50">• <strong>Branding & Formats:</strong> Configure PDF/PPT Logos, Headers & Watermarks</li>
                     </ul>
                   </div>
 
@@ -361,7 +361,7 @@ export const WorkflowReferencePanel = ({ role = 'student' }) => {
                       <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> Critical System Guarantee
                     </h5>
                     <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                      Student saves Clinical Documentation → AI analysis/review → Student modifies and saves as needed → Student submits → Preceptor reviews → Preceptor approves → Case becomes <strong className="text-emerald-600">Approved & Locked</strong> → complete approved data is available consistently in official PDF/PPT downloads.
+                      Student saves Clinical Documentation → AI Case Analysis → Pre-Submission Review / Review & Modify → Student submits → Preceptor reviews → Preceptor approves → Case becomes <strong className="text-emerald-600">Approved & Locked</strong> → complete approved data is available consistently in official PDF/PPT downloads.
                     </p>
                   </div>
                 </div>

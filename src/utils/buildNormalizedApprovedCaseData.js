@@ -245,6 +245,40 @@ export const buildNormalizedApprovedCaseData = ({
     };
   });
 
+  // Structured vs Legacy Other Investigations Normalization & Deduplication
+  const rawStructuredInvs = safeArray(
+    caseModulesData?.otherInvestigations ||
+    caseModulesData?.patientOtherInvestigations ||
+    profile.patient_other_investigations ||
+    profile.structured_other_investigations ||
+    clinicalCase?.patient_other_investigations
+  );
+
+  let otherInvestigationsData = {
+    isStructured: false,
+    structuredList: [],
+    legacyText: ''
+  };
+
+  if (rawStructuredInvs.length > 0) {
+    otherInvestigationsData.isStructured = true;
+    otherInvestigationsData.structuredList = rawStructuredInvs
+      .filter(item => item && (item.investigation_name || '').trim())
+      .map(item => ({
+        investigation_name: (item.investigation_name || '').trim(),
+        test_date: formatDisplayDate(item.test_date),
+        finding_result: (item.finding_result || item.result || '').trim(),
+        remarks: (item.remarks || '').trim() || null,
+        master_knowledge: item.master_knowledge || null
+      }));
+  } else {
+    // Fall back to legacy free text if no structured records exist
+    const legacyRaw = (profile.other_investigations || clinicalCase?.other_investigations || '').trim();
+    if (legacyRaw && legacyRaw !== '—' && legacyRaw !== 'N/A') {
+      otherInvestigationsData.legacyText = legacyRaw;
+    }
+  }
+
   // Diagnosis
   const diagnosis = {
     provisional: profile.provisional_diagnosis || clinicalCase?.provisional_diagnosis || '',
@@ -382,6 +416,7 @@ export const buildNormalizedApprovedCaseData = ({
     vitals,
     labs,
     drugs,
+    otherInvestigations: otherInvestigationsData,
     diagnosis,
     isProfileCompleted,
     isCounsellingCompleted,

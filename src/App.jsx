@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { CollegeProvider } from './context/CollegeContext';
+import { PlatformProvider } from './context/PlatformContext';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
+import { StudentValueSection } from './components/landing/StudentValueSection';
+import { PlatformWorkflowSection } from './components/landing/PlatformWorkflowSection';
 import { Footer } from './components/Footer';
 import { supabase } from './lib/supabaseClient';
+import { AlertTriangle } from 'lucide-react';
 
 // Config & Hooks
 import { APP_CONFIG } from './config/appConfig';
 import { useDeveloperShortcut } from './hooks/useDeveloperShortcut';
 import { getActiveAdminSession, saveActiveSession, getActiveSession, clearActiveSession, logoutSuperAdmin } from './services/authService';
+import { verifyActiveSessionTokenInSupabase, invalidateActiveSessionByTokenInSupabase } from './services/supabaseService';
 
 // Full Page Components
 import { SuperAdminDashboard } from './components/admin/SuperAdminDashboard';
@@ -102,58 +107,107 @@ export default function App() {
     };
   };
 
+  const [sessionEndedMessage, setSessionEndedMessage] = useState('');
+
+  // Helper to handle forced logout when session token is invalidated by another device
+  const handleSessionInvalidatedByOtherDevice = () => {
+    setLoggedStudent(null);
+    setLoggedPreceptor(null);
+    setLoggedCollegeAdmin(null);
+    clearActiveSession();
+    setViewMode('landing');
+    setSessionEndedMessage('Your session has ended because your account was logged in on another device.');
+    setTimeout(() => {
+      setSessionEndedMessage('');
+    }, 6000);
+  };
+
   // RESTORE ACTIVE SESSION ON BROWSER REFRESH (F5 / RELOAD) & DYNAMIC URL RESOLUTION
   useEffect(() => {
-    // 1. Check URL query parameters for dynamic college portal (e.g. ?college=CLG or ?college_id=uuid)
-    const urlParams = new URLSearchParams(window.location.search);
-    const targetParam = urlParams.get('college') || urlParams.get('college_id') || urlParams.get('collegeCode');
+    const restoreSession = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetParam = urlParams.get('college') || urlParams.get('college_id') || urlParams.get('collegeCode');
 
-    const session = getActiveSession();
-    if (session) {
-      if (session.viewMode === 'admin') {
-        const adminSession = getActiveAdminSession();
-        if (adminSession) {
-          setViewMode('admin');
-        } else {
-          clearActiveSession();
+      const session = getActiveSession();
+      if (session) {
+        // Verify session_token in public.active_sessions if available
+        if (session.sessionToken) {
+          const isValid = await verifyActiveSessionTokenInSupabase(session.sessionToken);
+          if (!isValid) {
+            handleSessionInvalidatedByOtherDevice();
+            return;
+          }
         }
-      } else if (session.viewMode === 'college_admin' && (session.user || session.college)) {
-        const collegeObj = normalizeCollege(session.college || session.user);
-        // College Isolation Verification
-        if (collegeObj && session.user && (session.user.id === collegeObj.id || session.user.college_id === collegeObj.id)) {
-          setLoggedCollegeAdmin(session.user || session.college);
+
+        if (session.viewMode === 'admin') {
+          const adminSession = getActiveAdminSession();
+          if (adminSession && session.sessionToken) {
+            const isStillActive = await verifyActiveSessionTokenInSupabase(session.sessionToken);
+            if (isStillActive) {
+              setViewMode('admin');
+            } else {
+              logoutSuperAdmin(session.sessionToken);
+              setSessionEndedBanner(true);
+            }
+          } else if (adminSession) {
+            setViewMode('admin');
+          } else {
+            clearActiveSession();
+          }
+        } else if (session.viewMode === 'college_admin' && (session.user || session.college)) {
+          const collegeObj = normalizeCollege(session.college || session.user);
+          if (collegeObj && session.user && (session.user.id === collegeObj.id || session.user.college_id === collegeObj.id)) {
+            setLoggedCollegeAdmin(session.user || session.college);
+            setActivePortalCollege(collegeObj);
+            setViewMode('college_admin');
+          } else {
+            clearActiveSession();
+          }
+        } else if (session.viewMode === 'preceptor_portal' && session.user) {
+          const collegeObj = normalizeCollege(session.user.colleges || session.college);
+          if (collegeObj && session.user.college_id === collegeObj.id) {
+            setLoggedPreceptor(session.user);
+            setActivePortalCollege(collegeObj);
+            setViewMode('preceptor_portal');
+          } else {
+            clearActiveSession();
+          }
+        } else if (session.viewMode === 'student_portal' && session.user) {
+          const collegeObj = normalizeCollege(session.user.colleges || session.college);
+          if (collegeObj && session.user.college_id === collegeObj.id) {
+            setLoggedStudent(session.user);
+            setActivePortalCollege(collegeObj);
+            setViewMode('student_portal');
+          } else {
+            clearActiveSession();
+          }
+        } else if (session.viewMode === 'college_portal' && session.college) {
+          const collegeObj = normalizeCollege(session.college);
           setActivePortalCollege(collegeObj);
-          setViewMode('college_admin');
-        } else {
-          clearActiveSession();
+          setViewMode('college_portal');
         }
-      } else if (session.viewMode === 'preceptor_portal' && session.user) {
-        const collegeObj = normalizeCollege(session.user.colleges || session.college);
-        // College Isolation Verification: preceptor.college_id must match session college
-        if (collegeObj && session.user.college_id === collegeObj.id) {
-          setLoggedPreceptor(session.user);
-          setActivePortalCollege(collegeObj);
-          setViewMode('preceptor_portal');
-        } else {
-          clearActiveSession();
-        }
-      } else if (session.viewMode === 'student_portal' && session.user) {
-        const collegeObj = normalizeCollege(session.user.colleges || session.college);
-        // College Isolation Verification: student.college_id must match session college
-        if (collegeObj && session.user.college_id === collegeObj.id) {
-          setLoggedStudent(session.user);
-          setActivePortalCollege(collegeObj);
-          setViewMode('student_portal');
-        } else {
-          clearActiveSession();
-        }
-      } else if (session.viewMode === 'college_portal' && session.college) {
-        const collegeObj = normalizeCollege(session.college);
-        setActivePortalCollege(collegeObj);
-        setViewMode('college_portal');
       }
-    }
+    };
+
+    restoreSession();
   }, []);
+
+  // PERIODIC ACTIVE SESSION VALIDATION (EVERY 10 SECONDS FOR ACTIVE USERS)
+  useEffect(() => {
+    if (!loggedStudent && !loggedPreceptor && !loggedCollegeAdmin) return;
+
+    const interval = setInterval(async () => {
+      const session = getActiveSession();
+      if (session && session.sessionToken) {
+        const isValid = await verifyActiveSessionTokenInSupabase(session.sessionToken);
+        if (!isValid) {
+          handleSessionInvalidatedByOtherDevice();
+        }
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [loggedStudent, loggedPreceptor, loggedCollegeAdmin]);
 
   // Hidden Developer Mode Keyboard Shortcut (Ctrl + Alt + D)
   useDeveloperShortcut({
@@ -175,6 +229,10 @@ export default function App() {
 
   // Back to Main Public PharmDVerse Website
   const handleBackToLanding = () => {
+    const session = getActiveSession();
+    if (session?.sessionToken) {
+      invalidateActiveSessionByTokenInSupabase(session.sessionToken);
+    }
     setViewMode('landing');
     setActivePortalCollege(null);
     setLoggedCollegeAdmin(null);
@@ -187,6 +245,10 @@ export default function App() {
 
   // Student Logout -> Redirect to Student's College Landing Page
   const handleStudentLogout = () => {
+    const session = getActiveSession();
+    if (session?.sessionToken) {
+      invalidateActiveSessionByTokenInSupabase(session.sessionToken);
+    }
     const collegeObj = normalizeCollege(loggedStudent?.colleges || activePortalCollege);
     setLoggedStudent(null);
     clearActiveSession();
@@ -202,6 +264,10 @@ export default function App() {
 
   // Preceptor Logout -> Redirect to Preceptor's College Landing Page
   const handlePreceptorLogout = () => {
+    const session = getActiveSession();
+    if (session?.sessionToken) {
+      invalidateActiveSessionByTokenInSupabase(session.sessionToken);
+    }
     const collegeObj = normalizeCollege(loggedPreceptor?.colleges || activePortalCollege);
     setLoggedPreceptor(null);
     clearActiveSession();
@@ -217,6 +283,10 @@ export default function App() {
 
   // College Admin Logout -> Redirect to College Landing Page
   const handleCollegeAdminLogout = () => {
+    const session = getActiveSession();
+    if (session?.sessionToken) {
+      invalidateActiveSessionByTokenInSupabase(session.sessionToken);
+    }
     const collegeObj = normalizeCollege(loggedCollegeAdmin || activePortalCollege);
     setLoggedCollegeAdmin(null);
     clearActiveSession();
@@ -238,36 +308,37 @@ export default function App() {
     handleBackToLanding();
   };
 
-  const handleCollegeAdminLoginSuccess = (college) => {
+  const handleCollegeAdminLoginSuccess = (college, sessionToken) => {
     const normalized = normalizeCollege(college);
     setLoggedCollegeAdmin(college);
     setActivePortalCollege(normalized);
     setViewMode('college_admin');
     setCollegeAdminLoginOpen(false);
-    saveActiveSession({ viewMode: 'college_admin', college: normalized, user: college });
+    saveActiveSession({ viewMode: 'college_admin', college: normalized, user: college, sessionToken });
   };
 
-  const handlePreceptorLoginSuccess = (preceptor) => {
+  const handlePreceptorLoginSuccess = (preceptor, sessionToken) => {
     const collegeObj = normalizeCollege(preceptor.colleges || activePortalCollege);
     setLoggedPreceptor(preceptor);
     if (collegeObj) setActivePortalCollege(collegeObj);
     setViewMode('preceptor_portal');
     setPreceptorLoginOpen(false);
-    saveActiveSession({ viewMode: 'preceptor_portal', college: collegeObj, user: preceptor });
+    saveActiveSession({ viewMode: 'preceptor_portal', college: collegeObj, user: preceptor, sessionToken });
   };
 
-  const handleStudentLoginSuccess = (student) => {
+  const handleStudentLoginSuccess = (student, sessionToken) => {
     const collegeObj = normalizeCollege(student.colleges || activePortalCollege);
     setLoggedStudent(student);
     if (collegeObj) setActivePortalCollege(collegeObj);
     setViewMode('student_portal');
     setStudentLoginOpen(false);
-    saveActiveSession({ viewMode: 'student_portal', college: collegeObj, user: student });
+    saveActiveSession({ viewMode: 'student_portal', college: collegeObj, user: student, sessionToken });
   };
 
   return (
     <ThemeProvider>
-      <CollegeProvider>
+      <PlatformProvider>
+        <CollegeProvider>
         
         {/* 1. FULL PAGE SUPER ADMIN DASHBOARD VIEW */}
         {viewMode === 'admin' ? (
@@ -338,6 +409,12 @@ export default function App() {
                 onOpenRegisterModal={() => setRegisterOpen(true)}
               />
 
+              {/* Student Value Section: From Case Learning to Clinical Confidence */}
+              <StudentValueSection />
+
+              {/* Complete Platform Workflow Section */}
+              <PlatformWorkflowSection />
+
             </main>
 
             {/* Clean Public Footer */}
@@ -388,7 +465,11 @@ export default function App() {
             <SuperAdminModal
               isOpen={superAdminLoginOpen}
               onClose={() => setSuperAdminLoginOpen(false)}
-              onLoginSuccess={() => setViewMode('admin')}
+              onLoginSuccess={(token) => {
+                setViewMode('admin');
+                setSuperAdminLoginOpen(false);
+                saveActiveSession({ viewMode: 'admin', userRole: 'super_admin', sessionToken: token });
+              }}
             />
 
             {/* Informational Modals */}
@@ -427,7 +508,22 @@ export default function App() {
           </>
         )}
 
-      </CollegeProvider>
+        {/* Session Invalidation Toast Banner */}
+        {sessionEndedMessage && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-md w-full px-4">
+            <div className="p-4 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white shadow-2xl border border-amber-500/50 flex items-center gap-3 animate-fade-in">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <p className="text-xs font-bold leading-relaxed text-slate-100">
+                {sessionEndedMessage}
+              </p>
+            </div>
+          </div>
+        )}
+
+        </CollegeProvider>
+      </PlatformProvider>
     </ThemeProvider>
   );
 }

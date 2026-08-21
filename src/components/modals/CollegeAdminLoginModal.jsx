@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { ModalWrapper } from './ModalWrapper';
 import { useColleges } from '../../context/CollegeContext';
+import { checkExistingActiveSessionInSupabase, createActiveSessionInSupabase, invalidateAndCreateNewActiveSessionInSupabase } from '../../services/supabaseService';
 import { Eye, EyeOff, LogIn, AlertTriangle, Loader2, CheckCircle2 } from 'lucide-react';
 import { LogoPreviewModal } from './LogoPreviewModal';
 import { LoginHeader } from './LoginHeader';
+import { SessionConflictModal } from './SessionConflictModal';
 
 export const CollegeAdminLoginModal = ({ isOpen, onClose, initialCollege, onLoginSuccess }) => {
   const { loginCollegeAdmin } = useColleges();
@@ -15,6 +17,11 @@ export const CollegeAdminLoginModal = ({ isOpen, onClose, initialCollege, onLogi
   const [fieldErrors, setFieldErrors] = useState({});
   const [successMsg, setSuccessMsg] = useState('');
   const [showLogoModal, setShowLogoModal] = useState(false);
+
+  // Active Session Conflict State
+  const [showConflictModal, setShowConflictModal] = useState(false);
+  const [pendingCollege, setPendingCollege] = useState(null);
+  const [conflictLoading, setConflictLoading] = useState(false);
 
   const collegeName = initialCollege?.name || initialCollege?.college_name || 'Pharmacy College';
 
@@ -39,17 +46,45 @@ export const CollegeAdminLoginModal = ({ isOpen, onClose, initialCollege, onLogi
     setLoggingIn(true);
     const targetCollegeId = initialCollege?.id || null;
     const res = await loginCollegeAdmin(username.trim(), password.trim(), targetCollegeId);
-    setLoggingIn(false);
 
     if (res.success && res.college) {
-      setSuccessMsg('✅ Login successful! Redirecting to College Admin Portal...');
-      setTimeout(() => {
-        setSuccessMsg('');
-        if (onLoginSuccess) onLoginSuccess(res.college);
-        if (onClose) onClose();
-      }, 1000);
+      const activeCheck = await checkExistingActiveSessionInSupabase(res.college.id, 'college_admin');
+      setLoggingIn(false);
+
+      if (activeCheck.hasActiveSession) {
+        setPendingCollege(res.college);
+        setShowConflictModal(true);
+      } else {
+        const sessionRes = await createActiveSessionInSupabase(res.college.id, 'college_admin');
+        completeLogin(res.college, sessionRes.sessionToken);
+      }
     } else {
+      setLoggingIn(false);
       setErrorMsg(res.error || 'Invalid User ID or Password.');
+    }
+  };
+
+  const completeLogin = (collegeObj, token) => {
+    setSuccessMsg('✅ Login successful! Redirecting to College Admin Portal...');
+    setTimeout(() => {
+      setSuccessMsg('');
+      if (onLoginSuccess) onLoginSuccess(collegeObj, token);
+      if (onClose) onClose();
+    }, 800);
+  };
+
+  const handleForceContinue = async () => {
+    if (!pendingCollege) return;
+    setConflictLoading(true);
+    const sessionRes = await invalidateAndCreateNewActiveSessionInSupabase(pendingCollege.id, 'college_admin');
+    setConflictLoading(false);
+    setShowConflictModal(false);
+
+    if (sessionRes.success) {
+      completeLogin(pendingCollege, sessionRes.sessionToken);
+      setPendingCollege(null);
+    } else {
+      setErrorMsg('Failed to establish new session. Please try again.');
     }
   };
 
@@ -202,6 +237,16 @@ export const CollegeAdminLoginModal = ({ isOpen, onClose, initialCollege, onLogi
         </form>
       </ModalWrapper>
       <LogoPreviewModal isOpen={showLogoModal} onClose={() => setShowLogoModal(false)} />
+      <SessionConflictModal
+        isOpen={showConflictModal}
+        userRole="college_admin"
+        loading={conflictLoading}
+        onCancel={() => {
+          setShowConflictModal(false);
+          setPendingCollege(null);
+        }}
+        onForceContinue={handleForceContinue}
+      />
     </>
   );
 };

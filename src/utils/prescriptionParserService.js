@@ -4,18 +4,18 @@
  */
 
 const DOSAGE_FORM_PATTERNS = [
-  { form: 'Injection', abbr: 'Inj.', regex: /^(inj\.?|injection)\s+/i },
-  { form: 'Tablet', abbr: 'Tab.', regex: /^(tab\.?|tablet)\s+/i },
-  { form: 'Capsule', abbr: 'Cap.', regex: /^(cap\.?|capsule)\s+/i },
-  { form: 'Syrup', abbr: 'Syp.', regex: /^(syp\.?|syr\.?|syrup)\s+/i },
-  { form: 'Nebulization', abbr: 'Neb.', regex: /^(neb\.?|nebulization|nebule)\s+/i },
-  { form: 'Inhalation', abbr: 'Inh.', regex: /^(inh\.?|inhaler|inhalation)\s+/i },
-  { form: 'Cream', abbr: 'Cream', regex: /^(cream)\s+/i },
-  { form: 'Ointment', abbr: 'Oint.', regex: /^(oint\.?|ointment)\s+/i },
-  { form: 'Ophthalmic drops', abbr: 'Ophth.', regex: /^(eye\s+drops?|ophth\.?\s+drops?)\s+/i },
-  { form: 'Otology drops', abbr: 'Ear drops', regex: /^(ear\s+drops?|otology\s+drops?)\s+/i },
-  { form: 'Solution', abbr: 'Sol.', regex: /^(sol\.?|solution)\s+/i },
-  { form: 'Suspension', abbr: 'Susp.', regex: /^(susp\.?|suspension)\s+/i }
+  { form: 'Injection', abbr: 'Inj.', regex: /^(injection|inj\.?)\s*/i },
+  { form: 'Tablet', abbr: 'Tab.', regex: /^(tablet|tab\.?)\s*/i },
+  { form: 'Capsule', abbr: 'Cap.', regex: /^(capsule|cap\.?)\s*/i },
+  { form: 'Syrup', abbr: 'Syp.', regex: /^(syrup|syp\.?|syr\.?)\s*/i },
+  { form: 'Nebulization', abbr: 'Neb.', regex: /^(nebulization|nebule|neb\.?)\s*/i },
+  { form: 'Inhalation', abbr: 'Inh.', regex: /^(inhalation|inhaler|inh\.?)\s*/i },
+  { form: 'Cream', abbr: 'Cream', regex: /^(cream)\s*/i },
+  { form: 'Ointment', abbr: 'Oint.', regex: /^(ointment|oint\.?)\s*/i },
+  { form: 'Ophthalmic drops', abbr: 'Ophth.', regex: /^(eye\s+drops?|ophth\.?\s+drops?)\s*/i },
+  { form: 'Otology drops', abbr: 'Ear drops', regex: /^(ear\s+drops?|otology\s+drops?)\s*/i },
+  { form: 'Solution', abbr: 'Sol.', regex: /^(solution|sol\.?)\s*/i },
+  { form: 'Suspension', abbr: 'Susp.', regex: /^(suspension|susp\.?)\s*/i }
 ];
 
 const KNOWN_GENERIC_NAMES = new Set([
@@ -28,7 +28,8 @@ const KNOWN_GENERIC_NAMES = new Set([
   'ciprofloxacin', 'ornidazole', 'ofloxacin', 'etofylline', 'theophylline', 'cefixime',
   'domperidone', 'rabeprazole', 'levodopa', 'carbidopa', 'entacapone', 'bismuth subcitrate',
   'metronidazole', 'tetracycline', 'cefotaxime', 'cefuroxime', 'ceftriaxone', 'azithromycin',
-  'ranitidine', 'ondansetron', 'spironolactone', 'ramipril'
+  'ranitidine', 'ondansetron', 'spironolactone', 'ramipril', 'aceclofenac',
+  'levocetirizine', 'montelukast', 'cetirizine', 'fexofenadine', 'loratadine', 'bilastine'
 ]);
 
 const KNOWN_BRAND_FDC_MAP = {
@@ -47,6 +48,9 @@ const KNOWN_BRAND_FDC_MAP = {
   'ecosprin': ['Aspirin'],
   'ecospirin': ['Aspirin'],
   'aspirin': ['Aspirin'],
+  'storvas': ['Atorvastatin'],
+  'atorva': ['Atorvastatin'],
+  'lipitor': ['Atorvastatin'],
   'bayer': ['Aspirin'],
   'ciplox': ['Ciprofloxacin'],
   'cifran': ['Ciprofloxacin'],
@@ -68,8 +72,21 @@ const KNOWN_BRAND_FDC_MAP = {
   'aldactone': ['Spironolactone'],
   'lasix': ['Furosemide'],
   'lanoxin': ['Digoxin'],
+  'xyzal': ['Levocetirizine'],
+  'l-cet': ['Levocetirizine'],
+  'levocet': ['Levocetirizine'],
+  'levocetirizine': ['Levocetirizine'],
 
   // Two-Drug Fixed-Dose Combinations
+  'montair-lc': ['Montelukast', 'Levocetirizine'],
+  'montair lc': ['Montelukast', 'Levocetirizine'],
+  'montairlc': ['Montelukast', 'Levocetirizine'],
+  'telekast-l': ['Montelukast', 'Levocetirizine'],
+  'telekast l': ['Montelukast', 'Levocetirizine'],
+  'montek-lc': ['Montelukast', 'Levocetirizine'],
+  'montek lc': ['Montelukast', 'Levocetirizine'],
+  'monticope': ['Montelukast', 'Levocetirizine'],
+  'levocet-m': ['Montelukast', 'Levocetirizine'],
   'augmentin': ['Amoxicillin', 'Clavulanic acid'],
   'moxclav': ['Amoxicillin', 'Clavulanic acid'],
   'clavam': ['Amoxicillin', 'Clavulanic acid'],
@@ -77,9 +94,13 @@ const KNOWN_BRAND_FDC_MAP = {
   'moxikind-cv': ['Amoxicillin', 'Clavulanic acid'],
   'combiflam': ['Ibuprofen', 'Paracetamol'],
   'telma-h': ['Telmisartan', 'Hydrochlorothiazide'],
+  'telma h': ['Telmisartan', 'Hydrochlorothiazide'],
+  'telmah': ['Telmisartan', 'Hydrochlorothiazide'],
   'telmikind-h': ['Telmisartan', 'Hydrochlorothiazide'],
   'telpres-h': ['Telmisartan', 'Hydrochlorothiazide'],
   'telma-am': ['Telmisartan', 'Amlodipine'],
+  'telma am': ['Telmisartan', 'Amlodipine'],
+  'telmaam': ['Telmisartan', 'Amlodipine'],
   'telmikind-am': ['Telmisartan', 'Amlodipine'],
   'duolin': ['Levosalbutamol', 'Ipratropium bromide'],
   'septran': ['Sulfamethoxazole', 'Trimethoprim'],
@@ -290,6 +311,41 @@ export const resolveTradeNameToGeneric = (rawInput) => {
       activeIngredients: [capName],
       ingredientCount: 1
     };
+  }
+
+  // Case D2: Concatenated generic strings or typo variations (e.g. "TELIMISARTANHYDROCCHLORT" or "TABTELMA")
+  if (tradeClean) {
+    if ((tradeClean.includes('telm') || tradeClean.includes('telim')) &&
+        (tradeClean.includes('hydroc') || tradeClean.includes('chlort') || tradeClean.endsWith('h') || tradeClean.includes('h '))) {
+      const activeIngredients = ['Telmisartan', 'Hydrochlorothiazide'];
+      return {
+        status: 'RESOLVED',
+        dosageForm: parsed.dosageForm,
+        dosageFormAbbr: parsed.dosageFormAbbr,
+        extractedTradeName: parsed.extractedTradeName || 'Telma H',
+        formattedTradeName: `${parsed.dosageFormAbbr} ${parsed.extractedTradeName || 'Telma H'}`,
+        extractedStrength: parsed.extractedStrength,
+        extractedFrequency: parsed.extractedFrequency,
+        genericNameDisplay: formatGenericDisplay(activeIngredients),
+        activeIngredients,
+        ingredientCount: 2
+      };
+    }
+    if (tradeClean.includes('paracetamol') && tradeClean.includes('aceclofenac')) {
+      const activeIngredients = ['Paracetamol', 'Aceclofenac'];
+      return {
+        status: 'RESOLVED',
+        dosageForm: parsed.dosageForm,
+        dosageFormAbbr: parsed.dosageFormAbbr,
+        extractedTradeName: parsed.extractedTradeName || 'Dolo',
+        formattedTradeName: `${parsed.dosageFormAbbr} ${parsed.extractedTradeName || 'Dolo'}`,
+        extractedStrength: parsed.extractedStrength,
+        extractedFrequency: parsed.extractedFrequency,
+        genericNameDisplay: formatGenericDisplay(activeIngredients),
+        activeIngredients,
+        ingredientCount: 2
+      };
+    }
   }
 
   // Case E: Unresolved / Unknown Trade Name

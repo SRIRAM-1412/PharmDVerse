@@ -2,9 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, Brain, FilePlus2, ShieldCheck, CheckCircle2, AlertCircle, FolderKanban, 
   ArrowRight, RefreshCw, AlertTriangle, FileText, CheckCircle, Clock, Info, 
-  Pill, AlertOctagon, Activity, HeartPulse, UserCheck, BookOpen, Layers
+  Pill, AlertOctagon, Activity, HeartPulse, UserCheck, BookOpen, Layers, FileSearch, Utensils
 } from 'lucide-react';
-import { fetchStudentCasesFromSupabase, fetchCaseModuleStatusesFromSupabase, fetchLabParameterKnowledgeFromSupabase, fetchMultipleDrugKnowledgeFromSupabase } from '../../services/supabaseService';
+import { 
+  fetchStudentCasesFromSupabase, 
+  fetchCaseModuleStatusesFromSupabase, 
+  fetchLabParameterKnowledgeFromSupabase, 
+  fetchMultipleDrugKnowledgeFromSupabase,
+  evaluateSection5ADrugInteractionsInSupabase,
+  evaluateSection5BDrugFoodInteractionsInSupabase
+} from '../../services/supabaseService';
 import { buildNormalizedApprovedCaseData } from '../../utils/buildNormalizedApprovedCaseData';
 import { resolveClinicalEntityKnowledge } from '../../services/clinicalKnowledgeService';
 import { evaluatePairwiseDrugInteraction, runAiClinicalCaseAnalysis, synthesizeSection4DrugAiInterpretation } from '../../services/aiAnalysisService';
@@ -924,6 +931,12 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
 
   const evaluatedDrugs = isProfileSaved ? norm.drugs : [];
 
+  const [section5ADdiResult, setSection5ADdiResult] = useState(null);
+  const [loadingSection5A, setLoadingSection5A] = useState(false);
+
+  const [section5BDfiResult, setSection5BDfiResult] = useState(null);
+  const [loadingSection5B, setLoadingSection5B] = useState(false);
+
   // SECTION 4 — STEP 5A: Fetch drug knowledge from Supabase public.drug_knowledge table
   useEffect(() => {
     const loadDrugKnowledge = async () => {
@@ -942,6 +955,46 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
     };
 
     loadDrugKnowledge();
+  }, [JSON.stringify(evaluatedDrugs)]);
+
+  // SECTION 5A — Master Drug-Drug Interaction Analysis Execution
+  useEffect(() => {
+    const runSection5AAnalysis = async () => {
+      if (!evaluatedDrugs || evaluatedDrugs.length === 0) {
+        setSection5ADdiResult(null);
+        return;
+      }
+      setLoadingSection5A(true);
+      const res = await evaluateSection5ADrugInteractionsInSupabase(evaluatedDrugs);
+      if (res.success) {
+        setSection5ADdiResult(res);
+      } else {
+        setSection5ADdiResult(null);
+      }
+      setLoadingSection5A(false);
+    };
+
+    runSection5AAnalysis();
+  }, [JSON.stringify(evaluatedDrugs)]);
+
+  // SECTION 5B — Master Drug-Food Interaction Analysis Execution
+  useEffect(() => {
+    const runSection5BAnalysis = async () => {
+      if (!evaluatedDrugs || evaluatedDrugs.length === 0) {
+        setSection5BDfiResult(null);
+        return;
+      }
+      setLoadingSection5B(true);
+      const res = await evaluateSection5BDrugFoodInteractionsInSupabase(evaluatedDrugs);
+      if (res.success) {
+        setSection5BDfiResult(res);
+      } else {
+        setSection5BDfiResult(null);
+      }
+      setLoadingSection5B(false);
+    };
+
+    runSection5BAnalysis();
   }, [JSON.stringify(evaluatedDrugs)]);
 
   // STEP 5B: Execute Section 4 AI Interpretation Synthesis Engine
@@ -1457,24 +1510,24 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                 })()}
               </div>
 
-              {/* SECTION 4 — DRUG KNOWLEDGE (STEP 5A SUPABASE CONNECTED) */}
+              {/* SECTION 4 — DRUG KNOWLEDGE (4A & 4B) */}
               <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5 min-w-0 w-full">
                 <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
                   <div className="flex items-center gap-2.5">
                     <Pill className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                      SECTION 4 — DRUG KNOWLEDGE
+                      4A — DRUG KNOWLEDGE RETRIEVAL & DISPLAY
                     </h3>
                   </div>
                   <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                    Supabase Connected (public.drug_knowledge)
+                    Database-Driven (public.drug_knowledge)
                   </span>
                 </div>
 
                 {loadingDrugKnowledge ? (
                   <div className="p-6 text-center">
                     <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Querying Supabase drug_knowledge database...</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Querying Supabase public.drug_knowledge database...</p>
                   </div>
                 ) : section4DrugKnowledge.length === 0 ? (
                   <div className="p-6 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 text-center space-y-2">
@@ -1489,137 +1542,196 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                     {section4DrugKnowledge.map((item, idx) => {
                       const drug = item.prescribedDrug || {};
                       const status = item.status;
-                      const dbData = item.data || {};
                       const trade = drug.trade_name || drug.brand_name || '—';
                       const generic = drug.generic_name || drug.drug_name || '—';
 
+                      // Extract ingredients list (supports 1, 2, 3, 4+ active ingredients)
+                      const ingredientsList = item.ingredientKnowledge && item.ingredientKnowledge.length > 0
+                        ? item.ingredientKnowledge
+                        : (item.data ? [{ ingredient: item.data.generic_name || generic, status: status, data: item.data }] : []);
+
                       return (
-                        <div key={idx} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-3 min-w-0">
-                          {/* DRUG HEADER & STATUS BADGE */}
-                          <div className="flex items-start justify-between flex-wrap gap-2">
+                        <div key={idx} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-4 min-w-0">
+                          {/* PRESCRIBED PRODUCT HEADER */}
+                          <div className="flex items-start justify-between flex-wrap gap-2 pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
                             <div>
-                              <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wide">
-                                {trade !== '—' ? `${trade} (${generic})` : generic}
+                              <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
+                                <span>{trade !== '—' ? `${trade}` : generic}</span>
+                                {generic !== '—' && generic !== trade && (
+                                  <span className="text-emerald-700 dark:text-emerald-400 font-semibold normal-case">
+                                    [{generic}]
+                                  </span>
+                                )}
                               </h4>
                               <span className="text-[10px] font-semibold text-slate-400 block mt-0.5">
                                 Route: {drug.route_of_admin || 'Oral'} | Dose: {drug.dose || 'As directed'} | Freq: {drug.frequency || 'OD'}
                               </span>
                             </div>
 
-                            {/* STEP 5A DB STATUS BADGE */}
+                            {/* 4A DB RETRIEVAL STATUS BADGE */}
                             <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border flex items-center gap-1.5 ${
                               status === 'FOUND' ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800' :
+                              status === 'UNRESOLVED_TRADE_NAME' ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800' :
                               status === 'NOT_FOUND' ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800' :
-                              status === 'ERROR' ? 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800' :
-                              'bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-800'
+                              'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800'
                             }`}>
                               {status === 'FOUND' && <CheckCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />}
-                              {status === 'NOT_FOUND' && <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />}
+                              {(status === 'NOT_FOUND' || status === 'UNRESOLVED_TRADE_NAME') && <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />}
                               {status === 'ERROR' && <AlertOctagon className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />}
-                              <span>{item.message || (status === 'FOUND' ? '✓ Drug found in database' : '⚠️ Drug not found in Drug Knowledge Database')}</span>
+                              <span>
+                                {status === 'FOUND'
+                                  ? (ingredientsList.length > 1 ? `✓ ${ingredientsList.length} Active Ingredients Retrieved` : '✓ Drug Knowledge Retrieved')
+                                  : status === 'UNRESOLVED_TRADE_NAME'
+                                  ? 'Trade name could not be confidently resolved.'
+                                  : (item.message || '⚠️ Drug knowledge not currently available in database')}
+                              </span>
                             </span>
                           </div>
 
-                          {/* RETRIEVED SUPABASE KNOWLEDGE RECORD (WHEN FOUND) */}
-                          {status === 'FOUND' && dbData && (
-                            <div className="space-y-3 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
-                                <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-0.5">
-                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Generic Name</span>
-                                  <strong className="font-extrabold text-emerald-700 dark:text-emerald-400 text-xs block truncate">
-                                    {dbData.generic_name}
-                                  </strong>
-                                </div>
+                          {/* 4A DISPLAY — SEPARATE SUBCARDS FOR EACH ACTIVE INGREDIENT */}
+                          {ingredientsList.length > 0 ? (
+                            <div className="space-y-4">
+                              {ingredientsList.map((ingItem, ingIdx) => {
+                                const ingData = ingItem.data || {};
+                                const ingStatus = ingItem.status;
 
-                                <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-0.5">
-                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Brand Names</span>
-                                  <span className="font-medium text-slate-800 dark:text-slate-200 text-xs block truncate">
-                                    {dbData.brand_names || 'N/A'}
-                                  </span>
-                                </div>
+                                return (
+                                  <div key={ingIdx} className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-3 shadow-2xs">
+                                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                                        {ingredientsList.length > 1 ? `ACTIVE INGREDIENT ${ingIdx + 1}: ${ingItem.ingredient}` : `ACTIVE INGREDIENT: ${ingItem.ingredient}`}
+                                      </span>
+                                      {ingStatus === 'FOUND' ? (
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800">
+                                          ✓ Verified Database Record
+                                        </span>
+                                      ) : (
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800">
+                                          ⚠️ Knowledge Unavailable
+                                        </span>
+                                      )}
+                                    </div>
 
-                                <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-0.5">
-                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Primary Drug Class</span>
-                                  <span className="font-medium text-indigo-600 dark:text-indigo-400 text-xs block truncate">
-                                    {dbData.primary_drug_class || dbData.drug_class || 'N/A'}
-                                  </span>
-                                </div>
-                              </div>
+                                    {ingStatus === 'FOUND' && ingData && ingData.generic_name ? (() => {
+                                      const rawClass = ingData.drug_class || ingData.primary_drug_class || '';
+                                      let primaryClass = 'N/A';
+                                      let additionalClass = 'N/A';
 
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                                <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
-                                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
-                                    Established Clinical Uses
-                                  </span>
-                                  <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed break-words">
-                                    {dbData.established_uses || 'N/A'}
-                                  </p>
-                                </div>
+                                      if (rawClass) {
+                                        if (rawClass.includes('(Additional:')) {
+                                          const parts = rawClass.split(/\(Additional:/i);
+                                          primaryClass = (parts[0] || '').replace(/[\(\)]/g, '').trim() || 'N/A';
+                                          additionalClass = (parts[1] || '').replace(/[\(\)]/g, '').trim() || 'N/A';
+                                        } else {
+                                          primaryClass = rawClass;
+                                          additionalClass = ingData.additional_drug_classes || 'N/A';
+                                        }
+                                      }
 
-                                <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
-                                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
-                                    Mechanism of Action
-                                  </span>
-                                  <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed break-words">
-                                    {dbData.mechanism_of_action || 'N/A'}
-                                  </p>
-                                </div>
+                                      return (
+                                        <div className="space-y-3">
+                                          {/* 10 DATABASE FIELDS FROM public.drug_knowledge */}
+                                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 text-xs">
+                                            <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-0.5">
+                                              <span className="text-[9px] uppercase font-bold text-slate-400 block">1. Generic Name</span>
+                                              <strong className="font-extrabold text-emerald-700 dark:text-emerald-400 text-xs block truncate">
+                                                {ingData.generic_name || ingItem.ingredient}
+                                              </strong>
+                                            </div>
 
-                                <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
-                                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
-                                    Normal Dose Range
-                                  </span>
-                                  <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed break-words font-mono text-[11px]">
-                                    {dbData.normal_dose_range || 'N/A'}
-                                  </p>
-                                </div>
+                                            <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-0.5">
+                                              <span className="text-[9px] uppercase font-bold text-slate-400 block">2. Trade/Brand Names</span>
+                                              <span className="font-medium text-slate-800 dark:text-slate-200 text-xs block truncate" title={ingData.brand_names || 'N/A'}>
+                                                {ingData.brand_names || 'N/A'}
+                                              </span>
+                                            </div>
 
-                                <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
-                                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-600 dark:text-rose-400 block">
-                                    Contraindications
-                                  </span>
-                                  <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed break-words">
-                                    {dbData.contraindications || 'N/A'}
-                                  </p>
-                                </div>
+                                            <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-0.5">
+                                              <span className="text-[9px] uppercase font-bold text-slate-400 block">3. Primary Drug Class</span>
+                                              <span className="font-semibold text-indigo-600 dark:text-indigo-400 text-xs block truncate" title={primaryClass}>
+                                                {primaryClass}
+                                              </span>
+                                            </div>
 
-                                <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
-                                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">
-                                    Side Effects & Adverse Effects
-                                  </span>
-                                  <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed break-words">
-                                    {dbData.side_effects_adverse_effects || 'N/A'}
-                                  </p>
-                                </div>
+                                            <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-0.5">
+                                              <span className="text-[9px] uppercase font-bold text-slate-400 block">4. Additional Drug Classes</span>
+                                              <span className="font-medium text-indigo-500 dark:text-indigo-300 text-xs block truncate" title={additionalClass}>
+                                                {additionalClass}
+                                              </span>
+                                            </div>
+                                          </div>
 
-                                <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
-                                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 block">
-                                    Monitoring Parameters
-                                  </span>
-                                  <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed break-words">
-                                    {dbData.monitoring_parameters || 'N/A'}
-                                  </p>
-                                </div>
-                              </div>
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
+                                            <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-0.5">
+                                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                                                5. Established Clinical Uses
+                                              </span>
+                                              <p className="text-slate-800 dark:text-slate-200 font-medium text-[11px] leading-relaxed break-words">
+                                                {ingData.established_uses || 'N/A'}
+                                              </p>
+                                            </div>
+
+                                            <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-0.5">
+                                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                                                6. Mechanism of Action
+                                              </span>
+                                              <p className="text-slate-800 dark:text-slate-200 font-medium text-[11px] leading-relaxed break-words">
+                                                {ingData.mechanism_of_action || 'N/A'}
+                                              </p>
+                                            </div>
+
+                                            <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-0.5">
+                                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                                                7. Normal Dose Range
+                                              </span>
+                                              <p className="text-slate-800 dark:text-slate-200 font-mono font-medium text-[11px] leading-relaxed break-words">
+                                                {ingData.normal_dose_range || 'N/A'}
+                                              </p>
+                                            </div>
+
+                                            <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-0.5">
+                                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-rose-600 dark:text-rose-400 block">
+                                                8. Contraindications
+                                              </span>
+                                              <p className="text-slate-800 dark:text-slate-200 font-medium text-[11px] leading-relaxed break-words">
+                                                {ingData.contraindications || 'N/A'}
+                                              </p>
+                                            </div>
+
+                                            <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-0.5">
+                                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">
+                                                9. Side Effects & Adverse Effects
+                                              </span>
+                                              <p className="text-slate-800 dark:text-slate-200 font-medium text-[11px] leading-relaxed break-words">
+                                                {ingData.side_effects_adverse_effects || 'N/A'}
+                                              </p>
+                                            </div>
+
+                                            <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-0.5">
+                                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 block">
+                                                10. Monitoring Parameters
+                                              </span>
+                                              <p className="text-slate-800 dark:text-slate-200 font-medium text-[11px] leading-relaxed break-words">
+                                                {ingData.monitoring_parameters || 'N/A'}
+                                              </p>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })() : (
+                                      <p className="text-xs text-amber-700 dark:text-amber-300 italic p-2 rounded bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                                        Drug identified ({ingItem.ingredient}), but drug knowledge is not currently available in the database.
+                                      </p>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
-                          )}
-
-                          {/* UNKNOWN / NOT FOUND DRUG STATE */}
-                          {status === 'NOT_FOUND' && (
+                          ) : (
                             <div className="p-3 rounded-lg bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 space-y-1">
                               <span className="font-extrabold uppercase text-[10px] block">Database Status Note</span>
                               <p className="text-[11px] leading-relaxed">
-                                "{trade !== '—' ? `${trade} (${generic})` : generic}" is retained in the patient's prescription workflow. It was not found in the verified 681-drug Supabase database and has not been automatically inserted.
-                              </p>
-                            </div>
-                          )}
-
-                          {/* DATABASE CONNECTION ERROR STATE */}
-                          {status === 'ERROR' && (
-                            <div className="p-3 rounded-lg bg-rose-50/80 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-900 dark:text-rose-200 space-y-1">
-                              <span className="font-extrabold uppercase text-[10px] block">Database Connection Error</span>
-                              <p className="text-[11px] leading-relaxed">
-                                Unable to connect to Supabase drug database: {item.error || 'Network error'}. The entered drug name has been preserved.
+                                Trade name could not be confidently resolved. The entered drug name ("{trade !== '—' ? `${trade}` : generic}") is preserved in the prescription workflow without fabrication.
                               </p>
                             </div>
                           )}
@@ -1629,14 +1741,14 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                   </div>
                 )}
 
-                {/* STEP 5B — AI CLINICAL MEDICATION INTERPRETATION & SYNTHESIS */}
+                {/* 4B — AI CLINICAL MEDICATION INTERPRETATION */}
                 {section4DrugKnowledge.length > 0 && section4AiSynthesis && (
                   <div className="space-y-5 pt-6 border-t-2 border-slate-100 dark:border-slate-800">
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div className="flex items-center gap-2">
                         <Brain className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
-                          STEP 5B — AI CLINICAL MEDICATION INTERPRETATION
+                          4B — AI CLINICAL MEDICATION INTERPRETATION
                         </h4>
                       </div>
                       <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
@@ -1687,6 +1799,52 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                                 <span className="text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-300 block">Suggested Clinical Consideration</span>
                                 <p className="text-emerald-900 dark:text-emerald-200 text-[11px] font-semibold leading-relaxed">{mrp.suggestedConsideration}</p>
                               </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {/* 1B. DIAGNOSTIC & RADIOLOGICAL FINDINGS CONTEXT BLOCK */}
+                    {section4AiSynthesis.diagnosticFindings && section4AiSynthesis.diagnosticFindings.length > 0 && (
+                      <div className="space-y-3">
+                        <h5 className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                          <FileSearch className="w-4 h-4 text-blue-500" />
+                          <span>Diagnostic & Radiological Findings (Contextual Synthesis)</span>
+                        </h5>
+
+                        <div className="space-y-3">
+                          {section4AiSynthesis.diagnosticFindings.map((diag, idx) => (
+                            <div key={idx} className="p-4 rounded-xl bg-blue-50/40 dark:bg-blue-950/20 border border-blue-200/80 dark:border-blue-800/80 space-y-2 text-xs">
+                              <div className="flex items-center justify-between flex-wrap gap-2">
+                                <strong className="font-extrabold text-blue-900 dark:text-blue-200 text-xs">
+                                  {diag.investigation_name} {diag.test_date && diag.test_date !== '—' ? `(${diag.test_date})` : ''}
+                                </strong>
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-200 dark:bg-blue-900 text-blue-900 dark:text-blue-100">
+                                  {diag.source}
+                                </span>
+                              </div>
+
+                              <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-blue-200/60 dark:border-blue-800/60 space-y-1">
+                                <span className="text-[10px] uppercase font-bold text-blue-800 dark:text-blue-300 block">Patient-Specific Finding / Result</span>
+                                <p className="text-slate-800 dark:text-slate-200 text-[11px] font-bold leading-relaxed">{diag.patient_finding}</p>
+                                {diag.remarks && (
+                                  <p className="text-slate-500 dark:text-slate-400 text-[10px] italic">Remarks: {diag.remarks}</p>
+                                )}
+                              </div>
+
+                              {diag.master_expected_findings && (
+                                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-1">
+                                  <span className="text-[10px] uppercase font-bold text-slate-600 dark:text-slate-400 block">Master Knowledge: Expected Normal Findings</span>
+                                  <p className="text-slate-700 dark:text-slate-300 text-[11px] leading-relaxed">{diag.master_expected_findings}</p>
+                                </div>
+                              )}
+
+                              {diag.master_clinical_significance && (
+                                <div className="p-2.5 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 space-y-1">
+                                  <span className="text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-300 block">Master Knowledge: Clinical Significance</span>
+                                  <p className="text-slate-700 dark:text-slate-300 text-[11px] leading-relaxed">{diag.master_clinical_significance}</p>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -1798,6 +1956,230 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* ==================================================================== */}
+          {/* SECTION 5A: DRUG–DRUG INTERACTION ANALYSIS                          */}
+          {/* ==================================================================== */}
+          {loadingSection5A ? (
+            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-md space-y-4">
+              <div className="flex items-center gap-3 text-indigo-600 dark:text-indigo-400 font-extrabold text-xs">
+                <RefreshCw className="w-4 h-4 animate-spin text-indigo-500" />
+                <span>Evaluating Section 5A Master Drug–Drug Interactions...</span>
+              </div>
+            </div>
+          ) : section5ADdiResult && (
+            <div className="p-6 sm:p-8 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-indigo-200/80 dark:border-slate-800 shadow-xl space-y-6">
+              
+              {/* Section 5A Header */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-950/80 text-indigo-800 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800 text-xs font-semibold mb-2">
+                    <Layers className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                    <span>Section 5A — Master Drug–Drug Interaction Analysis</span>
+                  </div>
+                  <h3 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                    5A — Drug–Drug Interaction Analysis
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed font-normal">
+                    Deterministic evaluation of student's prescribed medications against authoritative Supabase master interaction database.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    Evaluated Pairs: <strong>{section5ADdiResult.evaluatedPairsCount || 0}</strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* Section 5A Content */}
+              {!section5ADdiResult.hasInteractions ? (
+                <div className="p-5 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-200/60 dark:border-indigo-900/40 text-center space-y-2">
+                  <ShieldCheck className="w-8 h-8 text-indigo-500 mx-auto" />
+                  <h4 className="text-sm font-bold text-indigo-900 dark:text-indigo-200">
+                    No Clinically Relevant Interactions Identified
+                  </h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">
+                    {section5ADdiResult.message}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {section5ADdiResult.interactions.map((inter, idx) => (
+                    <div key={idx} className="p-5 rounded-2xl bg-slate-50/90 dark:bg-slate-950/80 border border-indigo-200/80 dark:border-slate-800 space-y-4 shadow-xs">
+                      
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 dark:border-slate-800/80 pb-3">
+                        <div className="flex items-center gap-2 font-extrabold text-sm text-slate-900 dark:text-white">
+                          <span className="px-2.5 py-0.5 rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                            {inter.drugAGeneric}
+                          </span>
+                          <span className="text-slate-400">+</span>
+                          <span className="px-2.5 py-0.5 rounded-lg bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                            {inter.drugBGeneric}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                            {inter.severity}
+                          </span>
+                          <span className="text-[11px] text-slate-400 font-mono">
+                            Ref: {inter.sourceReference}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div className="space-y-1">
+                          <strong className="text-slate-900 dark:text-white font-bold block">Interaction Description:</strong>
+                          <p className="text-slate-600 dark:text-slate-300 leading-relaxed">{inter.interactionDescription}</p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <strong className="text-slate-900 dark:text-white font-bold block">Pharmacological Mechanism:</strong>
+                          <p className="text-slate-600 dark:text-slate-300 leading-relaxed">{inter.mechanism}</p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <strong className="text-slate-900 dark:text-white font-bold block">Clinical Significance:</strong>
+                          <p className="text-slate-600 dark:text-slate-300 leading-relaxed">{inter.clinicalSignificance}</p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <strong className="text-slate-900 dark:text-white font-bold block">Clinical Management:</strong>
+                          <p className="text-emerald-700 dark:text-emerald-300 font-medium leading-relaxed">{inter.management}</p>
+                        </div>
+                      </div>
+
+                      {inter.monitoring && (
+                        <div className="p-3 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-900/40 text-xs flex items-start gap-2">
+                          <Activity className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                          <div>
+                            <strong className="text-indigo-900 dark:text-indigo-300 font-bold">Monitoring Advice:</strong>
+                            <span className="text-indigo-800 dark:text-indigo-200 ml-1">{inter.monitoring}</span>
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+                  ))}
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {/* ==================================================================== */}
+          {/* SECTION 5B: DRUG–FOOD INTERACTION ANALYSIS                          */}
+          {/* ==================================================================== */}
+          {loadingSection5B ? (
+            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-md space-y-4">
+              <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400 font-extrabold text-xs">
+                <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
+                <span>Evaluating Section 5B Master Drug–Food Interactions...</span>
+              </div>
+            </div>
+          ) : section5BDfiResult && (
+            <div className="p-6 sm:p-8 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-amber-200/80 dark:border-slate-800 shadow-xl space-y-6">
+              
+              {/* Section 5B Header */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 text-xs font-semibold mb-2">
+                    <Utensils className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                    <span>Section 5B — Master Drug–Food Interaction Analysis</span>
+                  </div>
+                  <h3 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                    5B — Drug–Food Interaction Analysis
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed font-normal">
+                    Deterministic evaluation of student's prescribed medications against authoritative Supabase drug-food interaction database.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    Evaluated Drugs: <strong>{section5BDfiResult.evaluatedDrugsCount || 0}</strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* Section 5B Content */}
+              {!section5BDfiResult.hasInteractions ? (
+                <div className="p-5 rounded-2xl bg-amber-50/50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40 text-center space-y-2">
+                  <ShieldCheck className="w-8 h-8 text-amber-500 mx-auto" />
+                  <h4 className="text-sm font-bold text-amber-900 dark:text-amber-200">
+                    No Clinically Relevant Interactions Identified
+                  </h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">
+                    {section5BDfiResult.message}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {section5BDfiResult.interactions.map((inter, idx) => (
+                    <div key={idx} className="p-5 rounded-2xl bg-slate-50/90 dark:bg-slate-950/80 border border-amber-200/80 dark:border-slate-800 space-y-4 shadow-xs">
+                      
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 dark:border-slate-800/80 pb-3">
+                        <div className="flex items-center gap-2 font-extrabold text-sm text-slate-900 dark:text-white">
+                          <span className="px-2.5 py-0.5 rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                            {inter.drugGeneric}
+                          </span>
+                          <span className="text-slate-400">+</span>
+                          <span className="px-2.5 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                            {inter.foodOrBeverage}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                            {inter.severity}
+                          </span>
+                          <span className="text-[11px] text-slate-400 font-mono">
+                            Ref: {inter.sourceReference}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div className="space-y-1">
+                          <strong className="text-slate-900 dark:text-white font-bold block">Interaction Description:</strong>
+                          <p className="text-slate-600 dark:text-slate-300 leading-relaxed">{inter.interactionDescription}</p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <strong className="text-slate-900 dark:text-white font-bold block">Pharmacological Mechanism:</strong>
+                          <p className="text-slate-600 dark:text-slate-300 leading-relaxed">{inter.mechanism}</p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <strong className="text-slate-900 dark:text-white font-bold block">Clinical Significance:</strong>
+                          <p className="text-slate-600 dark:text-slate-300 leading-relaxed">{inter.clinicalSignificance}</p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <strong className="text-slate-900 dark:text-white font-bold block">Clinical Management Strategy:</strong>
+                          <p className="text-amber-800 dark:text-amber-200 font-medium leading-relaxed">{inter.management}</p>
+                        </div>
+                      </div>
+
+                      {inter.counsellingPoint && (
+                        <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-900/40 text-xs flex items-start gap-2">
+                          <UserCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                          <div>
+                            <strong className="text-emerald-900 dark:text-emerald-300 font-bold">Patient Counselling Point:</strong>
+                            <span className="text-emerald-800 dark:text-emerald-200 ml-1 font-medium">{inter.counsellingPoint}</span>
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+                  ))}
+                </div>
+              )}
+
             </div>
           )}
         </div>

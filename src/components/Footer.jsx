@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
 import { ShieldAlert } from 'lucide-react';
+import { usePlatform } from '../context/PlatformContext';
 import { LogoPreviewModal } from './modals/LogoPreviewModal';
 
 export const Footer = ({ onOpenInfoModal, onOpenSuperAdmin }) => {
+  const { platformSettings } = usePlatform();
   const [showLogoModal, setShowLogoModal] = useState(false);
+
+  const platformName = platformSettings?.platform_name || 'PharmDVerse';
+  const logoUrl = platformSettings?.logo_url || '/pharmdverse-logo.png';
+  const footerText = platformSettings?.footer_text || `© 2026 ${platformName}. All rights reserved.`;
 
   return (
     <>
@@ -97,18 +103,19 @@ export const Footer = ({ onOpenInfoModal, onOpenSuperAdmin }) => {
             {/* Bottom Left: Logo & Copyright */}
             <div className="flex items-center gap-2">
               <img
-                src="/pharmdverse-logo.png"
-                alt="PharmDVerse Logo"
+                src={logoUrl}
+                alt={`${platformName} Logo`}
                 className="w-6 h-6 object-contain cursor-pointer hover:scale-105 transition-transform"
                 onClick={() => setShowLogoModal(true)}
                 title="Click to view official logo"
+                onError={(e) => { e.target.src = '/pharmdverse-logo.png'; }}
               />
-              <span className="font-semibold text-slate-700 dark:text-slate-300">© 2026 PharmDVerse</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-300">{footerText}</span>
             </div>
 
             {/* Bottom Center: Tagline */}
             <div className="flex items-center gap-2 italic text-slate-500 dark:text-slate-400 font-medium">
-              <span>From Case Collection to Clinical Excellence</span>
+              <span>{platformSettings?.tagline || 'From Case Collection to Clinical Excellence'}</span>
             </div>
 
             {/* Bottom Right: Super Admin Login Link */}

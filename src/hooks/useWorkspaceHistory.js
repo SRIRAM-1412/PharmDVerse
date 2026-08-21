@@ -43,10 +43,21 @@ export function useWorkspaceHistory(initialTab = 'dashboard') {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [initialTab]);
 
+  const popTab = () => {
+    if (tabHistory.current.length > 1) {
+      tabHistory.current.pop();
+      const prevTab = tabHistory.current[tabHistory.current.length - 1];
+      setActiveTab(prevTab);
+    } else {
+      setActiveTab(initialTab);
+    }
+  };
+
   return {
     activeTab,
     setActiveTab,
     pushTab,
+    popTab,
     showLeaveModal,
     setShowLeaveModal
   };

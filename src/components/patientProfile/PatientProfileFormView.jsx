@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { UserCheck, Stethoscope, Activity, FileText, FlaskConical, Pill, Save, Eye, Send, ArrowLeft, Plus, Trash2, Loader2, CheckCircle2, AlertTriangle, RotateCcw } from 'lucide-react';
-import { fetchPatientProfileByCaseIdFromSupabase, saveOrUpdatePatientProfileInSupabase, saveLabInvestigationsInSupabase, savePrescribedDrugsInSupabase, saveStudentFormSectionInSupabase, fetchDrugKnowledgeFromSupabase } from '../../services/supabaseService';
+import { 
+  fetchPatientProfileByCaseIdFromSupabase, 
+  saveOrUpdatePatientProfileInSupabase, 
+  saveLabInvestigationsInSupabase, 
+  savePrescribedDrugsInSupabase, 
+  saveStudentFormSectionInSupabase, 
+  fetchDrugKnowledgeFromSupabase,
+  fetchActiveOtherInvestigationKnowledgeFromSupabase,
+  fetchPatientOtherInvestigationsFromSupabase,
+  savePatientOtherInvestigationsInSupabase
+} from '../../services/supabaseService';
 import { resolveTradeNameToGeneric } from '../../utils/prescriptionParserService';
 import { PatientProfilePDFPreviewModal } from './PatientProfilePDFPreviewModal';
 import { InlineActionNotification } from '../common/InlineActionNotification';
@@ -8,6 +18,11 @@ import { useInlineNotification } from '../../hooks/useInlineNotification';
 import { SearchableSelect } from '../common/SearchableSelect';
 import { computeModuleDiffs, isFieldModified } from '../../utils/diffEngine';
 import { CLINICAL_DEPARTMENTS, CLINICAL_WARDS_UNITS } from '../../constants/clinicalMasterData';
+import { 
+  FORM_LAB_CATEGORY_MAP as LAB_CATEGORY_MAP, 
+  normalizeLabParamNameToDbName, 
+  getFormDisplayNameForDbParam 
+} from '../../constants/labMasterData';
 
 const ModifiedFieldBadge = ({ isModified, oldValue }) => {
   if (!isModified) return null;
@@ -22,80 +37,15 @@ const ModifiedFieldBadge = ({ isModified, oldValue }) => {
   );
 };
 
-const LAB_CATEGORY_MAP = {
-  'Haematological Patterns': [
-    { parameter_name: 'Hb %', reference_range: '11-16.5 %' },
-    { parameter_name: 'RBC Count', reference_range: '3.8-5.8 cells/mm' },
-    { parameter_name: 'WBC Count', reference_range: '4000-10000 cells/mm' },
-    { parameter_name: 'Neutrophils', reference_range: '40-70 %' },
-    { parameter_name: 'Lymphocytes', reference_range: '15-30 %' },
-    { parameter_name: 'Eosinophils', reference_range: '1-6 %' },
-    { parameter_name: 'Monocytes', reference_range: '2-10 %' },
-    { parameter_name: 'MCH', reference_range: '27-32 pg/cell' },
-    { parameter_name: 'MCHC', reference_range: '31-35 gm%' },
-    { parameter_name: 'MCV', reference_range: '49-80 fl' },
-    { parameter_name: 'Platelets', reference_range: '1.5-4 lakhs/cell' },
-    { parameter_name: 'PCV', reference_range: '35-40 %' }
-  ],
-  'Blood Glucose': [
-    { parameter_name: 'FBS', reference_range: '70-100 mg/dl' },
-    { parameter_name: 'RBS', reference_range: '70-140 mg/dl' },
-    { parameter_name: 'PPBS', reference_range: '110-160 mg/dl' }
-  ],
-  'Renal Function Tests': [
-    { parameter_name: 'Serum Creatinine', reference_range: '0.6-1.1 mg%' },
-    { parameter_name: 'Blood Urea', reference_range: '3-8 mg%' },
-    { parameter_name: 'Uric Acid', reference_range: '2.6-7.2 mg%' }
-  ],
-  'Liver Function Tests': [
-    { parameter_name: 'SGOT (AST)', reference_range: '6-38 u/l' },
-    { parameter_name: 'SGPT (ALT)', reference_range: '6-38 u/l' },
-    { parameter_name: 'Bilirubin Total', reference_range: '0.5-1.1 mg/dl' },
-    { parameter_name: 'Bilirubin Direct', reference_range: '0-0.6 mg/dl' },
-    { parameter_name: 'Bilirubin Indirect', reference_range: '0-0.4 mg/dl' },
-    { parameter_name: 'Alkaline Phosphatase', reference_range: '36-142 mu/ml' }
-  ],
-  'Electrolytes': [
-    { parameter_name: 'Serum Sodium (Na+)', reference_range: '135-145 meq/l' },
-    { parameter_name: 'Serum Potassium (K+)', reference_range: '3.5-5.5 meq/l' },
-    { parameter_name: 'Chlorides', reference_range: '98-107 meq/l' },
-    { parameter_name: 'Serum Calcium', reference_range: '8.4-10.8 mg/dl' }
-  ],
-  'Thyroid Function Tests': [
-    { parameter_name: 'TSH', reference_range: '0.5-4 mIU/L' },
-    { parameter_name: 'Free T4', reference_range: '0.8-1.8 ng/dL' },
-    { parameter_name: 'Total T3', reference_range: '80-180 ng/dL' }
-  ],
-  'Cardiac Function Tests': [
-    { parameter_name: 'CPK-MB', reference_range: '0-24 IU/L' }
-  ],
-  'Lipid Profile Tests': [
-    { parameter_name: 'Total Cholesterol', reference_range: '130-250 mg/dl' },
-    { parameter_name: 'HDL', reference_range: '30-70 mg/dl' },
-    { parameter_name: 'LDL', reference_range: '60-170 mg/dl' },
-    { parameter_name: 'VLDL', reference_range: '5-40 mg/dl' },
-    { parameter_name: 'Triglycerides', reference_range: '0-170 mg/dl' }
-  ],
-  'Urine Analysis': [
-    { parameter_name: 'Specific Gravity', reference_range: '1.010-1.030' },
-    { parameter_name: 'pH', reference_range: '5.0-8.0' },
-    { parameter_name: 'Pus Cells', reference_range: '1-5 hpf' },
-    { parameter_name: 'Epi Cells', reference_range: '1-5 hpf' }
-  ],
-  'General': [
-    { parameter_name: 'General Parameter', reference_range: '0-100' }
-  ]
-};
-
 const DEFAULT_LAB_ROWS = [
-  { category: 'Haematological Patterns', parameter_name: 'Hb %', reference_range: '11-16.5 %', test_value: '' },
-  { category: 'Haematological Patterns', parameter_name: 'RBC Count', reference_range: '3.8-5.8 cells/mm', test_value: '' },
-  { category: 'Haematological Patterns', parameter_name: 'WBC Count', reference_range: '4000-10000 cells/mm', test_value: '' },
+  { category: 'Haematological Patterns', parameter_name: 'Hb', reference_range: '11-16.5 %', test_value: '' },
+  { category: 'Haematological Patterns', parameter_name: 'RBC', reference_range: '3.8-5.8 cells/mm', test_value: '' },
+  { category: 'Haematological Patterns', parameter_name: 'WBC', reference_range: '4000-10000 cells/mm', test_value: '' },
   { category: 'Blood Glucose', parameter_name: 'FBS', reference_range: '70-100 mg/dl', test_value: '' },
   { category: 'Blood Glucose', parameter_name: 'RBS', reference_range: '70-140 mg/dl', test_value: '' },
-  { category: 'Renal Function Tests', parameter_name: 'Serum Creatinine', reference_range: '0.6-1.1 mg%', test_value: '' },
-  { category: 'Liver Function Tests', parameter_name: 'SGOT (AST)', reference_range: '6-38 u/l', test_value: '' },
-  { category: 'Electrolytes', parameter_name: 'Serum Sodium (Na+)', reference_range: '135-145 meq/l', test_value: '' }
+  { category: 'Renal Function Tests', parameter_name: 'S.Cr', reference_range: '0.6-1.1 mg%', test_value: '' },
+  { category: 'Liver Functions Test', parameter_name: 'SGOT (AST)', reference_range: '6-38 u/l', test_value: '' },
+  { category: 'Electrolytes', parameter_name: 'Na', reference_range: '135-145 meq/l', test_value: '' }
 ];
 
 // Helper to evaluate if test value is Normal or Abnormal (below/above ref range)
@@ -200,6 +150,8 @@ export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOn
 
   // 7. Other & Final Diagnosis
   const [otherInvestigations, setOtherInvestigations] = useState('');
+  const [structuredOtherInvestigations, setStructuredOtherInvestigations] = useState([]);
+  const [activeOtherInvMaster, setActiveOtherInvMaster] = useState([]);
   const [finalDiagnosis, setFinalDiagnosis] = useState('');
 
   // 8. Dynamic Prescribed Drugs (Array)
@@ -354,22 +306,30 @@ export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOn
         setDischargeSummary(p.discharge_summary || '');
         setProfileStatus(p.status || 'Draft');
 
+        // Load Active Master Other Investigations
+        const masterRes = await fetchActiveOtherInvestigationKnowledgeFromSupabase();
+        if (masterRes.success) setActiveOtherInvMaster(masterRes.data || []);
+
+        // Load Patient Structured Other Investigations
+        const structRes = await fetchPatientOtherInvestigationsFromSupabase(p.id);
+        if (structRes.success && structRes.data && structRes.data.length > 0) {
+          setStructuredOtherInvestigations(structRes.data);
+        } else {
+          setStructuredOtherInvestigations([]);
+        }
+
         if (res.labInvestigations && res.labInvestigations.length > 0) {
-          const seenLab = new Set();
-          const uniqueLabs = [];
-          res.labInvestigations.forEach(item => {
-            const key = `${item.category}_${item.parameter_name}_${item.test_value}`;
-            if (!seenLab.has(key)) {
-              seenLab.add(key);
-              uniqueLabs.push({
-                category: item.category || 'Haematological Patterns',
-                parameter_name: item.parameter_name || '',
-                reference_range: item.reference_range || '',
-                test_value: item.test_value || ''
-              });
-            }
+          const loadedLabs = res.labInvestigations.map(item => {
+            const formParamName = getFormDisplayNameForDbParam(item.parameter_name) || item.parameter_name || '';
+            return {
+              id: item.id,
+              category: item.category || 'Haematological Patterns',
+              parameter_name: formParamName,
+              reference_range: item.reference_range || '',
+              test_value: item.test_value !== null && item.test_value !== undefined ? String(item.test_value) : ''
+            };
           });
-          setLabInvestigations(uniqueLabs);
+          setLabInvestigations(loadedLabs);
         }
 
         if (res.prescribedDrugs && res.prescribedDrugs.length > 0) {
@@ -381,8 +341,8 @@ export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOn
               seenDrug.add(key);
               uniqueDrugs.push({
                 s_no: uniqueDrugs.length + 1,
-                trade_name: (item.trade_name || '').replace(/[^A-Za-z\s]/g, '').toUpperCase(),
-                generic_name: (item.generic_name || '').replace(/[^A-Za-z\s]/g, '').toUpperCase(),
+                trade_name: (item.trade_name || '').trim(),
+                generic_name: (item.generic_name || '').trim(),
                 route_of_admin: item.route_of_admin || 'Oral',
                 dose: item.dose || '',
                 frequency: item.frequency || 'OD',
@@ -580,13 +540,19 @@ export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOn
       const savedProfileId = profRes.profile.id;
       setExistingProfileId(savedProfileId);
 
-      // Save Child Tables
-      const activeLabRecords = labInvestigations.filter(l => l.parameter_name && l.test_value);
+      // Save Child Tables (converting UI display name to DB parameter name for Section 3/4 integration)
+      const activeLabRecords = labInvestigations
+        .filter(l => l.parameter_name && l.test_value !== undefined && l.test_value !== null && String(l.test_value).trim() !== '')
+        .map(l => ({
+          ...l,
+          parameter_name: normalizeLabParamNameToDbName(l.parameter_name)
+        }));
       const activeDrugRecords = prescribedDrugs.filter(d => d.trade_name || d.generic_name);
 
       await Promise.all([
         saveLabInvestigationsInSupabase(savedProfileId, activeLabRecords),
-        savePrescribedDrugsInSupabase(savedProfileId, activeDrugRecords)
+        savePrescribedDrugsInSupabase(savedProfileId, activeDrugRecords),
+        savePatientOtherInvestigationsInSupabase(savedProfileId, structuredOtherInvestigations)
       ]);
 
       setSaving(false);
@@ -1178,22 +1144,175 @@ export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOn
       </div>
 
       {/* 7. OTHER INVESTIGATIONS & FINAL DIAGNOSIS */}
-      <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
-          <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          7. Other Investigations & Final Diagnosis
-        </h3>
+      <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-5">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+            <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            7. Radiological / Other Investigations & Final Diagnosis
+          </h3>
+          {!isReadOnly && (
+            <button
+              type="button"
+              onClick={() => setStructuredOtherInvestigations(prev => [...prev, { investigation_knowledge_id: '', investigation_name: '', test_date: '', finding_result: '', remarks: '' }])}
+              className="px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 text-xs font-bold flex items-center gap-1 hover:bg-emerald-100 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Investigation
+            </button>
+          )}
+        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-          <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Radiological / Other Investigations</label>
-            <textarea rows={3} value={otherInvestigations} onChange={(e) => setOtherInvestigations(e.target.value)} placeholder="Enter radiological / other investigations" className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white" />
+        {/* HISTORICAL LEGACY FREE-TEXT DISPLAY (PRESERVED) */}
+        {otherInvestigations && otherInvestigations.trim() !== '' && (
+          <div className="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 space-y-1.5">
+            <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-extrabold text-xs">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>Previous / Legacy Free-Text Other Investigations</span>
+            </div>
+            <p className="text-xs text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap pl-6">
+              {otherInvestigations}
+            </p>
+            <p className="text-[10px] text-amber-700 dark:text-amber-400 italic pl-6 pt-1">
+              * Historical free-text records are preserved for reference. Use the structured table below for any new diagnostic investigation entries.
+            </p>
           </div>
+        )}
 
-          <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Final Diagnosis *</label>
-            <textarea rows={3} value={finalDiagnosis} onChange={(e) => setFinalDiagnosis(e.target.value)} placeholder="Enter final diagnosis" className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold" />
-          </div>
+        {/* STRUCTURED OTHER INVESTIGATIONS REPEATABLE TABLE */}
+        <div className="space-y-3">
+          <label className="block font-bold text-slate-700 dark:text-slate-300 text-xs">
+            Structured Diagnostic Investigations
+          </label>
+
+          {structuredOtherInvestigations.length === 0 ? (
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 text-center text-slate-500 text-xs font-medium border border-dashed border-slate-200 dark:border-slate-800">
+              No structured investigations documented. {!isReadOnly && 'Click "Add Investigation" above to select a master test.'}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 dark:bg-slate-800/60 text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                  <tr>
+                    <th className="p-2.5">Investigation (Master)</th>
+                    <th className="p-2.5">Test Date</th>
+                    <th className="p-2.5">Finding / Result *</th>
+                    <th className="p-2.5">Remarks / Notes</th>
+                    {!isReadOnly && <th className="p-2.5 text-center">Action</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {structuredOtherInvestigations.map((inv, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                      <td className="p-2 min-w-[200px]">
+                        {isReadOnly ? (
+                          <span className="font-bold text-slate-900 dark:text-white">{inv.investigation_name || '—'}</span>
+                        ) : (
+                          <select
+                            value={inv.investigation_knowledge_id || ''}
+                            onChange={(e) => {
+                              const selectedId = e.target.value;
+                              const masterObj = activeOtherInvMaster.find(m => m.id === selectedId);
+                              const copy = [...structuredOtherInvestigations];
+                              copy[idx].investigation_knowledge_id = selectedId;
+                              copy[idx].investigation_name = masterObj ? masterObj.investigation_name : (e.target.value || '');
+                              setStructuredOtherInvestigations(copy);
+                            }}
+                            className="w-full h-9 px-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold"
+                          >
+                            <option value="">-- Select Investigation --</option>
+                            {activeOtherInvMaster.map(m => (
+                              <option key={m.id} value={m.id}>
+                                {m.category ? `[${m.category}] ` : ''}{m.investigation_name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </td>
+                      <td className="p-2 w-36">
+                        {isReadOnly ? (
+                          <span className="font-mono text-slate-600 dark:text-slate-400">{inv.test_date || '—'}</span>
+                        ) : (
+                          <input
+                            type="date"
+                            value={inv.test_date || ''}
+                            onChange={(e) => {
+                              const copy = [...structuredOtherInvestigations];
+                              copy[idx].test_date = e.target.value;
+                              setStructuredOtherInvestigations(copy);
+                            }}
+                            className="w-full h-9 px-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 font-mono text-[11px]"
+                          />
+                        )}
+                      </td>
+                      <td className="p-2 min-w-[220px]">
+                        {isReadOnly ? (
+                          <span className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap">{inv.finding_result || '—'}</span>
+                        ) : (
+                          <textarea
+                            rows={2}
+                            value={inv.finding_result || ''}
+                            onChange={(e) => {
+                              const copy = [...structuredOtherInvestigations];
+                              copy[idx].finding_result = e.target.value;
+                              setStructuredOtherInvestigations(copy);
+                            }}
+                            placeholder="Enter patient test result (e.g. LVEF 35%, Sinus tachycardia)"
+                            className="w-full p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white"
+                          />
+                        )}
+                      </td>
+                      <td className="p-2 min-w-[160px]">
+                        {isReadOnly ? (
+                          <span className="text-slate-600 dark:text-slate-400 italic">{inv.remarks || '—'}</span>
+                        ) : (
+                          <input
+                            type="text"
+                            value={inv.remarks || ''}
+                            onChange={(e) => {
+                              const copy = [...structuredOtherInvestigations];
+                              copy[idx].remarks = e.target.value;
+                              setStructuredOtherInvestigations(copy);
+                            }}
+                            placeholder="Optional remarks"
+                            className="w-full h-9 px-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white"
+                          />
+                        )}
+                      </td>
+                      {!isReadOnly && (
+                        <td className="p-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const copy = structuredOtherInvestigations.filter((_, i) => i !== idx);
+                              setStructuredOtherInvestigations(copy);
+                            }}
+                            className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                            title="Remove row"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* FINAL DIAGNOSIS */}
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+          <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">
+            Final Diagnosis <span className="text-rose-500">*</span>
+          </label>
+          <textarea
+            rows={3}
+            disabled={isReadOnly}
+            value={finalDiagnosis}
+            onChange={(e) => setFinalDiagnosis(e.target.value)}
+            placeholder="Enter final diagnosis"
+            className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold disabled:opacity-75"
+          />
         </div>
       </div>
 

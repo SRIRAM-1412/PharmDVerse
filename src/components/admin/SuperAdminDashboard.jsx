@@ -8,18 +8,30 @@ import { formatSubscriptionDate } from '../../utils/subscriptionUtils';
 
 import { 
   Building2, CheckCircle2, Clock, XCircle, Edit3, 
-  ExternalLink, Search, AlertTriangle, ShieldCheck,
-  Sun, Moon, ChevronLeft, ChevronRight, LogOut, ArrowLeft, Trash2, CheckSquare, Square, Loader2, MessageSquare, Power
+  ExternalLink, Search, AlertTriangle, ShieldCheck, Pill, FlaskConical, FileSearch, Layers, Utensils,
+  Sun, Moon, ChevronLeft, ChevronRight, LogOut, ArrowLeft, Trash2, CheckSquare, Square, Loader2, MessageSquare, Power, Menu, User, Globe
 } from 'lucide-react';
 
 import { LeaveWorkspaceModal } from '../modals/LeaveWorkspaceModal';
 import { LogoutConfirmModal } from '../modals/LogoutConfirmModal';
 import { LogoPreviewModal } from '../modals/LogoPreviewModal';
 import { useWorkspaceHistory } from '../../hooks/useWorkspaceHistory';
+import { usePlatform } from '../../context/PlatformContext';
+import { getActiveAdminSession } from '../../services/authService';
+import { DrugKnowledgeManagementView } from './DrugKnowledgeManagementView';
+import { LabKnowledgeManagementView } from './LabKnowledgeManagementView';
+import { OtherInvestigationManagementView } from './OtherInvestigationManagementView';
+import { DrugDrugInteractionManagementView } from './DrugDrugInteractionManagementView';
+import { DrugFoodInteractionManagementView } from './DrugFoodInteractionManagementView';
+import { SuperAdminProfileView } from './SuperAdminProfileView';
+import { PlatformSettingsManagementView } from './PlatformSettingsManagementView';
 
 export const SuperAdminDashboard = ({ onExitToLanding }) => {
   const { isDark, toggleTheme } = useTheme();
-  const { activeTab, setActiveTab, pushTab, showLeaveModal, setShowLeaveModal } = useWorkspaceHistory('requests');
+  const { platformSettings } = usePlatform();
+  const platformLogoUrl = platformSettings?.logo_url || '/pharmdverse-logo.png';
+  const platformName = platformSettings?.platform_name || 'PharmDVerse ERP';
+  const { activeTab, setActiveTab, pushTab, popTab, showLeaveModal, setShowLeaveModal } = useWorkspaceHistory('requests');
   const [showLogoModal, setShowLogoModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { 
@@ -37,6 +49,7 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
 
   // Sidebar & View States
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [editingCollege, setEditingCollege] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [approvingId, setApprovingId] = useState(null);
@@ -196,194 +209,435 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 flex font-sans transition-colors duration-300">
-      
-      {/* 1. LEFT SIDEBAR (COLLAPSIBLE) */}
-      <aside 
-        className={`fixed top-0 left-0 bottom-0 z-40 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 transition-all duration-300 flex flex-col justify-between ${
-          sidebarCollapsed ? 'w-20' : 'w-64'
-        }`}
-      >
-        <div>
-          {/* Sidebar Brand Header */}
-          <div className="h-16 px-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
-            <div className={`flex items-center gap-3 overflow-hidden ${sidebarCollapsed ? 'justify-center w-full' : ''}`}>
-              <img
-                src="/pharmdverse-logo.png"
-                alt="PharmDVerse Logo"
-                className="w-8 h-8 object-contain shrink-0 cursor-pointer hover:scale-105 transition-transform"
-                onClick={() => setShowLogoModal(true)}
-                title="Click to view official logo"
-              />
-              {!sidebarCollapsed && (
-                <div className="flex flex-col">
-                  <span className="font-extrabold text-sm text-slate-900 dark:text-white leading-tight">
-                    PharmD<span className="text-emerald-600 dark:text-emerald-400">Verse</span>
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Super Admin</span>
-                </div>
-              )}
-            </div>
-
-            {!sidebarCollapsed && (
-              <button
-                onClick={() => setSidebarCollapsed(true)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                title="Collapse sidebar"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
+  const renderSidebarContent = (isMobile = false) => (
+    <div className="flex flex-col justify-between h-full">
+      <div>
+        {/* Sidebar Brand Header */}
+        <div className="h-16 px-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
+          <div className={`flex items-center gap-3 overflow-hidden ${!isMobile && sidebarCollapsed ? 'justify-center w-full' : ''}`}>
+            <img
+              src={platformLogoUrl}
+              alt={`${platformName} Logo`}
+              className="w-8 h-8 object-contain shrink-0 cursor-pointer hover:scale-105 transition-transform"
+              onClick={() => {
+                if (isMobile) setMobileSidebarOpen(false);
+                setShowLogoModal(true);
+              }}
+              onError={(e) => { e.target.src = '/pharmdverse-logo.png'; }}
+              title="Click to view official logo"
+            />
+            {(isMobile || !sidebarCollapsed) && (
+              <div className="flex flex-col">
+                <span className="font-extrabold text-sm text-slate-900 dark:text-white leading-tight truncate max-w-[130px]">
+                  {platformName}
+                </span>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Super Admin</span>
+              </div>
             )}
           </div>
 
-          {/* Navigation Menu */}
-          <div className="p-3 space-y-4">
-            <div>
-              {!sidebarCollapsed && (
-                <span className="px-3 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">
-                  College Management
-                </span>
-              )}
+          {isMobile ? (
+            <button
+              onClick={() => setMobileSidebarOpen(false)}
+              className="p-2 ml-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer shrink-0"
+              title="Close menu"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="p-2 ml-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer shrink-0"
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </button>
+          )}
+        </div>
 
-              <nav className="space-y-1">
-                {/* 1. Registration Requests */}
-                <button
-                  onClick={() => {
-                    pushTab('requests');
-                    setEditingCollege(null);
-                    clearSelection();
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                    activeTab === 'requests'
-                      ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                  title="Registration Requests"
-                >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <Clock className="w-4 h-4 shrink-0" />
-                    {!sidebarCollapsed && <span className="truncate">Registration Requests</span>}
-                  </div>
-                  {pendingCount > 0 && (
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                      activeTab === 'requests' ? 'bg-white text-emerald-700' : 'bg-amber-500 text-white'
-                    }`}>
-                      {pendingCount}
-                    </span>
-                  )}
-                </button>
+        {/* Navigation Menu */}
+        <div className="p-3 space-y-4 overflow-y-auto max-h-[calc(100vh-8rem)]">
+          <div>
+            {(isMobile || !sidebarCollapsed) && (
+              <span className="px-3 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">
+                College Management
+              </span>
+            )}
 
-                {/* 2. Active Colleges */}
-                <button
-                  onClick={() => {
-                    pushTab('active');
-                    setEditingCollege(null);
-                    clearSelection();
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            <nav className="space-y-1">
+              {/* 1. Registration Requests */}
+              <button
+                onClick={() => {
+                  pushTab('requests');
+                  setEditingCollege(null);
+                  clearSelection();
+                  if (isMobile) setMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'requests'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Registration Requests"
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <Clock className="w-4 h-4 shrink-0" />
+                  {(isMobile || !sidebarCollapsed) && <span className="truncate">Registration Requests</span>}
+                </div>
+                {(isMobile || !sidebarCollapsed) && (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold transition-colors ${
+                    activeTab === 'requests' 
+                      ? 'bg-white text-emerald-700 shadow-xs' 
+                      : pendingCount > 0 
+                      ? 'bg-amber-500 text-white shadow-xs' 
+                      : 'bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                  }`}>
+                    {pendingCount}
+                  </span>
+                )}
+              </button>
+
+              {/* 2. Active Colleges */}
+              <button
+                onClick={() => {
+                  pushTab('active');
+                  setEditingCollege(null);
+                  clearSelection();
+                  if (isMobile) setMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'active'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Active Colleges"
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  {(isMobile || !sidebarCollapsed) && <span className="truncate">Active Colleges</span>}
+                </div>
+                {(isMobile || !sidebarCollapsed) && (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold transition-colors ${
                     activeTab === 'active'
-                      ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                  title="Active Colleges"
-                >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    {!sidebarCollapsed && <span className="truncate">Active Colleges</span>}
-                  </div>
-                  {!sidebarCollapsed && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                      {activeColleges.length}
-                    </span>
-                  )}
-                </button>
+                      ? 'bg-white text-emerald-700 shadow-xs'
+                      : 'bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                  }`}>
+                    {activeColleges.length}
+                  </span>
+                )}
+              </button>
 
-                {/* 3. Inactive Colleges */}
-                <button
-                  onClick={() => {
-                    pushTab('inactive');
-                    setEditingCollege(null);
-                    clearSelection();
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              {/* 3. Inactive Colleges */}
+              <button
+                onClick={() => {
+                  pushTab('inactive');
+                  setEditingCollege(null);
+                  clearSelection();
+                  if (isMobile) setMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'inactive'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Inactive Colleges"
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <XCircle className="w-4 h-4 shrink-0" />
+                  {(isMobile || !sidebarCollapsed) && <span className="truncate">Inactive Colleges</span>}
+                </div>
+                {(isMobile || !sidebarCollapsed) && (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold transition-colors ${
                     activeTab === 'inactive'
-                      ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                  title="Inactive Colleges"
-                >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <XCircle className="w-4 h-4 shrink-0" />
-                    {!sidebarCollapsed && <span className="truncate">Inactive Colleges</span>}
-                  </div>
-                </button>
+                      ? 'bg-white text-emerald-700 shadow-xs'
+                      : 'bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                  }`}>
+                    {inactiveColleges.length}
+                  </span>
+                )}
+              </button>
 
-                {/* 4. Expired Subscriptions */}
-                <button
-                  onClick={() => {
-                    pushTab('expired');
-                    setEditingCollege(null);
-                    clearSelection();
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              {/* 4. Expired Subscriptions */}
+              <button
+                onClick={() => {
+                  pushTab('expired');
+                  setEditingCollege(null);
+                  clearSelection();
+                  if (isMobile) setMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'expired'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Expired Subscriptions"
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  {(isMobile || !sidebarCollapsed) && <span className="truncate">Expired Subscriptions</span>}
+                </div>
+                {(isMobile || !sidebarCollapsed) && (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold transition-colors ${
                     activeTab === 'expired'
-                      ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                  title="Expired Subscriptions"
-                >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                    {!sidebarCollapsed && <span className="truncate">Expired Subscriptions</span>}
-                  </div>
-                </button>
-              </nav>
-            </div>
+                      ? 'bg-white text-emerald-700 shadow-xs'
+                      : expiredSubscriptions.length > 0
+                      ? 'bg-rose-500 text-white shadow-xs'
+                      : 'bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                  }`}>
+                    {expiredSubscriptions.length}
+                  </span>
+                )}
+              </button>
+            </nav>
+          </div>
+
+          {/* Master Data Management */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+            {(isMobile || !sidebarCollapsed) && (
+              <span className="px-3 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">
+                Master Data
+              </span>
+            )}
+            <nav className="space-y-1">
+              <button
+                onClick={() => {
+                  pushTab('drug_knowledge');
+                  setEditingCollege(null);
+                  clearSelection();
+                  if (isMobile) setMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'drug_knowledge'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Drug Knowledge Master"
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <Pill className="w-4 h-4 shrink-0" />
+                  {(isMobile || !sidebarCollapsed) && <span className="truncate">Drug Knowledge Master</span>}
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  pushTab('lab_knowledge');
+                  setEditingCollege(null);
+                  clearSelection();
+                  if (isMobile) setMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'lab_knowledge'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Lab Parameter Master"
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <FlaskConical className="w-4 h-4 shrink-0" />
+                  {(isMobile || !sidebarCollapsed) && <span className="truncate">Lab Parameter Master</span>}
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  pushTab('other_inv_knowledge');
+                  setEditingCollege(null);
+                  clearSelection();
+                  if (isMobile) setMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'other_inv_knowledge'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Other Investigation Master"
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <FileSearch className="w-4 h-4 shrink-0" />
+                  {(isMobile || !sidebarCollapsed) && <span className="truncate">Other Investigation Master</span>}
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  pushTab('ddi_knowledge');
+                  setEditingCollege(null);
+                  clearSelection();
+                  if (isMobile) setMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'ddi_knowledge'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Drug-Drug Interaction Master"
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <Layers className="w-4 h-4 shrink-0" />
+                  {(isMobile || !sidebarCollapsed) && <span className="truncate">Drug–Drug Interaction Master</span>}
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  pushTab('dfi_knowledge');
+                  setEditingCollege(null);
+                  clearSelection();
+                  if (isMobile) setMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'dfi_knowledge'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Drug-Food Interaction Master"
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <Utensils className="w-4 h-4 shrink-0" />
+                  {(isMobile || !sidebarCollapsed) && <span className="truncate">Drug–Food Interaction Master</span>}
+                </div>
+              </button>
+            </nav>
+          </div>
+
+          {/* Account & Security Management */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+            {(isMobile || !sidebarCollapsed) && (
+              <span className="px-3 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">
+                Account & Security
+              </span>
+            )}
+            <nav className="space-y-1">
+              <button
+                onClick={() => {
+                  pushTab('super_admin_profile');
+                  setEditingCollege(null);
+                  clearSelection();
+                  if (isMobile) setMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'super_admin_profile'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="My Profile & Security"
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <User className="w-4 h-4 shrink-0" />
+                  {(isMobile || !sidebarCollapsed) && <span className="truncate">My Profile & Security</span>}
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  pushTab('platform_settings');
+                  setEditingCollege(null);
+                  clearSelection();
+                  if (isMobile) setMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'platform_settings'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Platform Settings"
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <Globe className="w-4 h-4 shrink-0" />
+                  {(isMobile || !sidebarCollapsed) && <span className="truncate">Platform Settings</span>}
+                </div>
+              </button>
+            </nav>
           </div>
         </div>
+      </div>
 
-        {/* Sidebar Bottom Actions */}
-        <div className="p-3 border-t border-slate-100 dark:border-slate-800 space-y-1">
-          <button
-            onClick={onExitToLanding}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            title="Return to Landing Page"
-          >
-            <ArrowLeft className="w-4 h-4 shrink-0" />
-            {!sidebarCollapsed && <span>Landing Page</span>}
-          </button>
+      {/* Sidebar Bottom Actions */}
+      <div className="p-3 border-t border-slate-100 dark:border-slate-800 space-y-1">
+        <button
+          onClick={() => {
+            if (isMobile) setMobileSidebarOpen(false);
+            onExitToLanding();
+          }}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          title="Return to Landing Page"
+        >
+          <ArrowLeft className="w-4 h-4 shrink-0" />
+          {(isMobile || !sidebarCollapsed) && <span>Landing Page</span>}
+        </button>
 
-          <button
-            onClick={() => setShowLogoutConfirm(true)}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors"
-            title="Sign Out Super Admin"
-          >
-            <LogOut className="w-4 h-4 shrink-0" />
-            {!sidebarCollapsed && <span>Sign Out</span>}
-          </button>
-        </div>
+        <button
+          onClick={() => {
+            if (isMobile) setMobileSidebarOpen(false);
+            setShowLogoutConfirm(true);
+          }}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer"
+          title="Sign Out Super Admin"
+        >
+          <LogOut className="w-4 h-4 shrink-0" />
+          {(isMobile || !sidebarCollapsed) && <span>Sign Out</span>}
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 flex font-sans transition-colors duration-300">
+      
+      {/* 1A. DESKTOP SIDEBAR (FIXED FOR DESKTOP ONLY) */}
+      <aside 
+        className={`hidden lg:flex fixed top-0 left-0 bottom-0 z-40 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 transition-all duration-300 flex-col justify-between ${
+          sidebarCollapsed ? 'w-20' : 'w-64'
+        }`}
+      >
+        {renderSidebarContent(false)}
       </aside>
+
+      {/* 1B. MOBILE OFF-CANVAS SIDEBAR DRAWER (MOBILE ONLY ≤768px) */}
+      <aside 
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 transition-transform duration-300 transform lg:hidden flex flex-col justify-between ${
+          mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {renderSidebarContent(true)}
+      </aside>
+
+      {/* 1C. MOBILE OVERLAY */}
+      {mobileSidebarOpen && (
+        <div 
+          onClick={() => setMobileSidebarOpen(false)}
+          className="fixed inset-0 z-30 bg-slate-900/60 backdrop-blur-xs lg:hidden"
+        />
+      )}
 
       {/* 2. MAIN CONTENT WRAPPER */}
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${
-        sidebarCollapsed ? 'ml-20' : 'ml-64'
+        sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'
       }`}>
         
         {/* Top Header Bar */}
-        <header className="h-16 px-6 bg-white/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-30 backdrop-blur-md flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <header className="h-16 px-4 sm:px-6 bg-white/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-30 backdrop-blur-md flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => setMobileSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
+              title="Open navigation menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
             {sidebarCollapsed && (
               <button
                 onClick={() => setSidebarCollapsed(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
                 title="Expand sidebar"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
             )}
 
-            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
               <span className="hidden sm:inline">Governance / College Management / </span>
               <strong className="text-slate-900 dark:text-white capitalize">
                 {activeTab === 'edit_profile' ? 'Edit College Profile' : activeTab.replace('_', ' ')}
@@ -391,15 +645,15 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {activeTab !== 'edit_profile' && (
-              <div className="relative w-48 sm:w-64">
+              <div className="relative w-32 sm:w-64">
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Filter colleges..."
+                  placeholder="Filter..."
                   className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                 />
               </div>
@@ -407,23 +661,29 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
 
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0 cursor-pointer"
               title="Toggle Light/Dark Mode"
             >
-              {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+              {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
             </button>
 
-            <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800 shrink-0">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-800">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Super Admin Workspace</span>
+                <img
+                  src={platformLogoUrl}
+                  alt={`${platformName} Logo`}
+                  className="w-4 h-4 object-contain shrink-0"
+                  onError={(e) => { e.target.src = '/pharmdverse-logo.png'; }}
+                />
+                <span className="hidden sm:inline">Super Admin Workspace</span>
+                <span className="sm:hidden">Super Admin</span>
               </span>
             </div>
           </div>
         </header>
 
         {/* Dashboard Main View Container */}
-        <main className="p-6 max-w-7xl w-full mx-auto space-y-6 flex-1">
+        <main className="p-4 sm:p-6 max-w-7xl w-full mx-auto space-y-6 flex-1 min-w-0">
           
           {/* SUPER ADMIN WELCOME CARD */}
           {activeTab !== 'edit_profile' && (
@@ -431,8 +691,13 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
               <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
 
               <div className="flex flex-col sm:flex-row items-start gap-6 relative z-10">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-tr from-blue-600 to-emerald-500 flex items-center justify-center text-white font-extrabold text-2xl shadow-md border-2 border-blue-400/60 p-0.5 shrink-0">
-                  SA
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2 flex items-center justify-center shrink-0 shadow-md">
+                  <img
+                    src={platformLogoUrl}
+                    alt={`${platformName} Logo`}
+                    className="max-w-full max-h-full object-contain"
+                    onError={(e) => { e.target.src = '/pharmdverse-logo.png'; }}
+                  />
                 </div>
 
                 <div className="space-y-2 flex-1 min-w-0">
@@ -461,7 +726,9 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
                     <span className="text-slate-300 dark:text-slate-700">•</span>
                     <div>
                       <span className="text-slate-500 dark:text-slate-400">Pending Requests: </span>
-                      <strong className="text-amber-600 dark:text-amber-400 font-bold">{pendingRequests.length} Applications</strong>
+                      <strong className="text-amber-600 dark:text-amber-400 font-bold">
+                        {pendingCount > 0 ? `${pendingCount} Pending (${pendingRequests.length} Total)` : `0 Pending (${pendingRequests.length} Total)`}
+                      </strong>
                     </div>
                   </div>
                 </div>
@@ -471,7 +738,7 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
 
           {/* FLOATING BULK DELETE BAR (FOR ACTIVE COLLEGES ONLY) */}
           {selectedIds.length > 0 && activeTab !== 'requests' && activeTab !== 'edit_profile' && (
-            <div className="p-4 rounded-2xl bg-slate-900 text-white dark:bg-slate-800 border border-slate-700 shadow-xl flex items-center justify-between animate-fadeIn sticky top-20 z-20">
+            <div className="p-4 rounded-2xl bg-slate-900 text-white dark:bg-slate-800 border border-slate-700 shadow-xl flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 animate-fadeIn sticky top-20 z-20">
               <div className="flex items-center gap-3">
                 <span className="w-7 h-7 rounded-lg bg-emerald-500 text-slate-950 font-extrabold text-xs flex items-center justify-center">
                   {selectedIds.length}
@@ -484,14 +751,14 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
               <div className="flex items-center gap-3">
                 <button
                   onClick={clearSelection}
-                  className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-300 text-xs font-semibold transition-colors"
+                  className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Clear Selection
                 </button>
 
                 <button
                   onClick={() => setShowBulkDeleteConfirm(true)}
-                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold flex items-center gap-2 shadow-md shadow-rose-600/30 transition-all transform hover:-translate-y-0.5"
+                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold flex items-center gap-2 shadow-md shadow-rose-600/30 transition-all transform hover:-translate-y-0.5 cursor-pointer"
                 >
                   <Trash2 className="w-4 h-4" />
                   <span>Delete Selected ({selectedIds.length})</span>
@@ -540,6 +807,48 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
                 }}
               />
             </div>
+          )}
+
+          {/* TAB 0: DRUG KNOWLEDGE MASTER MANAGEMENT */}
+          {activeTab === 'drug_knowledge' && (
+            <DrugKnowledgeManagementView />
+          )}
+
+          {/* TAB 0B: LAB PARAMETER KNOWLEDGE MASTER MANAGEMENT */}
+          {activeTab === 'lab_knowledge' && (
+            <LabKnowledgeManagementView />
+          )}
+
+          {/* TAB 0C: OTHER INVESTIGATION KNOWLEDGE MASTER MANAGEMENT */}
+          {activeTab === 'other_inv_knowledge' && (
+            <OtherInvestigationManagementView />
+          )}
+
+          {/* TAB 0D: DRUG-DRUG INTERACTION KNOWLEDGE MASTER MANAGEMENT */}
+          {activeTab === 'ddi_knowledge' && (
+            <DrugDrugInteractionManagementView />
+          )}
+
+          {/* TAB 0E: DRUG-FOOD INTERACTION KNOWLEDGE MASTER MANAGEMENT */}
+          {activeTab === 'dfi_knowledge' && (
+            <DrugFoodInteractionManagementView />
+          )}
+
+          {/* TAB 0F: SUPER ADMIN MY PROFILE & SECURITY */}
+          {activeTab === 'super_admin_profile' && (
+            <SuperAdminProfileView
+              admin={getActiveAdminSession()}
+              onProfileUpdated={() => {
+                // Re-render
+              }}
+              onExitToLanding={onExitToLanding}
+              onBack={popTab}
+            />
+          )}
+
+          {/* TAB 0G: SUPER ADMIN PLATFORM IDENTITY & GLOBAL SETTINGS */}
+          {activeTab === 'platform_settings' && (
+            <PlatformSettingsManagementView onBack={popTab} />
           )}
 
           {/* TAB 1: REGISTRATION REQUESTS (ONLY APPROVE AND REJECT WITH COMMENTS - NO EDIT/DELETE) */}

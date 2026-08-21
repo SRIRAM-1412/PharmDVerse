@@ -603,15 +603,21 @@ export const MyClinicalCasesView = ({ student, initialFilter = 'All', targetCase
                             {(c.status === 'Draft' || c.status === 'Returned') && (
                               <button
                                 onClick={() => handleSubmitCase(c)}
+                                disabled={actionLoading}
                                 className={`px-3.5 py-1.5 rounded-xl font-extrabold text-[11px] flex items-center gap-1.5 shadow-xs transition-all text-white ${
+                                  actionLoading ? 'opacity-50 cursor-not-allowed bg-slate-400' :
                                   c.status === 'Returned'
                                     ? 'bg-violet-600 hover:bg-violet-700'
                                     : 'bg-emerald-600 hover:bg-emerald-700'
                                 }`}
                                 title={c.status === 'Returned' ? 'Resubmit Clinical Case with Corrections' : 'Submit Clinical Case'}
                               >
-                                <Send className="w-3.5 h-3.5" />
-                                <span>{c.status === 'Returned' ? '⚡ Resubmit Case' : 'Submit Case'}</span>
+                                {actionLoading ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Send className="w-3.5 h-3.5" />
+                                )}
+                                <span>{actionLoading ? 'Submitting...' : (c.status === 'Returned' ? '⚡ Resubmit Case' : 'Submit Case')}</span>
                               </button>
                             )}
                           </div>

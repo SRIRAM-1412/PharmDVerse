@@ -6,7 +6,7 @@
  * drug-specific knowledge retrieved from clinicalKnowledgeService.js.
  */
 
-import { resolveClinicalEntityKnowledge } from './clinicalKnowledgeService';
+import { resolveClinicalEntityKnowledge } from './clinicalKnowledgeService.js';
 
 /**
  * Evaluates independent pairwise drug interactions between two clinical entities.
@@ -241,6 +241,54 @@ export const synthesizeSection4DrugAiInterpretation = ({ norm = {}, drugKnowledg
   const adverseEffectConcerns = [];
   const doseAssessments = [];
   const monitoringPriorities = [];
+  const diagnosticFindings = [];
+
+  // Extract Diagnostic & Radiological Findings (Structured vs Legacy Deduplicated Context)
+  const otherInvData = norm.otherInvestigations || {};
+  if (otherInvData.isStructured && Array.isArray(otherInvData.structuredList) && otherInvData.structuredList.length > 0) {
+    otherInvData.structuredList.forEach((inv, idx) => {
+      const invName = inv.investigation_name || `Diagnostic Test ${idx + 1}`;
+      const finding = inv.finding_result || 'Result not documented';
+      const dateStr = inv.test_date && inv.test_date !== '—' ? ` (${inv.test_date})` : '';
+      const master = inv.master_knowledge || {};
+
+      diagnosticFindings.push({
+        s_no: idx + 1,
+        investigation_name: invName,
+        test_date: inv.test_date || '—',
+        patient_finding: finding,
+        remarks: inv.remarks || null,
+        master_expected_findings: master.expected_findings || null,
+        master_clinical_significance: master.clinical_significance || null,
+        source: 'Structured Patient Record'
+      });
+
+      // Contextual synthesis: Check if cardiac/renal diagnostic findings compound medication risks
+      const findingLower = finding.toLowerCase();
+      if (findingLower.includes('lvef') || findingLower.includes('ef') || findingLower.includes('dcm') || findingLower.includes('hypokinesia') || findingLower.includes('failure')) {
+        mrpList.push({
+          category: 'Diagnostic Finding / Cardiac Ejection Fraction Assessment',
+          priority: 'High Priority',
+          medicationsInvolved: 'Cardiovascular Regimen',
+          caseEvidence: `Documented ${invName}${dateStr}: "${finding}"`,
+          pharmacologicalRationale: master.clinical_significance || 'Database Fact: Impaired ejection fraction / wall motion abnormality requires guideline-directed medical therapy (GDMT) optimization.',
+          suggestedConsideration: 'Evaluate optimization of GDMT quadruplet therapy (Beta-blocker, ARNI/ACEi, MRA, SGLT2i) and monitor fluid status & blood pressure.',
+          confidence: 'HIGH CONFIDENCE'
+        });
+      }
+    });
+  } else if (otherInvData.legacyText) {
+    diagnosticFindings.push({
+      s_no: 1,
+      investigation_name: 'Radiological / Other Investigations (Legacy)',
+      test_date: '—',
+      patient_finding: otherInvData.legacyText,
+      remarks: 'Legacy free-text fallback record',
+      master_expected_findings: null,
+      master_clinical_significance: null,
+      source: 'Legacy Text Fallback'
+    });
+  }
 
   const foundCount = drugKnowledgeResults.filter(r => r.status === 'FOUND').length;
   const notFoundCount = drugKnowledgeResults.filter(r => r.status === 'NOT_FOUND').length;
@@ -509,6 +557,7 @@ export const synthesizeSection4DrugAiInterpretation = ({ norm = {}, drugKnowledg
     adverseEffectConcerns,
     doseAssessments,
     monitoringPriorities,
+    diagnosticFindings,
     mrpList,
     educationalDisclaimer: 'This AI-generated analysis is provided exclusively for student educational reference and learning. It must not be used as a substitute for professional clinical judgment, physician prescribing, or preceptor supervision.'
   };

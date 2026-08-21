@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { ModalWrapper } from './ModalWrapper';
-import { authenticatePreceptorInSupabase } from '../../services/supabaseService';
+import { authenticatePreceptorInSupabase, checkExistingActiveSessionInSupabase, createActiveSessionInSupabase, invalidateAndCreateNewActiveSessionInSupabase } from '../../services/supabaseService';
 import { Eye, EyeOff, LogIn, AlertTriangle, Loader2, CheckCircle2 } from 'lucide-react';
 import { LogoPreviewModal } from './LogoPreviewModal';
 import { LoginHeader } from './LoginHeader';
+import { SessionConflictModal } from './SessionConflictModal';
 
 export const PreceptorLoginModal = ({ isOpen, onClose, initialCollege, onLoginSuccess }) => {
   const [username, setUsername] = useState('');
@@ -14,6 +15,11 @@ export const PreceptorLoginModal = ({ isOpen, onClose, initialCollege, onLoginSu
   const [fieldErrors, setFieldErrors] = useState({});
   const [successMsg, setSuccessMsg] = useState('');
   const [showLogoModal, setShowLogoModal] = useState(false);
+
+  // Active Session Conflict State
+  const [showConflictModal, setShowConflictModal] = useState(false);
+  const [pendingPreceptor, setPendingPreceptor] = useState(null);
+  const [conflictLoading, setConflictLoading] = useState(false);
 
   const collegeName = initialCollege?.name || initialCollege?.college_name || 'Pharmacy College';
 
@@ -38,17 +44,45 @@ export const PreceptorLoginModal = ({ isOpen, onClose, initialCollege, onLoginSu
     setLoggingIn(true);
     const targetCollegeId = initialCollege?.id || null;
     const res = await authenticatePreceptorInSupabase(username.trim(), password.trim(), targetCollegeId);
-    setLoggingIn(false);
 
     if (res.success && res.preceptor) {
-      setSuccessMsg('✅ Login successful! Redirecting to Preceptor Portal...');
-      setTimeout(() => {
-        setSuccessMsg('');
-        if (onLoginSuccess) onLoginSuccess(res.preceptor);
-        if (onClose) onClose();
-      }, 1000);
+      const activeCheck = await checkExistingActiveSessionInSupabase(res.preceptor.id, 'preceptor');
+      setLoggingIn(false);
+
+      if (activeCheck.hasActiveSession) {
+        setPendingPreceptor(res.preceptor);
+        setShowConflictModal(true);
+      } else {
+        const sessionRes = await createActiveSessionInSupabase(res.preceptor.id, 'preceptor');
+        completeLogin(res.preceptor, sessionRes.sessionToken);
+      }
     } else {
+      setLoggingIn(false);
       setErrorMsg(res.error || 'Invalid Email or Password.');
+    }
+  };
+
+  const completeLogin = (preceptorObj, token) => {
+    setSuccessMsg('✅ Login successful! Redirecting to Preceptor Portal...');
+    setTimeout(() => {
+      setSuccessMsg('');
+      if (onLoginSuccess) onLoginSuccess(preceptorObj, token);
+      if (onClose) onClose();
+    }, 800);
+  };
+
+  const handleForceContinue = async () => {
+    if (!pendingPreceptor) return;
+    setConflictLoading(true);
+    const sessionRes = await invalidateAndCreateNewActiveSessionInSupabase(pendingPreceptor.id, 'preceptor');
+    setConflictLoading(false);
+    setShowConflictModal(false);
+
+    if (sessionRes.success) {
+      completeLogin(pendingPreceptor, sessionRes.sessionToken);
+      setPendingPreceptor(null);
+    } else {
+      setErrorMsg('Failed to establish new session. Please try again.');
     }
   };
 
@@ -201,6 +235,16 @@ export const PreceptorLoginModal = ({ isOpen, onClose, initialCollege, onLoginSu
         </form>
       </ModalWrapper>
       <LogoPreviewModal isOpen={showLogoModal} onClose={() => setShowLogoModal(false)} />
+      <SessionConflictModal
+        isOpen={showConflictModal}
+        userRole="preceptor"
+        loading={conflictLoading}
+        onCancel={() => {
+          setShowConflictModal(false);
+          setPendingPreceptor(null);
+        }}
+        onForceContinue={handleForceContinue}
+      />
     </>
   );
 };

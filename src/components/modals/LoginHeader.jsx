@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, ShieldAlert } from 'lucide-react';
+import { usePlatform } from '../../context/PlatformContext';
 
 export const LoginHeader = ({
   college,
@@ -8,9 +9,11 @@ export const LoginHeader = ({
   onClose,
   isSuperAdmin = false
 }) => {
+  const { platformSettings } = usePlatform();
   const collegeLogoUrl = college?.logoUrl || college?.college_logo_url;
   const collegeName = college?.name || college?.college_name || 'Pharmacy College';
   const collegeInitials = college?.initials || (collegeName ? collegeName.substring(0, 3).toUpperCase() : 'CLG');
+  const platformName = platformSettings?.platform_name || 'PharmDVerse';
 
   return (
     <div className="flex items-center justify-between px-5 sm:px-8 py-4 sm:py-5 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-900/60 transition-colors">
@@ -33,7 +36,7 @@ export const LoginHeader = ({
 
         <div className="min-w-0">
           <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white tracking-tight leading-snug truncate uppercase">
-            {isSuperAdmin ? 'PharmDVerse Master System' : collegeName}{' '}
+            {isSuperAdmin ? `${platformName} Master System` : collegeName}{' '}
             <span className="text-emerald-600 dark:text-emerald-400 font-bold capitalize">| {portalTitle}</span>
           </h3>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">

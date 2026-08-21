@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, GraduationCap, User, LogOut, Sun, Moon, Menu, X, Stethoscope, ShieldCheck, Bell, FolderKanban } from 'lucide-react';
+import { LayoutDashboard, GraduationCap, User, LogOut, Sun, Moon, Menu, X, Stethoscope, ShieldCheck, Bell, FolderKanban, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 import { PreceptorDashboardView } from './PreceptorDashboardView';
@@ -11,12 +11,16 @@ import { LeaveWorkspaceModal } from '../modals/LeaveWorkspaceModal';
 import { LogoutConfirmModal } from '../modals/LogoutConfirmModal';
 import { LogoPreviewModal } from '../modals/LogoPreviewModal';
 import { useWorkspaceHistory } from '../../hooks/useWorkspaceHistory';
+import { usePlatform } from '../../context/PlatformContext';
 
 import { fetchUnreadNotificationsCountFromSupabase } from '../../services/supabaseService';
 
 export const PreceptorLayout = ({ preceptor, onLogout }) => {
   const { isDark, toggleTheme } = useTheme();
-  const { activeTab, setActiveTab, pushTab, showLeaveModal, setShowLeaveModal } = useWorkspaceHistory('dashboard');
+  const { platformSettings } = usePlatform();
+  const platformLogoUrl = platformSettings?.logo_url || '/pharmdverse-logo.png';
+  const { activeTab, setActiveTab, pushTab, popTab, showLeaveModal, setShowLeaveModal } = useWorkspaceHistory('dashboard');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [preceptorCaseFilter, setPreceptorCaseFilter] = useState('All');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -62,40 +66,51 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
     <div className="min-h-screen bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 font-sans flex flex-col transition-colors duration-300">
       
       {/* 1. SIDEBAR */}
-      <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-        mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      <aside className={`fixed inset-y-0 left-0 z-40 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 transition-all duration-300 ease-in-out lg:translate-x-0 ${
+        sidebarCollapsed ? 'lg:w-20' : 'lg:w-64'
+      } ${
+        mobileSidebarOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full'
       }`}>
         <div className="h-full flex flex-col justify-between">
           
           {/* SIDEBAR BRANDING HEADER */}
-          <div className="h-16 px-5 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="h-16 px-4 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-3 min-w-0">
               {preceptor?.profile_photo_url ? (
                 <img
                   src={preceptor.profile_photo_url}
                   alt={preceptor.full_name}
-                  className="w-8 h-8 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-xs"
+                  className="w-8 h-8 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-xs shrink-0"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-600 to-blue-700 flex items-center justify-center text-white font-extrabold text-xs shadow-xs">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-600 to-blue-700 flex items-center justify-center text-white font-extrabold text-xs shadow-xs shrink-0">
                   {preceptor?.full_name ? preceptor.full_name.substring(0, 2).toUpperCase() : 'PR'}
                 </div>
               )}
-              <div>
-                <strong className="block text-xs font-extrabold text-slate-900 dark:text-white truncate max-w-[130px]">
-                  {preceptor?.full_name || 'Preceptor'}
-                </strong>
-                <span className="text-[10px] font-semibold text-cyan-600 dark:text-cyan-400">
-                  {preceptor?.department || 'Clinical Evaluator'}
-                </span>
-              </div>
+              {!sidebarCollapsed && (
+                <div className="min-w-0">
+                  <strong className="block text-xs font-extrabold text-slate-900 dark:text-white truncate max-w-[130px]">
+                    {preceptor?.full_name || 'Preceptor'}
+                  </strong>
+                  <span className="text-[10px] font-semibold text-cyan-600 dark:text-cyan-400 block truncate">
+                    {preceptor?.department || 'Clinical Evaluator'}
+                  </span>
+                </div>
+              )}
             </div>
 
             <button
-              onClick={() => setMobileSidebarOpen(false)}
-              className="lg:hidden p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              onClick={() => {
+                if (window.innerWidth <= 1024) {
+                  setMobileSidebarOpen(false);
+                } else {
+                  setSidebarCollapsed(!sidebarCollapsed);
+                }
+              }}
+              className="p-2 ml-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer shrink-0"
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              <X className="w-5 h-5" />
+              {sidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
             </button>
           </div>
 
@@ -105,57 +120,63 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
             {/* Dashboard */}
             <button
               onClick={() => handleNavigate('dashboard')}
-              className={`w-full h-11 px-3.5 rounded-xl flex items-center gap-3 transition-all ${
+              title="Dashboard"
+              className={`w-full h-11 rounded-xl flex items-center ${sidebarCollapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
                 activeTab === 'dashboard'
                   ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/20'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <LayoutDashboard className="w-4 h-4 shrink-0" />
-              <span>Dashboard</span>
+              {!sidebarCollapsed && <span>Dashboard</span>}
             </button>
 
             {/* Assigned Students */}
             <button
               onClick={() => handleNavigate('assigned-students')}
-              className={`w-full h-11 px-3.5 rounded-xl flex items-center gap-3 transition-all ${
+              title="Assigned Students"
+              className={`w-full h-11 rounded-xl flex items-center ${sidebarCollapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
                 activeTab === 'assigned-students'
                   ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/20'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <GraduationCap className="w-4 h-4 shrink-0" />
-              <span>Assigned Students</span>
+              {!sidebarCollapsed && <span>Assigned Students</span>}
             </button>
 
             {/* Clinical Case Review */}
             <button
               onClick={() => handleNavigate('case-review')}
-              className={`w-full h-11 px-3.5 rounded-xl flex items-center gap-3 transition-all ${
+              title="Clinical Case Review"
+              className={`w-full h-11 rounded-xl flex items-center ${sidebarCollapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
                 activeTab === 'case-review'
                   ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/20'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <FolderKanban className="w-4 h-4 shrink-0" />
-              <span>Clinical Case Review</span>
+              {!sidebarCollapsed && <span>Clinical Case Review</span>}
             </button>
 
             {/* Notifications */}
             <button
               onClick={() => handleNavigate('notifications')}
-              className={`w-full h-11 px-3.5 rounded-xl flex items-center justify-between transition-all ${
+              title="Notifications"
+              className={`w-full h-11 rounded-xl flex items-center ${sidebarCollapsed ? 'justify-center px-0 relative' : 'px-3.5 justify-between'} transition-all ${
                 activeTab === 'notifications'
                   ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/20'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <div className="flex items-center gap-3">
+              <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
                 <Bell className="w-4 h-4 shrink-0" />
-                <span>Notifications</span>
+                {!sidebarCollapsed && <span>Notifications</span>}
               </div>
               {unreadCount > 0 && (
-                <span className="h-5 px-1.5 min-w-[20px] rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center shadow-sm leading-none shrink-0 animate-pulse">
+                <span className={`h-5 px-1.5 min-w-[20px] rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center shadow-sm leading-none shrink-0 animate-pulse ${
+                  sidebarCollapsed ? 'absolute -top-1 -right-1' : ''
+                }`}>
                   {unreadCount}
                 </span>
               )}
@@ -164,14 +185,15 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
             {/* My Profile */}
             <button
               onClick={() => handleNavigate('profile')}
-              className={`w-full h-11 px-3.5 rounded-xl flex items-center gap-3 transition-all ${
+              title="My Profile"
+              className={`w-full h-11 rounded-xl flex items-center ${sidebarCollapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
                 activeTab === 'profile'
                   ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/20'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <User className="w-4 h-4 shrink-0" />
-              <span>My Profile</span>
+              {!sidebarCollapsed && <span>My Profile</span>}
             </button>
 
           </nav>
@@ -180,21 +202,25 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
           <div className="p-3 border-t border-slate-200/80 dark:border-slate-800 space-y-2">
             <button
               onClick={toggleTheme}
-              className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center justify-between transition-colors"
+              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              className={`w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center ${sidebarCollapsed ? 'justify-center px-0' : 'px-3 justify-between'} transition-colors cursor-pointer`}
             >
-              <div className="flex items-center gap-2">
+              <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-2'}`}>
                 {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
-                <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+                {!sidebarCollapsed && <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>}
               </div>
-              <span className="text-[10px] uppercase font-bold text-slate-400">{isDark ? 'ON' : 'OFF'}</span>
+              {!sidebarCollapsed && (
+                <span className="text-[10px] uppercase font-bold text-slate-400">{isDark ? 'ON' : 'OFF'}</span>
+              )}
             </button>
 
             <button
               onClick={() => setShowLogoutConfirm(true)}
-              className="w-full h-10 px-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center justify-center gap-2 transition-colors"
+              title="Logout"
+              className={`w-full h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center justify-center ${sidebarCollapsed ? 'px-0' : 'px-3 gap-2'} transition-colors cursor-pointer`}
             >
-              <LogOut className="w-4 h-4" />
-              <span>Logout</span>
+              <LogOut className="w-4 h-4 shrink-0" />
+              {!sidebarCollapsed && <span>Logout</span>}
             </button>
           </div>
 
@@ -210,14 +236,21 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
       )}
 
       {/* 2. MAIN CONTENT AREA */}
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
         
         {/* TOPBAR */}
         <header className="h-16 px-4 sm:px-8 bg-white/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-20 backdrop-blur-md flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setMobileSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              onClick={() => {
+                if (window.innerWidth <= 1024) {
+                  setMobileSidebarOpen(true);
+                } else {
+                  setSidebarCollapsed(!sidebarCollapsed);
+                }
+              }}
+              className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              title="Toggle Sidebar"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -242,7 +275,12 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
 
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800">
-              <ShieldCheck className="w-3.5 h-3.5" />
+              <img
+                src={platformLogoUrl}
+                alt="Platform Logo"
+                className="w-4 h-4 object-contain shrink-0"
+                onError={(e) => { e.target.src = '/pharmdverse-logo.png'; }}
+              />
               <span>Preceptor Workspace</span>
             </span>
           </div>
@@ -250,6 +288,18 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
 
         {/* VIEW ROUTER */}
         <main className="flex-1 p-4 sm:p-8">
+          {activeTab !== 'dashboard' && (
+            <div className="mb-6 mt-1">
+              <button
+                onClick={() => popTab ? popTab() : handleNavigate('dashboard')}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200/90 dark:border-slate-700/80 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                <span>Back</span>
+              </button>
+            </div>
+          )}
+
           {activeTab === 'dashboard' && (
             <PreceptorDashboardView preceptor={preceptor} onNavigate={handleNavigate} />
           )}

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { ModalWrapper } from './ModalWrapper';
-import { authenticateStudentInSupabase } from '../../services/supabaseService';
+import { authenticateStudentInSupabase, checkExistingActiveSessionInSupabase, createActiveSessionInSupabase, invalidateAndCreateNewActiveSessionInSupabase } from '../../services/supabaseService';
 import { Eye, EyeOff, LogIn, AlertTriangle, Loader2, CheckCircle2 } from 'lucide-react';
 import { LogoPreviewModal } from './LogoPreviewModal';
 import { LoginHeader } from './LoginHeader';
+import { SessionConflictModal } from './SessionConflictModal';
 
 export const StudentLoginModal = ({ isOpen, onClose, initialCollege, onLoginSuccess }) => {
   const [username, setUsername] = useState('');
@@ -14,6 +15,11 @@ export const StudentLoginModal = ({ isOpen, onClose, initialCollege, onLoginSucc
   const [fieldErrors, setFieldErrors] = useState({});
   const [successMsg, setSuccessMsg] = useState('');
   const [showLogoModal, setShowLogoModal] = useState(false);
+
+  // Active Session Conflict State
+  const [showConflictModal, setShowConflictModal] = useState(false);
+  const [pendingStudent, setPendingStudent] = useState(null);
+  const [conflictLoading, setConflictLoading] = useState(false);
 
   const collegeName = initialCollege?.name || initialCollege?.college_name || 'Pharmacy College';
 
@@ -38,17 +44,46 @@ export const StudentLoginModal = ({ isOpen, onClose, initialCollege, onLoginSucc
     setLoggingIn(true);
     const targetCollegeId = initialCollege?.id || null;
     const res = await authenticateStudentInSupabase(username.trim(), password.trim(), targetCollegeId);
-    setLoggingIn(false);
 
     if (res.success && res.student) {
-      setSuccessMsg('✅ Login successful! Redirecting to Student Portal...');
-      setTimeout(() => {
-        setSuccessMsg('');
-        if (onLoginSuccess) onLoginSuccess(res.student);
-        if (onClose) onClose();
-      }, 1000);
+      // Check for active session
+      const activeCheck = await checkExistingActiveSessionInSupabase(res.student.id, 'student');
+      setLoggingIn(false);
+
+      if (activeCheck.hasActiveSession) {
+        setPendingStudent(res.student);
+        setShowConflictModal(true);
+      } else {
+        const sessionRes = await createActiveSessionInSupabase(res.student.id, 'student');
+        completeLogin(res.student, sessionRes.sessionToken);
+      }
     } else {
+      setLoggingIn(false);
       setErrorMsg(res.error || 'Invalid Username or Password.');
+    }
+  };
+
+  const completeLogin = (studentObj, token) => {
+    setSuccessMsg('✅ Login successful! Redirecting to Student Portal...');
+    setTimeout(() => {
+      setSuccessMsg('');
+      if (onLoginSuccess) onLoginSuccess(studentObj, token);
+      if (onClose) onClose();
+    }, 800);
+  };
+
+  const handleForceContinue = async () => {
+    if (!pendingStudent) return;
+    setConflictLoading(true);
+    const sessionRes = await invalidateAndCreateNewActiveSessionInSupabase(pendingStudent.id, 'student');
+    setConflictLoading(false);
+    setShowConflictModal(false);
+
+    if (sessionRes.success) {
+      completeLogin(pendingStudent, sessionRes.sessionToken);
+      setPendingStudent(null);
+    } else {
+      setErrorMsg('Failed to establish new session. Please try again.');
     }
   };
 
@@ -201,6 +236,16 @@ export const StudentLoginModal = ({ isOpen, onClose, initialCollege, onLoginSucc
         </form>
       </ModalWrapper>
       <LogoPreviewModal isOpen={showLogoModal} onClose={() => setShowLogoModal(false)} />
+      <SessionConflictModal
+        isOpen={showConflictModal}
+        userRole="student"
+        loading={conflictLoading}
+        onCancel={() => {
+          setShowConflictModal(false);
+          setPendingStudent(null);
+        }}
+        onForceContinue={handleForceContinue}
+      />
     </>
   );
 };

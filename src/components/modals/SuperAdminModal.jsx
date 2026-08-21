@@ -1,20 +1,26 @@
 import React, { useState } from 'react';
 import { ModalWrapper } from './ModalWrapper';
 import { authenticateSuperAdmin } from '../../services/authService';
+import { checkExistingActiveSessionInSupabase, createActiveSessionInSupabase, invalidateAndCreateNewActiveSessionInSupabase } from '../../services/supabaseService';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { LogoPreviewModal } from './LogoPreviewModal';
 import { LoginHeader } from './LoginHeader';
+import { SessionConflictModal } from './SessionConflictModal';
 
 export const SuperAdminModal = ({ isOpen, onClose, onLoginSuccess }) => {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showLogoModal, setShowLogoModal] = useState(false);
   
   const [loginErrors, setLoginErrors] = useState({});
   const [authError, setAuthError] = useState('');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+
+  // Active Session Conflict State
+  const [showConflictModal, setShowConflictModal] = useState(false);
+  const [pendingSuperAdmin, setPendingSuperAdmin] = useState(null);
+  const [conflictLoading, setConflictLoading] = useState(false);
 
   if (!isOpen) return null;
 
@@ -40,15 +46,44 @@ export const SuperAdminModal = ({ isOpen, onClose, onLoginSuccess }) => {
     setIsAuthenticating(true);
 
     const result = await authenticateSuperAdmin(loginEmail, loginPassword);
-    setIsAuthenticating(false);
 
-    if (result.success) {
-      setAuthError('');
-      setLoginPassword('');
-      onClose();
-      if (onLoginSuccess) onLoginSuccess();
+    if (result.success && result.superAdmin) {
+      // Single Active Session Check
+      const activeCheck = await checkExistingActiveSessionInSupabase(result.superAdmin.id, 'super_admin');
+      setIsAuthenticating(false);
+
+      if (activeCheck.hasActiveSession) {
+        setPendingSuperAdmin(result.superAdmin);
+        setShowConflictModal(true);
+      } else {
+        const sessionRes = await createActiveSessionInSupabase(result.superAdmin.id, 'super_admin');
+        completeLogin(sessionRes.sessionToken);
+      }
     } else {
+      setIsAuthenticating(false);
       setAuthError(result.error || 'Invalid email or password.');
+    }
+  };
+
+  const completeLogin = (token) => {
+    setAuthError('');
+    setLoginPassword('');
+    onClose();
+    if (onLoginSuccess) onLoginSuccess(token);
+  };
+
+  const handleForceContinue = async () => {
+    if (!pendingSuperAdmin) return;
+    setConflictLoading(true);
+    const sessionRes = await invalidateAndCreateNewActiveSessionInSupabase(pendingSuperAdmin.id, 'super_admin');
+    setConflictLoading(false);
+    setShowConflictModal(false);
+
+    if (sessionRes.success) {
+      completeLogin(sessionRes.sessionToken);
+      setPendingSuperAdmin(null);
+    } else {
+      setAuthError('Failed to establish new session. Please try again.');
     }
   };
 
@@ -204,6 +239,20 @@ export const SuperAdminModal = ({ isOpen, onClose, onLoginSuccess }) => {
           </form>
         </div>
       </ModalWrapper>
+
+      {/* ACTIVE SESSION CONFLICT MODAL */}
+      <SessionConflictModal
+        isOpen={showConflictModal}
+        onClose={() => {
+          setShowConflictModal(false);
+          setPendingSuperAdmin(null);
+        }}
+        onForceContinue={handleForceContinue}
+        userRole="Super Admin"
+        userName={pendingSuperAdmin?.name || pendingSuperAdmin?.email}
+        isLoading={conflictLoading}
+      />
+
       <LogoPreviewModal isOpen={showLogoModal} onClose={() => setShowLogoModal(false)} />
     </>
   );

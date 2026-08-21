@@ -1,10 +1,15 @@
 import React from 'react';
 import { useColleges } from '../context/CollegeContext';
+import { usePlatform } from '../context/PlatformContext';
 import { ShieldCheck, Check, MapPin, ExternalLink, Grid, Building2, ArrowRight } from 'lucide-react';
 
 export const Hero = ({ onOpenPortal, onOpenAllColleges, onOpenRegisterModal }) => {
   const { activeColleges } = useColleges();
+  const { platformSettings } = usePlatform();
   const featuredColleges = activeColleges.slice(0, 4);
+
+  const platformName = platformSettings?.platform_name || 'PharmDVerse';
+  const tagline = platformSettings?.tagline || 'Clinical Case Management Platform';
 
   return (
     <section id="hero" className="relative pt-20 pb-8 md:pt-24 md:pb-10 overflow-hidden">
@@ -20,7 +25,7 @@ export const Hero = ({ onOpenPortal, onOpenAllColleges, onOpenRegisterModal }) =
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100/80 dark:bg-emerald-950/60 border border-emerald-300/60 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-semibold tracking-wide shadow-xs">
               <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>Clinical Case Management Platform</span>
+              <span>{tagline}</span>
             </div>
 
             {/* Main Heading */}
@@ -33,7 +38,7 @@ export const Hero = ({ onOpenPortal, onOpenAllColleges, onOpenRegisterModal }) =
 
             {/* Description */}
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-normal max-w-xl">
-              PharmDVerse is a cloud-based ERP platform built exclusively for pharmacy colleges to streamline clinical case documentation, academic management, preceptor collaboration, and institutional workflows through one secure platform.
+              {platformName} is a cloud-based ERP platform built exclusively for pharmacy colleges to streamline clinical case documentation, academic management, preceptor collaboration, and institutional workflows through one secure platform.
             </p>
 
             {/* Display ONLY Three Badges Below Description */}
@@ -56,19 +61,19 @@ export const Hero = ({ onOpenPortal, onOpenAllColleges, onOpenRegisterModal }) =
 
             {/* REGISTER YOUR COLLEGE SECTION */}
             <div className="pt-2">
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-teal-950 text-white shadow-xl relative overflow-hidden border border-slate-700/60 space-y-3">
+              <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-sky-500/15 dark:from-slate-900 dark:via-slate-800/90 dark:to-teal-950/60 bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white shadow-xl relative overflow-hidden border border-emerald-200/80 dark:border-slate-700/60 space-y-3">
                 <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none" />
                 <div className="relative z-10 space-y-2">
-                  <h3 className="text-lg font-extrabold text-white tracking-tight leading-tight">
+                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
                     Register Your College Today
                   </h3>
-                  <p className="text-xs text-slate-300 leading-relaxed font-normal">
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
                     Digitize your pharmacy college with PharmDVerse and provide students, faculty, and preceptors with one unified clinical education platform.
                   </p>
                   <div className="pt-2">
                     <button
                       onClick={onOpenRegisterModal}
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold text-xs sm:text-sm shadow-md shadow-emerald-500/25 transition-all transform hover:-translate-y-0.5 cursor-pointer"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-emerald-500/20 transition-all transform hover:-translate-y-0.5 cursor-pointer"
                     >
                       <span>Register Your College</span>
                       <ArrowRight className="w-4 h-4 stroke-[3]" />
