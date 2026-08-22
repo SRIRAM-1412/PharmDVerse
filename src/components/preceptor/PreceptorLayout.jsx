@@ -28,6 +28,20 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
   const [showLogoModal, setShowLogoModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
+  // Body scroll lock effect when mobile sidebar drawer is open
+  useEffect(() => {
+    if (mobileSidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileSidebarOpen]);
+
+  const isCollapsedOnDesktop = sidebarCollapsed && !mobileSidebarOpen;
+
   const loadUnreadCount = async () => {
     if (!preceptor?.id) return;
     const res = await fetchUnreadNotificationsCountFromSupabase(preceptor.id);
@@ -87,7 +101,7 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
                   {preceptor?.full_name ? preceptor.full_name.substring(0, 2).toUpperCase() : 'PR'}
                 </div>
               )}
-              {!sidebarCollapsed && (
+              {!isCollapsedOnDesktop && (
                 <div className="min-w-0">
                   <strong className="block text-xs font-extrabold text-slate-900 dark:text-white truncate max-w-[130px]">
                     {preceptor?.full_name || 'Preceptor'}
@@ -121,61 +135,61 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
             <button
               onClick={() => handleNavigate('dashboard')}
               title="Dashboard"
-              className={`w-full h-11 rounded-xl flex items-center ${sidebarCollapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+              className={`w-full h-11 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
                 activeTab === 'dashboard'
                   ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/20'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <LayoutDashboard className="w-4 h-4 shrink-0" />
-              {!sidebarCollapsed && <span>Dashboard</span>}
+              {!isCollapsedOnDesktop && <span>Dashboard</span>}
             </button>
 
             {/* Assigned Students */}
             <button
               onClick={() => handleNavigate('assigned-students')}
               title="Assigned Students"
-              className={`w-full h-11 rounded-xl flex items-center ${sidebarCollapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+              className={`w-full h-11 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
                 activeTab === 'assigned-students'
                   ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/20'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <GraduationCap className="w-4 h-4 shrink-0" />
-              {!sidebarCollapsed && <span>Assigned Students</span>}
+              {!isCollapsedOnDesktop && <span>Assigned Students</span>}
             </button>
 
             {/* Clinical Case Review */}
             <button
               onClick={() => handleNavigate('case-review')}
               title="Clinical Case Review"
-              className={`w-full h-11 rounded-xl flex items-center ${sidebarCollapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+              className={`w-full h-11 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
                 activeTab === 'case-review'
                   ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/20'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <FolderKanban className="w-4 h-4 shrink-0" />
-              {!sidebarCollapsed && <span>Clinical Case Review</span>}
+              {!isCollapsedOnDesktop && <span>Clinical Case Review</span>}
             </button>
 
             {/* Notifications */}
             <button
               onClick={() => handleNavigate('notifications')}
               title="Notifications"
-              className={`w-full h-11 rounded-xl flex items-center ${sidebarCollapsed ? 'justify-center px-0 relative' : 'px-3.5 justify-between'} transition-all ${
+              className={`w-full h-11 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0 relative' : 'px-3.5 justify-between'} transition-all ${
                 activeTab === 'notifications'
                   ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/20'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
+              <div className={`flex items-center ${isCollapsedOnDesktop ? 'justify-center' : 'gap-3'}`}>
                 <Bell className="w-4 h-4 shrink-0" />
-                {!sidebarCollapsed && <span>Notifications</span>}
+                {!isCollapsedOnDesktop && <span>Notifications</span>}
               </div>
               {unreadCount > 0 && (
                 <span className={`h-5 px-1.5 min-w-[20px] rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center shadow-sm leading-none shrink-0 animate-pulse ${
-                  sidebarCollapsed ? 'absolute -top-1 -right-1' : ''
+                  isCollapsedOnDesktop ? 'absolute -top-1 -right-1' : ''
                 }`}>
                   {unreadCount}
                 </span>
@@ -186,14 +200,14 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
             <button
               onClick={() => handleNavigate('profile')}
               title="My Profile"
-              className={`w-full h-11 rounded-xl flex items-center ${sidebarCollapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+              className={`w-full h-11 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
                 activeTab === 'profile'
                   ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/20'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <User className="w-4 h-4 shrink-0" />
-              {!sidebarCollapsed && <span>My Profile</span>}
+              {!isCollapsedOnDesktop && <span>My Profile</span>}
             </button>
 
           </nav>
@@ -203,13 +217,13 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
             <button
               onClick={toggleTheme}
               title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-              className={`w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center ${sidebarCollapsed ? 'justify-center px-0' : 'px-3 justify-between'} transition-colors cursor-pointer`}
+              className={`w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3 justify-between'} transition-colors cursor-pointer`}
             >
-              <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-2'}`}>
+              <div className={`flex items-center ${isCollapsedOnDesktop ? 'justify-center' : 'gap-2'}`}>
                 {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
-                {!sidebarCollapsed && <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>}
+                {!isCollapsedOnDesktop && <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>}
               </div>
-              {!sidebarCollapsed && (
+              {!isCollapsedOnDesktop && (
                 <span className="text-[10px] uppercase font-bold text-slate-400">{isDark ? 'ON' : 'OFF'}</span>
               )}
             </button>
@@ -217,10 +231,10 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
             <button
               onClick={() => setShowLogoutConfirm(true)}
               title="Logout"
-              className={`w-full h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center justify-center ${sidebarCollapsed ? 'px-0' : 'px-3 gap-2'} transition-colors cursor-pointer`}
+              className={`w-full h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center justify-center ${isCollapsedOnDesktop ? 'px-0' : 'px-3 gap-2'} transition-colors cursor-pointer`}
             >
               <LogOut className="w-4 h-4 shrink-0" />
-              {!sidebarCollapsed && <span>Logout</span>}
+              {!isCollapsedOnDesktop && <span>Logout</span>}
             </button>
           </div>
 

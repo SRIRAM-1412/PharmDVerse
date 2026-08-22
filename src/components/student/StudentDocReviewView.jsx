@@ -878,7 +878,7 @@ export const StudentDocReviewView = ({ student, onNavigate, onOpenPatientProfile
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-16 min-w-0 w-full text-wrap break-words">
+    <div className="space-y-6 pb-16 min-w-0 w-full text-wrap break-words">
       
       {/* HEADER BANNER */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 min-w-0 w-full">

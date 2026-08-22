@@ -92,7 +92,7 @@ export const CollegeAdminDashboardView = ({ college, onNavigate }) => {
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn max-w-6xl mx-auto">
+    <div className="space-y-8 animate-fadeIn w-full">
       
       {/* COLLEGE BRANDING BANNER WITH TOP-RIGHT WORKFLOW PANEL */}
       <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-white via-slate-50 to-emerald-50/70 dark:from-[#0f172a] dark:via-slate-900 dark:to-emerald-950/40 text-slate-900 dark:text-white relative overflow-hidden shadow-md border border-slate-200/80 dark:border-slate-800">

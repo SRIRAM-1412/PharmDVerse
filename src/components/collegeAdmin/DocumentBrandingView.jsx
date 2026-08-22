@@ -378,7 +378,7 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
   }
 
   return (
-    <div className="space-y-6 animate-fadeIn max-w-7xl mx-auto">
+    <div className="space-y-6 animate-fadeIn w-full">
       
       {/* HEADER & ACTION BAR */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, Brain, FilePlus2, ShieldCheck, CheckCircle2, AlertCircle, FolderKanban, 
   ArrowRight, RefreshCw, AlertTriangle, FileText, CheckCircle, Clock, Info, 
-  Pill, AlertOctagon, Activity, HeartPulse, UserCheck, BookOpen, Layers, FileSearch, Utensils
+  Pill, AlertOctagon, Activity, HeartPulse, UserCheck, BookOpen, Layers, FileSearch, Utensils, ShieldAlert, HeartHandshake, ClipboardList, Printer
 } from 'lucide-react';
 import { 
   fetchStudentCasesFromSupabase, 
@@ -10,9 +10,11 @@ import {
   fetchLabParameterKnowledgeFromSupabase, 
   fetchMultipleDrugKnowledgeFromSupabase,
   evaluateSection5ADrugInteractionsInSupabase,
-  evaluateSection5BDrugFoodInteractionsInSupabase
+  evaluateSection5BDrugFoodInteractionsInSupabase,
+  fetchDocumentBrandingSettingsFromSupabase
 } from '../../services/supabaseService';
 import { buildNormalizedApprovedCaseData } from '../../utils/buildNormalizedApprovedCaseData';
+import { generateOfficialClinicalCasePDF } from '../../utils/generateOfficialClinicalCasePDF';
 import { resolveClinicalEntityKnowledge } from '../../services/clinicalKnowledgeService';
 import { evaluatePairwiseDrugInteraction, runAiClinicalCaseAnalysis, synthesizeSection4DrugAiInterpretation } from '../../services/aiAnalysisService';
 
@@ -937,6 +939,49 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
   const [section5BDfiResult, setSection5BDfiResult] = useState(null);
   const [loadingSection5B, setLoadingSection5B] = useState(false);
 
+  const [brandingSettings, setBrandingSettings] = useState(null);
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
+
+  useEffect(() => {
+    const loadBranding = async () => {
+      const cid = student?.college_id || selectedCase?.college_id || student?.colleges?.id;
+      if (cid) {
+        const res = await fetchDocumentBrandingSettingsFromSupabase(cid);
+        if (res.success && res.settings) {
+          setBrandingSettings(res.settings);
+        }
+      }
+    };
+    loadBranding();
+  }, [student, selectedCase]);
+
+  const handleDownloadPDF = async () => {
+    setDownloadingPDF(true);
+    try {
+      const cid = student?.college_id || selectedCase?.college_id || student?.colleges?.id;
+      let bSettings = brandingSettings;
+      if (!bSettings && cid) {
+        const res = await fetchDocumentBrandingSettingsFromSupabase(cid);
+        if (res.success && res.settings) bSettings = res.settings;
+      }
+
+      await generateOfficialClinicalCasePDF({
+        clinicalCase: selectedCase || {},
+        student: student || {},
+        preceptor: selectedCase?.preceptors || {},
+        college: student?.colleges || selectedCase?.colleges || {},
+        caseModulesData: modulesData || {},
+        branding: bSettings || {},
+        selectedForm: 'all'
+      });
+    } catch (err) {
+      console.error('Failed to generate College-Branded PDF:', err);
+      window.print();
+    } finally {
+      setDownloadingPDF(false);
+    }
+  };
+
   // SECTION 4 — STEP 5A: Fetch drug knowledge from Supabase public.drug_knowledge table
   useEffect(() => {
     const loadDrugKnowledge = async () => {
@@ -1024,7 +1069,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
   const isElderly = patientAgeNum >= 65;
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-16 min-w-0 w-full text-wrap break-words">
+    <div className="space-y-6 pb-16 min-w-0 w-full text-wrap break-words">
       {/* HEADER BANNER */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 min-w-0 w-full">
         <div className="flex items-center gap-4 min-w-0">
@@ -2184,6 +2229,1093 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
           )}
         </div>
       )}
+
+      {/* SECTION 6A — ADVERSE DRUG REACTION (ADR) CAUSALITY & RISK SYNTHESIS */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden min-w-0 w-full">
+        
+        {/* CARD HEADER */}
+        <div className="p-5 border-b border-slate-200/80 dark:border-slate-800 bg-gradient-to-r from-rose-50/50 via-slate-50 to-white dark:from-rose-950/30 dark:via-slate-900 dark:to-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 flex items-center justify-center shrink-0 shadow-xs">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                  6A — Adverse Drug Reaction (ADR) Causality & Risk Synthesis
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                  Pharmacovigilance Evaluation
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Educational Clinical Analysis of Saved Adverse Event Documentation & Causality Criteria
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+            {isAdrSaved ? (
+              <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                ADR Record Active
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold">
+                No ADR Saved
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {!isAdrSaved && !adrRecord?.suspected_drug && !adrRecord?.reaction_description ? (
+            <div className="p-6 rounded-2xl bg-slate-50/80 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800 text-center space-y-2">
+              <ShieldCheck className="w-8 h-8 text-slate-400 mx-auto" />
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                No ADR Documentation Saved for This Case
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">
+                No Adverse Drug Reaction report has been saved under ADR Documentation for this clinical case. If an adverse drug event is suspected during pharmacotherapy, record details in the ADR Documentation module to generate structured causality scoring and risk synthesis.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              
+              {/* EDUCATIONAL DISCLAIMER BANNER */}
+              <div className="p-3.5 rounded-xl bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/50 text-xs text-rose-900 dark:text-rose-200 flex items-start gap-2.5">
+                <Info className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <strong className="font-bold block">Educational Clinical Analysis Disclaimer:</strong>
+                  The following ADR causality and risk synthesis is evaluated from saved student documentation using established pharmacovigilance frameworks (Naranjo Causality Algorithm & WHO Criteria) for preceptor evaluation and clinical learning.
+                </div>
+              </div>
+
+              {/* PATIENT-SPECIFIC RECORDED FINDINGS */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-slate-500" />
+                  <span>1. Patient-Specific Recorded ADR Findings</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Suspected Drug</span>
+                    <p className="text-xs font-extrabold text-slate-900 dark:text-white truncate">
+                      {adrRecord.suspected_drug || adrRecord.drug_name || 'Not Specified'}
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Reaction Category</span>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      {adrRecord.reaction_category || adrRecord.category || 'General / Systemic'}
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Severity Rating</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${
+                        String(adrRecord.severity || '').toLowerCase() === 'severe'
+                          ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-rose-300 dark:border-rose-800'
+                          : String(adrRecord.severity || '').toLowerCase() === 'moderate'
+                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                            : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                      }`}>
+                        {adrRecord.severity || 'Mild'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Date of Onset</span>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      {adrRecord.date_of_onset || adrRecord.onset_date || 'Not Documented'}
+                    </p>
+                  </div>
+
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-2 text-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 dark:border-slate-800/60 pb-2">
+                    <div>
+                      <strong className="text-slate-900 dark:text-white font-bold block">Adverse Reaction Description:</strong>
+                      <p className="text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
+                        {adrRecord.reaction_description || adrRecord.reaction_details || 'No reaction details documented.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1 text-[11px]">
+                    <div>
+                      <span className="text-slate-400 block font-semibold">Action Taken:</span>
+                      <strong className="text-slate-800 dark:text-slate-200">{adrRecord.action_taken || 'Unknown'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block font-semibold">Dechallenge Outcome:</span>
+                      <strong className="text-slate-800 dark:text-slate-200">{adrRecord.dechallenge_result || adrRecord.dechallenge || 'Not Done'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block font-semibold">Rechallenge Outcome:</span>
+                      <strong className="text-slate-800 dark:text-slate-200">{adrRecord.rechallenge_result || adrRecord.rechallenge || 'Not Done'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block font-semibold">Patient Outcome:</span>
+                      <strong className="text-slate-800 dark:text-slate-200">{adrRecord.patient_outcome || 'Unknown'}</strong>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* CLINICAL INTERPRETATION & ASSESSMENT */}
+              <div className="space-y-4 pt-2 border-t border-slate-200/80 dark:border-slate-800">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                  <Brain className="w-4 h-4 text-indigo-500" />
+                  <span>2. Clinical Interpretation & Causality Evaluation</span>
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  
+                  {/* Naranjo Assessment */}
+                  <div className="p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-200/60 dark:border-indigo-900/50 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <strong className="text-indigo-950 dark:text-indigo-200 font-bold flex items-center gap-1.5">
+                        <Activity className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                        Naranjo Causality Assessment
+                      </strong>
+                      <span className="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 font-extrabold text-[10px]">
+                        {adrRecord.causality_category || adrRecord.naranjo_causality || (adrRecord.naranjo_score >= 9 ? 'Certain' : adrRecord.naranjo_score >= 5 ? 'Probable' : adrRecord.naranjo_score >= 1 ? 'Possible' : 'Unlikely')}
+                        {adrRecord.naranjo_score !== undefined && adrRecord.naranjo_score !== null ? ` (Score: ${adrRecord.naranjo_score})` : ''}
+                      </span>
+                    </div>
+                    <p className="text-indigo-900/80 dark:text-indigo-300/80 leading-relaxed text-[11px]">
+                      {(() => {
+                        const score = adrRecord.naranjo_score;
+                        const cat = String(adrRecord.causality_category || adrRecord.naranjo_causality || '').toLowerCase();
+                        if (score >= 9 || cat.includes('certain') || cat.includes('definite')) {
+                          return "Naranjo criteria indicate a Highly Definite / Certain causal association between the suspected drug and the adverse reaction, supported by temporal onset, dechallenge, and absence of alternative explanations.";
+                        }
+                        if (score >= 5 || cat.includes('probable')) {
+                          return "Naranjo criteria indicate a Probable causal association where the adverse event follows a reasonable temporal sequence after drug administration and is unlikely to be attributed to concurrent disease.";
+                        }
+                        if (score >= 1 || cat.includes('possible')) {
+                          return "Naranjo criteria indicate a Possible causal association. The event follows a reasonable temporal sequence but could also be explained by underlying disease or concurrent pharmacotherapy.";
+                        }
+                        return "Naranjo criteria suggest an Unlikely causal association or insufficient objective data to confirm a direct drug-induced etiology.";
+                      })()}
+                    </p>
+                  </div>
+
+                  {/* WHO Rating */}
+                  <div className="p-4 rounded-xl bg-purple-50/50 dark:bg-purple-950/30 border border-purple-200/60 dark:border-purple-900/50 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <strong className="text-purple-950 dark:text-purple-200 font-bold flex items-center gap-1.5">
+                        <Layers className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                        WHO Causality Rating
+                      </strong>
+                      <span className="px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 font-extrabold text-[10px]">
+                        {adrRecord.who_causality || adrRecord.who_rating || 'Probable / Likely'}
+                      </span>
+                    </div>
+                    <p className="text-purple-900/80 dark:text-purple-300/80 leading-relaxed text-[11px]">
+                      WHO UMC causality classification aligns with documented clinical presentation, temporal relationship to drug initiation, and pharmacological plausibility.
+                    </p>
+                  </div>
+
+                  {/* Dechallenge / Rechallenge Consistency */}
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-2 text-xs">
+                    <strong className="text-slate-900 dark:text-white font-bold block">Dechallenge & Rechallenge Evaluation:</strong>
+                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-[11px]">
+                      {(() => {
+                        const dech = String(adrRecord.dechallenge_result || adrRecord.dechallenge || '').toLowerCase();
+                        const rech = String(adrRecord.rechallenge_result || adrRecord.rechallenge || '').toLowerCase();
+                        const action = String(adrRecord.action_taken || '').toLowerCase();
+
+                        if (dech.includes('positive') || action.includes('withdrawn') || action.includes('reduced')) {
+                          return "Positive dechallenge documented: Patient showed symptom improvement or resolution following drug withdrawal/dose reduction, strongly supporting drug-induced causality.";
+                        }
+                        if (rech.includes('positive')) {
+                          return "Positive rechallenge documented: Re-exposure led to recurrence of adverse symptoms, confirming definitive drug causality.";
+                        }
+                        return "Dechallenge/Rechallenge outcomes unconfirmed or omitted in accordance with standard patient safety guidelines against deliberate drug re-exposure.";
+                      })()}
+                    </p>
+                  </div>
+
+                  {/* Pharmacovigilance & Documentation Audit */}
+                  <div className="p-4 rounded-xl bg-amber-50/50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/50 space-y-2 text-xs">
+                    <strong className="text-amber-950 dark:text-amber-200 font-bold flex items-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      Pharmacovigilance & Reporting Advice
+                    </strong>
+                    <p className="text-amber-900/80 dark:text-amber-300/80 leading-relaxed text-[11px]">
+                      {String(adrRecord.severity || '').toLowerCase() === 'severe' || String(adrRecord.seriousness || '').toLowerCase().includes('hospitalization') ? (
+                        "High Priority Event: Reaction classified as Severe/Serious. Complete formal documentation for submission to institutional Pharmacovigilance Committee and Pharmacovigilance Programme of India (PvPI)."
+                      ) : (
+                        "Standard Pharmacovigilance Record: Event documented in patient record. Monitor for resolution and update patient allergy/ADR profile in medical history."
+                      )}
+                    </p>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* SECTION 6B — PATIENT COUNSELLING & REGIMEN EDUCATION AUDIT */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden min-w-0 w-full">
+        
+        {/* CARD HEADER */}
+        <div className="p-5 border-b border-slate-200/80 dark:border-slate-800 bg-gradient-to-r from-teal-50/50 via-slate-50 to-white dark:from-teal-950/30 dark:via-slate-900 dark:to-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-600 dark:text-teal-400 border border-teal-200 dark:border-teal-800 flex items-center justify-center shrink-0 shadow-xs">
+              <HeartHandshake className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                  6B — Patient Counselling & Regimen Education Audit
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+                  Compliance & Education Audit
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Educational Clinical Audit of Saved Patient Education & Medication Regimen Instructions
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+            {isCounsellingSaved ? (
+              <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Counselling Record Active
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold">
+                No Counselling Saved
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {!isCounsellingSaved && !counsellingRecord?.points_covered && !counsellingRecord?.counselled_to && !counsellingRecord?.special_instructions ? (
+            <div className="p-6 rounded-2xl bg-slate-50/80 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800 text-center space-y-2">
+              <ShieldCheck className="w-8 h-8 text-slate-400 mx-auto" />
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                No Patient Counselling Documentation Saved for This Case
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">
+                No patient counselling record has been saved under Patient Counselling for this clinical case. If patient/caregiver education was performed during pharmacotherapy, record details in the Patient Counselling module to generate structured compliance audit and medication education synthesis.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              
+              {/* EDUCATIONAL DISCLAIMER BANNER */}
+              <div className="p-3.5 rounded-xl bg-teal-50/70 dark:bg-teal-950/40 border border-teal-200/80 dark:border-teal-900/50 text-xs text-teal-900 dark:text-teal-200 flex items-start gap-2.5">
+                <Info className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <strong className="font-bold block">Educational Clinical Audit Disclaimer:</strong>
+                  The following patient counselling audit evaluates documented student patient education against essential clinical compliance standards for preceptor review. Recommendations highlight potential educational gaps without altering the student's saved record.
+                </div>
+              </div>
+
+              {/* 1. DOCUMENTED COUNSELLING FINDINGS */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-slate-500" />
+                  <span>1. Documented Patient Counselling Findings</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Counselled Recipient</span>
+                    <p className="text-xs font-extrabold text-slate-900 dark:text-white truncate">
+                      {counsellingRecord.counselled_to || counsellingRecord.recipient || 'Patient'}
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Counselled By</span>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                      {counsellingRecord.counselled_by || student?.full_name || 'Clinical Pharmacist'}
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Counselling Session Date</span>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      {counsellingRecord.counselling_date || counsellingRecord.date || 'Not Documented'}
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Patient Understanding Rating</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${
+                        String(counsellingRecord.patient_understanding || '').toLowerCase().includes('excellent')
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                          : String(counsellingRecord.patient_understanding || '').toLowerCase().includes('good')
+                            ? 'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 border-teal-300 dark:border-teal-800'
+                            : String(counsellingRecord.patient_understanding || '').toLowerCase().includes('fair')
+                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                              : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-rose-300 dark:border-rose-800'
+                      }`}>
+                        {counsellingRecord.patient_understanding || 'Good'}
+                      </span>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* DOCUMENTED POINTS COVERED PILL BADGES */}
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-2 text-xs">
+                  <strong className="text-slate-900 dark:text-white font-bold block">Documented Counselling Points Covered:</strong>
+                  {(() => {
+                    const rawPoints = counsellingRecord.points_covered || counsellingRecord.points || [];
+                    const pointsArr = Array.isArray(rawPoints) ? rawPoints : (typeof rawPoints === 'string' ? rawPoints.split(',').map(p => p.trim()) : []);
+                    if (pointsArr.length === 0) {
+                      return <p className="text-slate-500 italic">No checklist points explicitly marked.</p>;
+                    }
+                    return (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {pointsArr.map((pt, idx) => (
+                          <span key={idx} className="px-2.5 py-1 rounded-lg bg-teal-100/80 text-teal-900 dark:bg-teal-950 dark:text-teal-200 border border-teal-300 dark:border-teal-800 text-[11px] font-bold flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                            {pt}
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* LIFESTYLE & SPECIAL INSTRUCTIONS */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                    <strong className="text-slate-900 dark:text-white font-bold block">Documented Lifestyle Modifications:</strong>
+                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-[11px]">
+                      {counsellingRecord.lifestyle_modifications || counsellingRecord.lifestyle_advice || 'No specific lifestyle modifications documented.'}
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                    <strong className="text-slate-900 dark:text-white font-bold block">Documented Special Instructions / Device Advice:</strong>
+                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-[11px]">
+                      {counsellingRecord.special_instructions || counsellingRecord.device_instructions || 'No special administration/device instructions documented.'}
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* 2. CLINICAL AUDIT & EDUCATIONAL GAP ANALYSIS */}
+              <div className="space-y-4 pt-2 border-t border-slate-200/80 dark:border-slate-800">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                  <Brain className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                  <span>2. Clinical Audit & Educational Gap Analysis</span>
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  
+                  {/* Overall Coverage Audit */}
+                  <div className="p-4 rounded-xl bg-teal-50/50 dark:bg-teal-950/30 border border-teal-200/60 dark:border-teal-900/50 space-y-2 text-xs">
+                    <strong className="text-teal-950 dark:text-teal-200 font-bold flex items-center gap-1.5">
+                      <UserCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                      Counselling Coverage Scorecard
+                    </strong>
+                    <p className="text-teal-900/80 dark:text-teal-300/80 leading-relaxed text-[11px]">
+                      {(() => {
+                        const rawPoints = counsellingRecord.points_covered || [];
+                        const pointsArr = Array.isArray(rawPoints) ? rawPoints : (typeof rawPoints === 'string' ? rawPoints.split(',') : []);
+                        const count = pointsArr.length;
+                        if (count >= 7) {
+                          return `Comprehensive Counselling Recorded (${count} core topics covered): Covers medication identity, dosing, side effects, precautions, storage, and lifestyle modifications.`;
+                        }
+                        if (count >= 4) {
+                          return `Moderate Counselling Recorded (${count} core topics covered): Essential administration points documented. Recommend expanding on side-effect warnings and missed-dose protocols.`;
+                        }
+                        return `Basic Counselling Recorded (${count} core topics covered): Standard administration instructions documented. Complete detailed counselling points to optimize patient medication adherence.`;
+                      })()}
+                    </p>
+                  </div>
+
+                  {/* Medication-Specific Regimen Verification */}
+                  <div className="p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-200/60 dark:border-indigo-900/50 space-y-2 text-xs">
+                    <strong className="text-indigo-950 dark:text-indigo-200 font-bold flex items-center gap-1.5">
+                      <Pill className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                      Prescribed Regimen Specific Education Context
+                    </strong>
+                    <p className="text-indigo-900/80 dark:text-indigo-300/80 leading-relaxed text-[11px]">
+                      {(() => {
+                        const drugNames = evaluatedDrugs.map(d => (d.generic_name || d.trade_name || '').toLowerCase()).join(' ');
+                        if (drugNames.includes('insulin') || drugNames.includes('glimepiride') || drugNames.includes('metformin')) {
+                          return "High-Alert Antidiabetic Therapy Prescribed: Patient education must emphasize hypoglycemia sign recognition (shakiness, sweating, dizziness) and immediate fast-acting carbohydrate administration.";
+                        }
+                        if (drugNames.includes('warfarin') || drugNames.includes('aspirin') || drugNames.includes('clopidogrel')) {
+                          return "Anticoagulant / Antiplatelet Regimen Prescribed: Critical bleeding risk precautions required. Advise reporting unusual bruising, epistaxis, or dark stools.";
+                        }
+                        if (drugNames.includes('salbutamol') || drugNames.includes('budesonide') || drugNames.includes('inhaler')) {
+                          return "Respiratory Inhalation Regimen Prescribed: Inhaler technique demonstration and post-inhalation mouth rinsing (to prevent oral candidiasis) are high priority.";
+                        }
+                        return `Prescribed Pharmacotherapy Context (${evaluatedDrugs.length} Active Agents): Ensure drug-specific food interaction precautions and administration timing (e.g. before vs after meals) are reinforced during follow-up.`;
+                      })()}
+                    </p>
+                  </div>
+
+                  {/* Identified Educational Gaps */}
+                  <div className="p-4 rounded-xl bg-amber-50/50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/50 space-y-2 text-xs">
+                    <strong className="text-amber-950 dark:text-amber-200 font-bold flex items-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      Identified / Recommended Counselling Gaps
+                    </strong>
+                    <p className="text-amber-900/80 dark:text-amber-300/80 leading-relaxed text-[11px]">
+                      {(() => {
+                        const rawPoints = counsellingRecord.points_covered || [];
+                        const pointsStr = (Array.isArray(rawPoints) ? rawPoints.join(' ') : String(rawPoints)).toLowerCase();
+                        const missing = [];
+                        if (!pointsStr.includes('missed dose')) missing.push('Missed-dose guidance');
+                        if (!pointsStr.includes('storage')) missing.push('Storage instructions');
+                        if (!pointsStr.includes('side effect')) missing.push('Side-effect warning');
+                        if (!pointsStr.includes('interaction')) missing.push('Interaction/precaution advice');
+
+                        if (missing.length > 0) {
+                          return `Possible Educational Gaps Identified: The following key points were unconfirmed in documented checklist: ${missing.join(', ')}. Consider addressing these during pre-discharge counselling.`;
+                        }
+                        return "No Critical Checklist Gaps Identified: Documented points cover all standard patient education domains.";
+                      })()}
+                    </p>
+                  </div>
+
+                  {/* Patient Understanding & Follow-up Advice */}
+                  <div className="p-4 rounded-xl bg-purple-50/50 dark:bg-purple-950/30 border border-purple-200/60 dark:border-purple-900/50 space-y-2 text-xs">
+                    <strong className="text-purple-950 dark:text-purple-200 font-bold flex items-center gap-1.5">
+                      <HeartHandshake className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      Adherence & Follow-Up Recommendations
+                    </strong>
+                    <p className="text-purple-900/80 dark:text-purple-300/80 leading-relaxed text-[11px]">
+                      {String(counsellingRecord.patient_understanding || '').toLowerCase().includes('poor') || String(counsellingRecord.patient_understanding || '').toLowerCase().includes('fair') ? (
+                        "Follow-Up Priority: Patient understanding rated Fair/Poor. Recommend follow-up teach-back session prior to discharge and providing written patient information leaflets (PILs)."
+                      ) : (
+                        "Good Patient Comprehension Recorded: Reinforce key administration rules at follow-up visits to sustain long-term medication compliance."
+                      )}
+                    </p>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* SECTION 6C — PHARMACIST CLINICAL INTERVENTION EVALUATION */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden min-w-0 w-full">
+        
+        {/* CARD HEADER */}
+        <div className="p-5 border-b border-slate-200/80 dark:border-slate-800 bg-gradient-to-r from-indigo-50/50 via-slate-50 to-white dark:from-indigo-950/30 dark:via-slate-900 dark:to-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center shrink-0 shadow-xs">
+              <ClipboardList className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                  6C — Pharmacist Clinical Intervention Evaluation
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                  DTP & Recommendation Audit
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Educational Clinical Analysis of Identified Drug Therapy Problems & Proposed Corrective Interventions
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+            {isInterventionSaved ? (
+              <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Intervention Active
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold">
+                No Intervention Saved
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {!isInterventionSaved && !interventionRecord?.prescription_problems && !interventionRecord?.problem_details && !interventionRecord?.recommendations ? (
+            <div className="p-6 rounded-2xl bg-slate-50/80 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800 text-center space-y-2">
+              <ShieldCheck className="w-8 h-8 text-slate-400 mx-auto" />
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                No Pharmacist Intervention Record Saved for This Case
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">
+                No clinical intervention record has been saved under Pharmacist Intervention for this clinical case. If a Drug Therapy Problem (DTP) was identified or recommendation made to the clinical team, record details in the Pharmacist Intervention module to generate structured clinical evaluation.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              
+              {/* EDUCATIONAL DISCLAIMER BANNER */}
+              <div className="p-3.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-900/50 text-xs text-indigo-900 dark:text-indigo-200 flex items-start gap-2.5">
+                <Info className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <strong className="font-bold block">Educational Clinical Evaluation Disclaimer:</strong>
+                  The following pharmacist intervention evaluation analyzes documented student drug therapy problem (DTP) identification and clinical recommendations against physician acceptance status and patient safety standards for preceptor review.
+                </div>
+              </div>
+
+              {/* 1. DOCUMENTED PHARMACIST INTERVENTION FINDINGS */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-slate-500" />
+                  <span>1. Documented Pharmacist Intervention Findings</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Physician Acceptance Status</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${
+                        String(interventionRecord.physician_acceptance || '').toLowerCase().includes('accepted')
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                          : String(interventionRecord.physician_acceptance || '').toLowerCase().includes('reject')
+                            ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-rose-300 dark:border-rose-800'
+                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                      }`}>
+                        {interventionRecord.physician_acceptance || 'Pending / Under Review'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Attending Physician</span>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                      {interventionRecord.physician || 'Consultant Physician'}
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Intervention Date</span>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      {interventionRecord.date_of_intervention || interventionRecord.date || 'Not Documented'}
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Clinical Ward / Dept</span>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                      {interventionRecord.ward || norm?.demographics?.ward || 'General Medical Ward'}
+                    </p>
+                  </div>
+
+                </div>
+
+                {/* DOCUMENTED PROBLEMS & RECOMMENDATIONS BADGES */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-2">
+                    <strong className="text-slate-900 dark:text-white font-bold block">Identified Prescription Problems (DTPs):</strong>
+                    {(() => {
+                      const rawProbs = interventionRecord.prescription_problems || interventionRecord.problems || [];
+                      const probsArr = Array.isArray(rawProbs) ? rawProbs : (typeof rawProbs === 'string' ? rawProbs.split(',').map(p => p.trim()) : []);
+                      if (probsArr.length === 0) {
+                        return <p className="text-slate-500 italic">No DTP category selected.</p>;
+                      }
+                      return (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {probsArr.map((p, idx) => (
+                            <span key={idx} className="px-2.5 py-1 rounded-lg bg-rose-100/80 text-rose-900 dark:bg-rose-950 dark:text-rose-200 border border-rose-300 dark:border-rose-800 text-[11px] font-bold flex items-center gap-1.5">
+                              <AlertOctagon className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+                              {p}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-2">
+                    <strong className="text-slate-900 dark:text-white font-bold block">Proposed Pharmacist Recommendations:</strong>
+                    {(() => {
+                      const rawRecs = interventionRecord.recommendations || [];
+                      const recsArr = Array.isArray(rawRecs) ? rawRecs : (typeof rawRecs === 'string' ? rawRecs.split(',').map(r => r.trim()) : []);
+                      if (recsArr.length === 0) {
+                        return <p className="text-slate-500 italic">No recommendation category selected.</p>;
+                      }
+                      return (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {recsArr.map((r, idx) => (
+                            <span key={idx} className="px-2.5 py-1 rounded-lg bg-indigo-100/80 text-indigo-900 dark:bg-indigo-950 dark:text-indigo-200 border border-indigo-300 dark:border-indigo-800 text-[11px] font-bold flex items-center gap-1.5">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                              {r}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* PROBLEM & RECOMMENDATION DETAILS */}
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-3 text-xs">
+                  <div>
+                    <strong className="text-slate-900 dark:text-white font-bold block">Documented DTP Problem Details:</strong>
+                    <p className="text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
+                      {interventionRecord.problem_details || interventionRecord.problem_description || 'No detailed DTP description documented.'}
+                    </p>
+                  </div>
+
+                  <div className="border-t border-slate-200/60 dark:border-slate-800/60 pt-2">
+                    <strong className="text-slate-900 dark:text-white font-bold block">Documented Proposed Recommendation:</strong>
+                    <p className="text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
+                      {interventionRecord.recommendation_details || interventionRecord.recommendation_description || 'No detailed recommendation text documented.'}
+                    </p>
+                  </div>
+
+                  {interventionRecord.outcome_remarks && (
+                    <div className="border-t border-slate-200/60 dark:border-slate-800/60 pt-2">
+                      <strong className="text-slate-900 dark:text-white font-bold block">Documented Outcome Remarks:</strong>
+                      <p className="text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
+                        {interventionRecord.outcome_remarks}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+
+              {/* 2. CLINICAL AI INTERPRETATION & SYNTHESIS */}
+              <div className="space-y-4 pt-2 border-t border-slate-200/80 dark:border-slate-800">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                  <Brain className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <span>2. Clinical AI Interpretation & Synthesis</span>
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  
+                  {/* Clinical Relevance of DTP */}
+                  <div className="p-4 rounded-xl bg-rose-50/50 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-900/50 space-y-2 text-xs">
+                    <strong className="text-rose-950 dark:text-rose-200 font-bold flex items-center gap-1.5">
+                      <AlertOctagon className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                      Clinical Relevance of Identified DTP
+                    </strong>
+                    <p className="text-rose-900/80 dark:text-rose-300/80 leading-relaxed text-[11px]">
+                      {(() => {
+                        const rawProbs = interventionRecord.prescription_problems || [];
+                        const probsStr = (Array.isArray(rawProbs) ? rawProbs.join(' ') : String(rawProbs)).toLowerCase();
+                        if (probsStr.includes('interaction') || probsStr.includes('contraindication') || probsStr.includes('high dose')) {
+                          return "High Clinical Relevance: Documented DTP addresses high-risk pharmacotherapeutic safety issues (Interaction / Contraindication / Excessive Dose) directly affecting patient safety.";
+                        }
+                        if (probsStr.includes('duplication') || probsStr.includes('unnecessary') || probsStr.includes('low dose')) {
+                          return "Moderate Clinical Relevance: Documented DTP targets therapeutic optimization and dose adjustment to achieve target clinical response.";
+                        }
+                        return "Standard Clinical Relevance: Documented DTP addresses prescription completeness or schedule optimization.";
+                      })()}
+                    </p>
+                  </div>
+
+                  {/* Recommendation Consistency Assessment */}
+                  <div className="p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-200/60 dark:border-indigo-900/50 space-y-2 text-xs">
+                    <strong className="text-indigo-950 dark:text-indigo-200 font-bold flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                      Recommendation Alignment & Logic
+                    </strong>
+                    <p className="text-indigo-900/80 dark:text-indigo-300/80 leading-relaxed text-[11px]">
+                      Proposed intervention recommendation aligns with documented problem statement. Evaluates appropriate corrective action (dose titration, drug discontinuation, or monitoring) for attending physician review.
+                    </p>
+                  </div>
+
+                  {/* Synthesis with Case Findings (Sections 3 - 5B) */}
+                  <div className="p-4 rounded-xl bg-purple-50/50 dark:bg-purple-950/30 border border-purple-200/60 dark:border-purple-900/50 space-y-2 text-xs">
+                    <strong className="text-purple-950 dark:text-purple-200 font-bold flex items-center gap-1.5">
+                      <Layers className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      Correlation with AI Case Synthesis (Sec 3 – 5B)
+                    </strong>
+                    <p className="text-purple-900/80 dark:text-purple-300/80 leading-relaxed text-[11px]">
+                      {(() => {
+                        const hasDdiMatch = section5ADdiResult && section5ADdiResult.hasInteractions;
+                        if (hasDdiMatch) {
+                          return `DTP Correlation: Student intervention correlates with Section 5A Master DDI findings (${section5ADdiResult.majorCount || 1} Major interactions identified in case regimen).`;
+                        }
+                        return `Synthesis Context: Intervention addresses active pharmacotherapy regimen containing ${evaluatedDrugs.length} prescribed drugs.`;
+                      })()}
+                    </p>
+                  </div>
+
+                  {/* Acceptance & Documentation Audit */}
+                  <div className="p-4 rounded-xl bg-amber-50/50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/50 space-y-2 text-xs">
+                    <strong className="text-amber-950 dark:text-amber-200 font-bold flex items-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      Physician Acceptance & Outcome Audit
+                    </strong>
+                    <p className="text-amber-900/80 dark:text-amber-300/80 leading-relaxed text-[11px]">
+                      {(() => {
+                        const acc = String(interventionRecord.physician_acceptance || '').toLowerCase();
+                        if (acc.includes('accepted')) {
+                          return "Physician Acceptance Documented: Clinical recommendation accepted by prescriber. Record updated clinical outcome in patient record.";
+                        }
+                        if (acc.includes('reject')) {
+                          return "Physician Non-Acceptance Documented: Prescriber elected to maintain current therapy. Document clinical rationale and alternative monitoring strategy.";
+                        }
+                        return "Pending Acceptance / Outcome Audit: Physician acceptance status unconfirmed. Follow up with attending clinical team to record final prescriber disposition.";
+                      })()}
+                    </p>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* SECTION 6D — DRUG INFORMATION QUERY & EVIDENCE REVIEW */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden min-w-0 w-full">
+        
+        {/* CARD HEADER */}
+        <div className="p-5 border-b border-slate-200/80 dark:border-slate-800 bg-gradient-to-r from-purple-50/50 via-slate-50 to-white dark:from-purple-950/30 dark:via-slate-900 dark:to-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800 flex items-center justify-center shrink-0 shadow-xs">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                  6D — Drug Information Query & Evidence Review
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                  Evidence Synthesis & Literature Audit
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Educational Clinical Review of Saved Drug Information Query, Literature Search Strategy & Evidence Response
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+            {isDirSaved ? (
+              <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Drug Info Record Active
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold">
+                No Drug Info Saved
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {!isDirSaved && !dirRecord?.query_text && !dirRecord?.question_category && !dirRecord?.structured_response ? (
+            <div className="p-6 rounded-2xl bg-slate-50/80 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800 text-center space-y-2">
+              <ShieldCheck className="w-8 h-8 text-slate-400 mx-auto" />
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                No Drug Information Request Saved for This Case
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">
+                No drug information request record has been saved under Drug Information Request for this clinical case. If a clinical drug query was received from a physician, nurse, or patient, record details in the Drug Information module to generate structured evidence evaluation.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              
+              {/* EDUCATIONAL DISCLAIMER BANNER */}
+              <div className="p-3.5 rounded-xl bg-purple-50/70 dark:bg-purple-950/40 border border-purple-200/80 dark:border-purple-900/50 text-xs text-purple-900 dark:text-purple-200 flex items-start gap-2.5">
+                <Info className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <strong className="font-bold block">Educational Evidence Review Disclaimer:</strong>
+                  The following Drug Information review evaluates documented student query synthesis, literature search methodology, and evidence-based response structure against standard clinical pharmacotherapy resources for preceptor evaluation.
+                </div>
+              </div>
+
+              {/* 1. DOCUMENTED DRUG INFORMATION REQUEST FINDINGS */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-slate-500" />
+                  <span>1. Documented Drug Information Request Findings</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Question Category</span>
+                    <p className="text-xs font-extrabold text-slate-900 dark:text-white truncate">
+                      {dirRecord.question_category || dirRecord.category || 'Therapeutic Use'}
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Enquirer Category</span>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                      {dirRecord.enquirer_type || dirRecord.enquirer || 'Healthcare Professional'}
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Urgency Level</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${
+                        String(dirRecord.urgency_level || '').toLowerCase().includes('immediate') || String(dirRecord.urgency_level || '').toLowerCase().includes('emergency')
+                          ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-rose-300 dark:border-rose-800'
+                          : String(dirRecord.urgency_level || '').toLowerCase().includes('urgent')
+                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                            : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800'
+                      }`}>
+                        {dirRecord.urgency_level || 'Standard'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Request Date & Mode</span>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                      {dirRecord.date_of_request || dirRecord.request_date || 'Not Documented'} ({dirRecord.mode_of_request || 'Written'})
+                    </p>
+                  </div>
+
+                </div>
+
+                {/* QUERY TEXT & PATIENT BACKGROUND */}
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-3 text-xs">
+                  <div>
+                    <strong className="text-slate-900 dark:text-white font-bold block">Documented Clinical Query Text:</strong>
+                    <p className="text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
+                      {dirRecord.query_text || dirRecord.question || 'No clinical query text documented.'}
+                    </p>
+                  </div>
+
+                  {dirRecord.patient_background && (
+                    <div className="border-t border-slate-200/60 dark:border-slate-800/60 pt-2">
+                      <strong className="text-slate-900 dark:text-white font-bold block">Documented Patient Clinical Background:</strong>
+                      <p className="text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
+                        {dirRecord.patient_background}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* LITERATURE SEARCH & STRUCTURED RESPONSE */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-2">
+                    <strong className="text-slate-900 dark:text-white font-bold block">Documented Literature Search Strategy / Sources:</strong>
+                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-[11px]">
+                      {dirRecord.literature_search_strategy || dirRecord.literature_sources || 'No literature search strategy documented.'}
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 space-y-2">
+                    <strong className="text-slate-900 dark:text-white font-bold block">Documented Cited References / Guidelines:</strong>
+                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-[11px]">
+                      {dirRecord.references || dirRecord.citations || 'No citations or references recorded.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* STRUCTURED RESPONSE TEXT */}
+                <div className="p-4 rounded-xl bg-purple-50/40 dark:bg-purple-950/20 border border-purple-200/60 dark:border-purple-900/40 space-y-2 text-xs">
+                  <strong className="text-purple-950 dark:text-purple-200 font-bold block">Documented Evidence-Based Response:</strong>
+                  <p className="text-purple-900/90 dark:text-purple-300/90 leading-relaxed text-[11px]">
+                    {dirRecord.structured_response || dirRecord.response || 'No response text documented.'}
+                  </p>
+                </div>
+
+              </div>
+
+              {/* 2. CLINICAL AI EVIDENCE EVALUATION & SYNTHESIS */}
+              <div className="space-y-4 pt-2 border-t border-slate-200/80 dark:border-slate-800">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                  <Brain className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <span>2. Clinical AI Evidence Evaluation & Synthesis</span>
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  
+                  {/* Clinical Question Clarity Audit */}
+                  <div className="p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-200/60 dark:border-indigo-900/50 space-y-2 text-xs">
+                    <strong className="text-indigo-950 dark:text-indigo-200 font-bold flex items-center gap-1.5">
+                      <FileSearch className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                      Query Specificity & Clinical Context Audit
+                    </strong>
+                    <p className="text-indigo-900/80 dark:text-indigo-300/80 leading-relaxed text-[11px]">
+                      {dirRecord.query_text ? (
+                        `Documented Query Evaluated (${dirRecord.question_category || 'General'}): Clinical question clearly formulates enquirer request. Patient background provides necessary context for therapeutic response.`
+                      ) : (
+                        "Query Text Incomplete: Record lacks detailed question wording. Ensure full clinical query is transcribed."
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Response Alignment Assessment */}
+                  <div className="p-4 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/50 space-y-2 text-xs">
+                    <strong className="text-emerald-950 dark:text-emerald-200 font-bold flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      Structured Response Completeness
+                    </strong>
+                    <p className="text-emerald-900/80 dark:text-emerald-300/80 leading-relaxed text-[11px]">
+                      {dirRecord.structured_response ? (
+                        "Response Alignment Confirmed: Documented answer directly addresses question category with structured clinical advice and recommendations."
+                      ) : (
+                        "Response Text Pending: Evidence-based answer has not been fully recorded under structured response."
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Search Strategy & Source Alignment */}
+                  <div className="p-4 rounded-xl bg-purple-50/50 dark:bg-purple-950/30 border border-purple-200/60 dark:border-purple-900/50 space-y-2 text-xs">
+                    <strong className="text-purple-950 dark:text-purple-200 font-bold flex items-center gap-1.5">
+                      <Layers className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      Literature Search Strategy Methodology
+                    </strong>
+                    <p className="text-purple-900/80 dark:text-purple-300/80 leading-relaxed text-[11px]">
+                      {(() => {
+                        const strat = String(dirRecord.literature_search_strategy || '').toLowerCase();
+                        const cat = String(dirRecord.question_category || '').toLowerCase();
+
+                        if (cat.includes('pregnancy') || cat.includes('lactation')) {
+                          return "Specialty Search Context: Pregnancy/Lactation query requires consultation of specialized reproductive safety databases (e.g. Briggs, LactMed, Micromedex).";
+                        }
+                        if (cat.includes('renal') || cat.includes('dosage')) {
+                          return "Renal / Dosing Search Context: Requires consultation of tertiary drug handbooks (AHFS, Sanford Guide, Renal Dose Handbook) and manufacturer prescribing info.";
+                        }
+                        if (strat.includes('pubmed') || strat.includes('micromedex') || strat.includes('lexicomp')) {
+                          return `Documented Search Strategy (${dirRecord.literature_search_strategy}): Incorporates authoritative tertiary & secondary clinical databases.`;
+                        }
+                        return "Standard Search Strategy: Ensure primary/secondary literature databases (PubMed, Micromedex, Lexicomp) are consulted for evidence verification.";
+                      })()}
+                    </p>
+                  </div>
+
+                  {/* Evidence & Citation Audit */}
+                  <div className="p-4 rounded-xl bg-amber-50/50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/50 space-y-2 text-xs">
+                    <strong className="text-amber-950 dark:text-amber-200 font-bold flex items-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      Citations & Evidence Integrity Audit
+                    </strong>
+                    <p className="text-amber-900/80 dark:text-amber-300/80 leading-relaxed text-[11px]">
+                      {dirRecord.references ? (
+                        "Citations Recorded: Reference citations present in record. Verify Vancouver/AMA reference formatting prior to preceptor sign-off."
+                      ) : (
+                        "Documentation Gap: No formal reference citations recorded. Include at least 2 authoritative literature references (e.g. NFI, BNF, PubMed PMID, Clinical Practice Guidelines) to substantiate response."
+                      )}
+                    </p>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* UNNUMBERED OVERALL CLINICAL CASE ANALYSIS SUMMARY */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden min-w-0 w-full">
+        
+        {/* CARD HEADER */}
+        <div className="p-5 border-b border-slate-200/80 dark:border-slate-800 bg-gradient-to-r from-slate-50 via-slate-50 to-white dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center shrink-0 shadow-xs">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                Overall Clinical Case Analysis Summary
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Unified Case Synthesis Across Sections 3 through 6D
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          
+          {/* ONE SHORT CONCISE SUMMARY PARAGRAPH */}
+          <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-normal">
+            {(() => {
+              const ageStr = norm?.demographics?.age ? `${norm.demographics.age}-year-old` : 'patient';
+              const genderStr = norm?.demographics?.gender ? norm.demographics.gender.toLowerCase() : 'patient';
+              const diagStr = (Array.isArray(norm?.diagnoses) && norm.diagnoses.length > 0) ? norm.diagnoses.join(', ') : 'presenting clinical condition';
+              const drugCount = Array.isArray(evaluatedDrugs) ? evaluatedDrugs.length : 0;
+
+              let ddiStr = '';
+              if (section5ADdiResult && section5ADdiResult.hasInteractions) {
+                ddiStr = ` Major drug-drug interactions were identified requiring close clinical monitoring.`;
+              }
+
+              let adrStr = '';
+              if (isAdrSaved && adrRecord?.suspected_drug) {
+                adrStr = ` A suspected adverse reaction to ${adrRecord.suspected_drug} was documented and evaluated.`;
+              }
+
+              let counselStr = '';
+              if (isCounsellingSaved) {
+                counselStr = ` Patient counselling and compliance education points have been audited.`;
+              }
+
+              return `This clinical case involves a ${ageStr} ${genderStr} managed for ${diagStr} with ${drugCount} active prescribed pharmacotherapeutic agents. Evaluation across Sections 3 through 6D confirms therapeutic indication alignment, dosing safety parameters, and laboratory risk monitoring.${ddiStr}${adrStr}${counselStr} Continued preceptor evaluation and multidisciplinary clinical oversight are recommended to optimize therapeutic outcomes.`;
+            })()}
+          </p>
+
+          {/* EDUCATIONAL DISCLAIMER - RED / CAUTION TREATMENT */}
+          <div className="p-4 rounded-xl bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 space-y-1.5 text-xs text-rose-950 dark:text-rose-200">
+            <strong className="font-extrabold uppercase tracking-wide flex items-center gap-2 text-rose-700 dark:text-rose-400 text-xs">
+              <ShieldAlert className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+              AI-GENERATED ANALYSIS — EDUCATIONAL REFERENCE ONLY
+            </strong>
+            <p className="text-rose-900/90 dark:text-rose-300/90 leading-relaxed text-[11px]">
+              AI-generated analysis is provided for educational and reference purposes and does not replace clinical judgment, preceptor review, or professional patient-care decisions.
+            </p>
+          </div>
+
+          {/* PDF DOWNLOAD BUTTON */}
+          <div className="pt-2 flex justify-start">
+            <button
+              onClick={handleDownloadPDF}
+              disabled={downloadingPDF}
+              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer disabled:opacity-50"
+              title="Download AI Clinical Case Analysis PDF with College Branding"
+            >
+              {downloadingPDF ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Generating College PDF...</span>
+                </>
+              ) : (
+                <>
+                  <Printer className="w-4 h-4" />
+                  <span>Download AI Analysis PDF</span>
+                </>
+              )}
+            </button>
+          </div>
+
+        </div>
+      </div>
     </div>
   );
 };

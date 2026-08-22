@@ -50,6 +50,18 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
   // Sidebar & View States
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Body scroll lock effect when mobile sidebar drawer is open
+  useEffect(() => {
+    if (mobileSidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileSidebarOpen]);
   const [editingCollege, setEditingCollege] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [approvingId, setApprovingId] = useState(null);
@@ -256,7 +268,7 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
         </div>
 
         {/* Navigation Menu */}
-        <div className="p-3 space-y-4 overflow-y-auto max-h-[calc(100vh-8rem)]">
+        <div className="p-3 space-y-4 overflow-y-auto flex-1">
           <div>
             {(isMobile || !sidebarCollapsed) && (
               <span className="px-3 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">
@@ -617,7 +629,7 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
       }`}>
         
         {/* Top Header Bar */}
-        <header className="h-16 px-4 sm:px-6 bg-white/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-30 backdrop-blur-md flex items-center justify-between">
+        <header className="h-16 px-4 sm:px-6 bg-white/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-20 backdrop-blur-md flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => setMobileSidebarOpen(true)}
@@ -683,7 +695,7 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
         </header>
 
         {/* Dashboard Main View Container */}
-        <main className="p-4 sm:p-6 max-w-7xl w-full mx-auto space-y-6 flex-1 min-w-0">
+        <main className="p-4 sm:p-6 w-full space-y-6 flex-1 min-w-0">
           
           {/* SUPER ADMIN WELCOME CARD */}
           {activeTab !== 'edit_profile' && (

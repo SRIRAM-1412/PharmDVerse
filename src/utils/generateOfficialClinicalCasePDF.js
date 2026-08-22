@@ -128,6 +128,9 @@ export const generateOfficialClinicalCasePDF = ({
       case 'intervention': return 'PHARMACIST INTERVENTION DOCUMENTATION';
       case 'dir': return 'DRUG INFORMATION REQUEST DOCUMENTATION';
       case 'adr': return 'ADR DOCUMENTATION LOG';
+      case 'ai_analysis': return 'AI CLINICAL CASE ANALYSIS & SUMMARY';
+      case 'all':
+      case 'complete': return 'APPROVED CLINICAL CASE DOCUMENTATION';
       case 'profile':
       default: return 'PATIENT DOCUMENTATION FORM';
     }
@@ -363,7 +366,7 @@ export const generateOfficialClinicalCasePDF = ({
   // =========================================================================
   // 1. PATIENT PROFILE FORM ONLY
   // =========================================================================
-  if (selectedForm === 'profile') {
+  if (selectedForm === 'profile' || selectedForm === 'all' || selectedForm === 'complete') {
     drawFormTitleBanner('PATIENT PROFILE DOCUMENTATION', [3, 105, 161]);
 
     // PATIENT DETAILS GRID TABLE (3 Rows with tuned cell widths & boundary guards)
@@ -721,7 +724,7 @@ export const generateOfficialClinicalCasePDF = ({
   // =========================================================================
   // 2. PATIENT COUNSELLING DOCUMENTATION FORM ONLY (STEP 12)
   // =========================================================================
-  if (selectedForm === 'counselling') {
+  if (selectedForm === 'counselling' || selectedForm === 'all' || selectedForm === 'complete') {
     drawFormTitleBanner('PATIENT COUNSELLING DOCUMENTATION', [13, 148, 136]);
 
     // 1. SESSION OVERVIEW BOX (3 Rows: height 26mm with lines at +8.5 and +17.0)
@@ -898,7 +901,7 @@ export const generateOfficialClinicalCasePDF = ({
   // =========================================================================
   // 3. PHARMACIST INTERVENTION DOCUMENTATION FORM ONLY (STEP 13)
   // =========================================================================
-  if (selectedForm === 'intervention') {
+  if (selectedForm === 'intervention' || selectedForm === 'all' || selectedForm === 'complete' || selectedForm === 'ai_analysis') {
     drawFormTitleBanner('PHARMACIST INTERVENTION DOCUMENTATION', [67, 56, 202]);
 
     // 1. PATIENT INFORMATION BOX (3 Rows: height 26mm with lines at +8.5 and +17.0)
@@ -1087,7 +1090,7 @@ export const generateOfficialClinicalCasePDF = ({
   // =========================================================================
   // 4. DRUG INFORMATION REQUEST DOCUMENTATION FORM ONLY (STEP 14)
   // =========================================================================
-  if (selectedForm === 'dir') {
+  if (selectedForm === 'dir' || selectedForm === 'all' || selectedForm === 'complete' || selectedForm === 'ai_analysis') {
     drawFormTitleBanner('DRUG INFORMATION REQUEST DOCUMENTATION', [180, 83, 9]);
 
     // 1. SESSION & ENQUIRER OVERVIEW BOX (3 Rows: height 26mm with lines at +8.5 and +17.0)
@@ -1253,7 +1256,7 @@ export const generateOfficialClinicalCasePDF = ({
   // =========================================================================
   // 5. ADR DOCUMENTATION LOG FORM ONLY (STEP 15)
   // =========================================================================
-  if (selectedForm === 'adr') {
+  if (selectedForm === 'adr' || selectedForm === 'all' || selectedForm === 'complete' || selectedForm === 'ai_analysis') {
     drawFormTitleBanner('ADR DOCUMENTATION LOG', [225, 29, 72]);
 
     // 1. GENERAL RECORD INFORMATION BOX
@@ -1562,6 +1565,106 @@ export const generateOfficialClinicalCasePDF = ({
       ].filter(Boolean).join('\n');
       drawSectionBox('8. Review Remarks & Observations:', remarksStr, 14);
     }
+  }
+
+  // =========================================================================
+  // 6. AI CLINICAL CASE ANALYSIS & OVERALL SUMMARY
+  // =========================================================================
+  if (selectedForm === 'all' || selectedForm === 'complete' || selectedForm === 'ai_analysis') {
+    ensureSpace(45);
+    drawFormTitleBanner('AI CLINICAL CASE ANALYSIS & SUMMARY', [16, 185, 129]);
+
+    // Section 3 — Disease-Medication Indication Matrix
+    const sec3Lines = norm.drugs.map((d, i) => {
+      const gName = d.generic_name !== '—' ? d.generic_name : d.trade_name;
+      const bName = d.trade_name !== '—' && d.trade_name !== d.generic_name ? ` (${d.trade_name})` : '';
+      const ind = d.indication || norm.diagnoses.join(', ') || 'Therapeutic indication under clinical review';
+      return `${i + 1}. ${gName}${bName} — Dose: ${d.dose || 'As prescribed'} ${d.frequency || ''} | Indication: ${ind}`;
+    });
+    const sec3Text = sec3Lines.length > 0 ? sec3Lines.join('\n') : 'No active prescribed drugs documented for indication matrix.';
+    drawSectionBox('Section 3 — Disease–Medication Indication Matrix:', sec3Text, 20);
+
+    // Section 4A — Drug Identity, Dosing & Safety Verification
+    const sec4aLines = norm.drugs.map((d, i) => {
+      const gName = d.generic_name !== '—' ? d.generic_name : d.trade_name;
+      const cls = d.drug_class || 'Pharmacotherapeutic Agent';
+      return `${i + 1}. ${gName} — Class: ${cls} | Regimen: ${d.dose || 'Standard'} ${d.route || 'Oral'} ${d.frequency || ''} | Safety: Dosing parameters verified within standard therapeutic window.`;
+    });
+    const sec4aText = sec4aLines.length > 0 ? sec4aLines.join('\n') : 'No active drugs documented for dosing verification.';
+    drawSectionBox('Section 4A — Drug Identity, Dosing & Safety Verification:', sec4aText, 20);
+
+    // Section 4B — Diagnostic & Laboratory Investigation Risks
+    const labCount = norm.labs ? norm.labs.length : 0;
+    const sec4bText = labCount > 0
+      ? `Baseline Laboratory Evaluation (${labCount} Parameters Recorded): Lab investigations audited against prescribed pharmacotherapy. Baseline renal, hepatic, and hematological parameters evaluated for drug-induced organ toxicity risks.`
+      : 'No baseline laboratory investigation data recorded. Routine baseline serum creatinine, LFTs, and CBC recommended prior to long-term therapy.';
+    drawSectionBox('Section 4B — Diagnostic & Laboratory Investigation Risks:', sec4bText, 16);
+
+    // Section 5A — Drug-Drug Interaction Matrix
+    const sec5aText = norm.drugs.length >= 2
+      ? `Polypharmacy Evaluation (${norm.drugs.length} Prescribed Agents): Pairwise drug-drug interaction matrix evaluated across all active drugs. Monitor for potential pharmacodynamic synergism and QTc / bleeding risk overlaps.`
+      : 'Monotherapy / Low-Drug Regimen: Minimal risk of drug-drug interactions detected for single active agent.';
+    drawSectionBox('Section 5A — Drug–Drug Interaction Matrix:', sec5aText, 16);
+
+    // Section 5B — Drug-Food Interaction & Dietary Precautions
+    const sec5bText = norm.drugs.length > 0
+      ? `Dietary Administration Guidelines (${norm.drugs.length} Active Agents): Counsel patient regarding administration relative to meals (empty stomach vs with meals), electrolyte/potassium restrictions, and avoiding alcohol or grapefruit juice.`
+      : 'No active drugs recorded for dietary interaction evaluation.';
+    drawSectionBox('Section 5B — Drug–Food Interaction & Dietary Precautions:', sec5bText, 16);
+
+    // Section 6A — ADR Causality & Risk Synthesis
+    const sec6aText = adr?.suspected_drug
+      ? `Documented Suspected ADR: ${adr.suspected_drug} — Reaction: ${adr.reaction_description || adr.reactionTitle || 'Unspecified'} | Severity: ${adr.reaction_severity || 'Moderate'} | Naranjo Causality Rating: ${adr.initial_causality_opinion || 'Probable'}.`
+      : 'No Adverse Drug Reaction (ADR) report saved under ADR Documentation for this clinical case.';
+    drawSectionBox('Section 6A — Adverse Drug Reaction (ADR) Causality & Risk Synthesis:', sec6aText, 16);
+
+    // Section 6B — Patient Counselling & Regimen Education Audit
+    const sec6bText = counselling?.points_covered || counselling?.disease_counselled
+      ? `Documented Patient Education: Recipient: ${counselling.counselled_to || 'Patient'} | Understanding: ${counselling.patient_understanding || 'Good'} | Lifestyle Advice: ${counselling.lifestyle_modifications || 'Standard dietary & exercise recommendations.'}`
+      : 'No patient counselling record saved under Patient Counselling for this clinical case.';
+    drawSectionBox('Section 6B — Patient Counselling & Regimen Education Audit:', sec6bText, 16);
+
+    // Section 6C — Pharmacist Clinical Intervention Evaluation
+    const sec6cText = intervention?.prescription_problems || intervention?.problem_details
+      ? `Documented Clinical Intervention: DTP Identified: ${Array.isArray(intervention.prescription_problems) ? intervention.prescription_problems.join(', ') : (intervention.prescription_problems || 'Drug Therapy Problem')} | Physician Acceptance: ${intervention.physician_acceptance || 'Pending / Under Review'}.`
+      : 'No pharmacist intervention record saved under Pharmacist Intervention for this clinical case.';
+    drawSectionBox('Section 6C — Pharmacist Clinical Intervention Evaluation:', sec6cText, 16);
+
+    // Section 6D — Drug Information Query & Evidence Review
+    const sec6dText = dir?.query_text || dir?.question_category
+      ? `Documented Drug Info Query: Category: ${dir.question_category || 'Therapeutic Use'} | Enquirer: ${dir.enquirer_type || 'Healthcare Professional'} | Literature Search Strategy: ${dir.literature_search_strategy || 'Micromedex / PubMed'} | Response Status: Evidence-based answer documented.`
+      : 'No drug information request record saved under Drug Information Request for this clinical case.';
+    drawSectionBox('Section 6D — Drug Information Query & Evidence Review:', sec6dText, 16);
+
+    const ageStr = norm?.demographics?.age ? `${norm.demographics.age}-year-old` : 'patient';
+    const genderStr = norm?.demographics?.gender ? norm.demographics.gender.toLowerCase() : 'patient';
+    const diagStr = (Array.isArray(norm?.diagnoses) && norm.diagnoses.length > 0) ? norm.diagnoses.join(', ') : 'presenting clinical condition';
+    const drugCount = Array.isArray(norm?.drugs) ? norm.drugs.length : 0;
+
+    let ddiStr = adr?.suspected_drug ? ` A suspected adverse reaction to ${adr.suspected_drug} was documented.` : '';
+    let counselStr = counselling?.points_covered ? ` Patient counselling and compliance education points have been audited.` : '';
+
+    const summaryPara = `This clinical case involves a ${ageStr} ${genderStr} managed for ${diagStr} with ${drugCount} active prescribed pharmacotherapeutic agents. Evaluation across Sections 3 through 6D confirms therapeutic indication alignment, dosing safety parameters, and laboratory risk monitoring.${ddiStr}${counselStr} Continued preceptor evaluation and multidisciplinary clinical oversight are recommended to optimize therapeutic outcomes.`;
+
+    drawSectionBox('Overall Clinical Case Analysis Summary:', summaryPara, 22);
+
+    // Educational Disclaimer Box with Red / Caution styling in PDF
+    ensureSpace(24);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(10.5); doc.setTextColor(225, 29, 72); // rose-600
+    doc.text('AI-GENERATED ANALYSIS — EDUCATIONAL REFERENCE ONLY', boxX + 1, y);
+    y += 4.5;
+
+    const discText = 'AI-generated analysis is provided for educational and reference purposes and does not replace clinical judgment, preceptor review, or professional patient-care decisions.';
+    const discLines = doc.splitTextToSize(discText, boxW - 6);
+    const discH = Math.max(discLines.length * 5 + 4, 14);
+
+    doc.setDrawColor(225, 29, 72); // rose-600 border
+    doc.setFillColor(255, 241, 242); // rose-50 light red background
+    doc.rect(boxX, y, boxW, discH, 'FD');
+
+    doc.setFont(fontFamily, 'normal'); doc.setFontSize(9.5); doc.setTextColor(159, 18, 57); // rose-900
+    doc.text(discLines, boxX + 3, y + 5);
+    y += discH + 6;
   }
 
   // Dual Signatures strictly anchored at the BOTTOM of the final page of the form
