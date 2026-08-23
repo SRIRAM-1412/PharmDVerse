@@ -115,7 +115,7 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
         <div className="flex flex-col h-full">
           
           {/* SIDEBAR BRANDING HEADER */}
-          <div className="h-16 px-3 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
+          <div className="h-16 px-3 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between shrink-0">
             {isCollapsedOnDesktop ? (
               <div className="w-full flex items-center justify-center">
                 <button
@@ -168,7 +168,7 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
           </div>
 
           {/* SIDEBAR NAVIGATION ITEMS */}
-          <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto text-xs font-semibold">
+          <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto min-h-0 text-xs font-semibold">
             
             {/* Dashboard */}
             <button
@@ -314,7 +314,7 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
           </nav>
 
           {/* SIDEBAR FOOTER (LOGOUT & LIGHT/DARK TOGGLE) */}
-          <div className="p-3 border-t border-slate-200/80 dark:border-slate-800 space-y-2">
+          <div className="p-3 border-t border-slate-200/80 dark:border-slate-800 space-y-2 shrink-0">
             <button
               onClick={toggleTheme}
               title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}

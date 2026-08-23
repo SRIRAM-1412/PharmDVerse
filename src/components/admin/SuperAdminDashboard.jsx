@@ -222,65 +222,64 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
   };
 
   const renderSidebarContent = (isMobile = false) => (
-    <div className="flex flex-col justify-between h-full">
-      <div>
-        {/* Sidebar Brand Header */}
-        <div className="h-16 px-3 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
-          {!isMobile && sidebarCollapsed ? (
-            <div className="w-full flex items-center justify-center">
-              <button
-                onClick={() => setSidebarCollapsed(false)}
-                className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer flex items-center justify-center"
-                title="Expand sidebar"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center gap-3 overflow-hidden">
-                <img
-                  src={platformLogoUrl}
-                  alt={`${platformName} Logo`}
-                  className="w-8 h-8 object-contain shrink-0 cursor-pointer hover:scale-105 transition-transform"
-                  onClick={() => {
-                    if (isMobile) setMobileSidebarOpen(false);
-                    setShowLogoModal(true);
-                  }}
-                  onError={(e) => { e.target.src = '/pharmdverse-logo.png'; }}
-                  title="Click to view official logo"
-                />
-                <div className="flex flex-col">
-                  <span className="font-extrabold text-sm text-slate-900 dark:text-white leading-tight truncate max-w-[130px]">
-                    {platformName}
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Super Admin</span>
-                </div>
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Sidebar Brand Header */}
+      <div className="h-16 px-3 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 shrink-0">
+        {!isMobile && sidebarCollapsed ? (
+          <div className="w-full flex items-center justify-center">
+            <button
+              onClick={() => setSidebarCollapsed(false)}
+              className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer flex items-center justify-center"
+              title="Expand sidebar"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-3 overflow-hidden">
+              <img
+                src={platformLogoUrl}
+                alt={`${platformName} Logo`}
+                className="w-8 h-8 object-contain shrink-0 cursor-pointer hover:scale-105 transition-transform"
+                onClick={() => {
+                  if (isMobile) setMobileSidebarOpen(false);
+                  setShowLogoModal(true);
+                }}
+                onError={(e) => { e.target.src = '/pharmdverse-logo.png'; }}
+                title="Click to view official logo"
+              />
+              <div className="flex flex-col">
+                <span className="font-extrabold text-sm text-slate-900 dark:text-white leading-tight truncate max-w-[130px]">
+                  {platformName}
+                </span>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Super Admin</span>
               </div>
+            </div>
 
-              {isMobile ? (
-                <button
-                  onClick={() => setMobileSidebarOpen(false)}
-                  className="p-2 ml-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer shrink-0"
-                  title="Close menu"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-              ) : (
-                <button
-                  onClick={() => setSidebarCollapsed(true)}
-                  className="p-2 ml-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer shrink-0"
-                  title="Collapse sidebar"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-              )}
-            </>
-          )}
-        </div>
+            {isMobile ? (
+              <button
+                onClick={() => setMobileSidebarOpen(false)}
+                className="p-2 ml-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer shrink-0"
+                title="Close menu"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                onClick={() => setSidebarCollapsed(true)}
+                className="p-2 ml-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer shrink-0"
+                title="Collapse sidebar"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            )}
+          </>
+        )}
+      </div>
 
-        {/* Navigation Menu */}
-        <div className="p-3 space-y-4 overflow-y-auto flex-1">
+      {/* Navigation Menu - Scrollable */}
+      <div className="p-3 space-y-4 overflow-y-auto min-h-0 flex-1">
           <div>
             {(isMobile || !sidebarCollapsed) && (
               <span className="px-3 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">
@@ -575,10 +574,9 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
             </nav>
           </div>
         </div>
-      </div>
 
-      {/* Sidebar Bottom Actions */}
-      <div className="p-3 border-t border-slate-100 dark:border-slate-800 space-y-1">
+        {/* Sidebar Bottom Actions */}
+      <div className="p-3 border-t border-slate-100 dark:border-slate-800 space-y-1 shrink-0">
         <button
           onClick={() => {
             if (isMobile) setMobileSidebarOpen(false);
