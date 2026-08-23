@@ -124,233 +124,251 @@ export const StudentLayout = ({ student, onLogout }) => {
     handleNavigate('adr-documentation');
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 font-sans flex transition-colors duration-300">
-      
-      {/* 1. SIDEBAR (DESKTOP & MOBILE DRAWER) */}
-      <aside className={`fixed inset-y-0 left-0 z-40 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 flex flex-col justify-between transition-all duration-300 transform lg:translate-x-0 ${
-        sidebarCollapsed ? 'lg:w-20' : 'lg:w-64'
-      } ${
-        mobileSidebarOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full'
-      }`}>
-        <div className="flex flex-col h-full">
-          
-          {/* SIDEBAR BRANDING HEADER */}
-          <div className="h-16 px-3 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between shrink-0">
-            {isCollapsedOnDesktop ? (
-              <div className="w-full flex items-center justify-center">
-                <button
-                  onClick={() => setSidebarCollapsed(false)}
-                  className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer flex items-center justify-center"
-                  title="Expand sidebar"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center gap-3 min-w-0">
-                  {student?.profile_photo_url ? (
-                    <img
-                      src={student.profile_photo_url}
-                      alt={student.full_name}
-                      className="w-8 h-8 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-xs shrink-0"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center text-white font-extrabold text-xs shadow-xs shrink-0">
-                      {student?.full_name ? student.full_name.substring(0, 2).toUpperCase() : 'ST'}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <strong className="block text-xs font-extrabold text-slate-900 dark:text-white truncate max-w-[130px]">
-                      {student?.full_name || 'Student'}
-                    </strong>
-                    <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold block truncate">
-                      Roll: {student?.roll_number}
-                    </span>
+  const renderSidebarContent = (isMobile = false) => {
+    const collapsed = !isMobile && sidebarCollapsed;
+    return (
+      <div className="flex flex-col h-full overflow-hidden">
+        {/* SIDEBAR BRANDING HEADER */}
+        <div className="h-16 px-3 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between shrink-0">
+          {collapsed ? (
+            <div className="w-full flex items-center justify-center">
+              <button
+                onClick={() => setSidebarCollapsed(false)}
+                className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer flex items-center justify-center"
+                title="Expand sidebar"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-3 min-w-0">
+                {student?.profile_photo_url ? (
+                  <img
+                    src={student.profile_photo_url}
+                    alt={student.full_name}
+                    className="w-8 h-8 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-xs shrink-0"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center text-white font-extrabold text-xs shadow-xs shrink-0">
+                    {student?.full_name ? student.full_name.substring(0, 2).toUpperCase() : 'ST'}
                   </div>
+                )}
+                <div className="min-w-0">
+                  <strong className="block text-xs font-extrabold text-slate-900 dark:text-white truncate max-w-[130px]">
+                    {student?.full_name || 'Student'}
+                  </strong>
+                  <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold block truncate">
+                    Roll: {student?.roll_number}
+                  </span>
                 </div>
+              </div>
 
+              {isMobile ? (
                 <button
-                  onClick={() => {
-                    if (window.innerWidth <= 1024) {
-                      setMobileSidebarOpen(false);
-                    } else {
-                      setSidebarCollapsed(true);
-                    }
-                  }}
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="p-2 ml-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer shrink-0"
+                  title="Close sidebar"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => setSidebarCollapsed(true)}
                   className="p-2 ml-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer shrink-0"
                   title="Collapse sidebar"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
-              </>
-            )}
-          </div>
-
-          {/* SIDEBAR NAVIGATION ITEMS */}
-          <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto min-h-0 text-xs font-semibold">
-            
-            {/* Dashboard */}
-            <button
-              onClick={() => handleNavigate('dashboard')}
-              title="Dashboard"
-              className={`w-full h-11 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-                activeTab === 'dashboard'
-                  ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-              } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
-            >
-              <LayoutDashboard className="w-4 h-4 shrink-0" />
-              {!isCollapsedOnDesktop && <span>Dashboard</span>}
-            </button>
-
-            {/* CLINICAL CASE MANAGEMENT SECTION */}
-            <div className="pt-2">
-              {!isCollapsedOnDesktop && (
-                <span className="px-3 text-[10px] uppercase font-extrabold tracking-wider text-slate-400 block mb-1">
-                  Clinical Case Management
-                </span>
               )}
-
-              <div className={`space-y-1 ${isCollapsedOnDesktop ? '' : 'pl-1'}`}>
-                <button
-                  onClick={() => handleNavigate('add-new-case')}
-                  title="Add New Case"
-                  className={`w-full h-10 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-                    activeTab === 'add-new-case'
-                      ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                  } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
-                >
-                  <FilePlus2 className="w-4 h-4 shrink-0" />
-                  {!isCollapsedOnDesktop && <span>Add New Case</span>}
-                </button>
-
-                <button
-                  onClick={() => handleNavigate('my-cases')}
-                  title="My Clinical Cases"
-                  className={`w-full h-10 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-                    activeTab === 'my-cases' || activeTab === 'patient-profile' || activeTab === 'patient-counselling' || activeTab === 'pharmacist-intervention' || activeTab === 'drug-info-request' || activeTab === 'adr-documentation'
-                      ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                  } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
-                >
-                  <FolderKanban className="w-4 h-4 shrink-0" />
-                  {!isCollapsedOnDesktop && <span>My Clinical Cases</span>}
-                </button>
-
-                <button
-                  onClick={() => handleNavigate('doc-review')}
-                  title="Pre-Submission Review"
-                  className={`w-full h-10 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-                    activeTab === 'doc-review'
-                      ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                  } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
-                >
-                  <FileSearch className="w-4 h-4 shrink-0" />
-                  {!isCollapsedOnDesktop && <span>Pre-Submission Review</span>}
-                </button>
-
-                <button
-                  onClick={() => handleNavigate('ai-analysis')}
-                  title="AI Clinical Case Analysis"
-                  className={`w-full h-10 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-                    activeTab === 'ai-analysis'
-                      ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                  } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
-                >
-                  <Sparkles className="w-4 h-4 shrink-0" />
-                  {!isCollapsedOnDesktop && <span>AI Clinical Case Analysis</span>}
-                </button>
-              </div>
-            </div>
-
-            {/* My Preceptor */}
-            <button
-              onClick={() => handleNavigate('my-preceptor')}
-              title="My Preceptor"
-              className={`w-full h-11 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-                activeTab === 'my-preceptor'
-                  ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-              } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
-            >
-              <Stethoscope className="w-4 h-4 shrink-0" />
-              {!isCollapsedOnDesktop && <span>My Preceptor</span>}
-            </button>
-
-            {/* Notifications */}
-            <button
-              onClick={() => handleNavigate('notifications')}
-              title="Notifications"
-              className={`w-full h-11 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0 relative' : 'px-3.5 justify-between'} transition-all ${
-                activeTab === 'notifications'
-                  ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-              } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
-            >
-              <div className={`flex items-center ${isCollapsedOnDesktop ? 'justify-center' : 'gap-3'}`}>
-                <Bell className="w-4 h-4 shrink-0" />
-                {!isCollapsedOnDesktop && <span>Notifications</span>}
-              </div>
-              {unreadCount > 0 && (
-                <span className={`h-5 px-1.5 min-w-[20px] rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center shadow-sm leading-none shrink-0 animate-pulse ${
-                  isCollapsedOnDesktop ? 'absolute -top-1 -right-1' : ''
-                }`}>
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-
-            {/* My Profile */}
-            <button
-              onClick={() => handleNavigate('profile')}
-              title="My Profile"
-              className={`w-full h-11 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-                activeTab === 'profile'
-                  ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <User className="w-4 h-4 shrink-0" />
-              {!isCollapsedOnDesktop && <span>My Profile</span>}
-            </button>
-
-          </nav>
-
-          {/* SIDEBAR FOOTER (LOGOUT & LIGHT/DARK TOGGLE) */}
-          <div className="p-3 border-t border-slate-200/80 dark:border-slate-800 space-y-2 shrink-0">
-            <button
-              onClick={toggleTheme}
-              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-              className={`w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3 justify-between'} transition-colors cursor-pointer`}
-            >
-              <div className={`flex items-center ${isCollapsedOnDesktop ? 'justify-center' : 'gap-2'}`}>
-                {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
-                {!isCollapsedOnDesktop && <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>}
-              </div>
-              {!isCollapsedOnDesktop && (
-                <span className="text-[10px] uppercase font-bold text-slate-400">{isDark ? 'ON' : 'OFF'}</span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setShowLogoutConfirm(true)}
-              title="Logout"
-              className={`w-full h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center justify-center ${isCollapsedOnDesktop ? 'px-0' : 'px-3 gap-2'} transition-colors cursor-pointer`}
-            >
-              <LogOut className="w-4 h-4 shrink-0" />
-              {!isCollapsedOnDesktop && <span>Logout</span>}
-            </button>
-          </div>
-
+            </>
+          )}
         </div>
+
+        {/* SIDEBAR NAVIGATION ITEMS */}
+        <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto min-h-0 text-xs font-semibold">
+          
+          {/* Dashboard */}
+          <button
+            onClick={() => handleNavigate('dashboard')}
+            title="Dashboard"
+            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+              activeTab === 'dashboard'
+                ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+            } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
+          >
+            <LayoutDashboard className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Dashboard</span>}
+          </button>
+
+          {/* CLINICAL CASE MANAGEMENT SECTION */}
+          <div className="pt-2">
+            {!collapsed && (
+              <span className="px-3 text-[10px] uppercase font-extrabold tracking-wider text-slate-400 block mb-1">
+                Clinical Case Management
+              </span>
+            )}
+
+            <div className={`space-y-1 ${collapsed ? '' : 'pl-1'}`}>
+              <button
+                onClick={() => handleNavigate('add-new-case')}
+                title="Add New Case"
+                className={`w-full h-10 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+                  activeTab === 'add-new-case'
+                    ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
+              >
+                <FilePlus2 className="w-4 h-4 shrink-0" />
+                {!collapsed && <span>Add New Case</span>}
+              </button>
+
+              <button
+                onClick={() => handleNavigate('my-cases')}
+                title="My Clinical Cases"
+                className={`w-full h-10 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+                  activeTab === 'my-cases' || activeTab === 'patient-profile' || activeTab === 'patient-counselling' || activeTab === 'pharmacist-intervention' || activeTab === 'drug-info-request' || activeTab === 'adr-documentation'
+                    ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
+              >
+                <FolderKanban className="w-4 h-4 shrink-0" />
+                {!collapsed && <span>My Clinical Cases</span>}
+              </button>
+
+              <button
+                onClick={() => handleNavigate('doc-review')}
+                title="Pre-Submission Review"
+                className={`w-full h-10 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+                  activeTab === 'doc-review'
+                    ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
+              >
+                <FileSearch className="w-4 h-4 shrink-0" />
+                {!collapsed && <span>Pre-Submission Review</span>}
+              </button>
+
+              <button
+                onClick={() => handleNavigate('ai-analysis')}
+                title="AI Clinical Case Analysis"
+                className={`w-full h-10 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+                  activeTab === 'ai-analysis'
+                    ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
+              >
+                <Sparkles className="w-4 h-4 shrink-0" />
+                {!collapsed && <span>AI Clinical Case Analysis</span>}
+              </button>
+            </div>
+          </div>
+
+          {/* My Preceptor */}
+          <button
+            onClick={() => handleNavigate('my-preceptor')}
+            title="My Preceptor"
+            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+              activeTab === 'my-preceptor'
+                ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+            } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
+          >
+            <Stethoscope className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>My Preceptor</span>}
+          </button>
+
+          {/* Notifications */}
+          <button
+            onClick={() => handleNavigate('notifications')}
+            title="Notifications"
+            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0 relative' : 'px-3.5 justify-between'} transition-all ${
+              activeTab === 'notifications'
+                ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+            } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
+          >
+            <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
+              <Bell className="w-4 h-4 shrink-0" />
+              {!collapsed && <span>Notifications</span>}
+            </div>
+            {unreadCount > 0 && (
+              <span className={`h-5 px-1.5 min-w-[20px] rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center shadow-sm leading-none shrink-0 animate-pulse ${
+                collapsed ? 'absolute -top-1 -right-1' : ''
+              }`}>
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          {/* My Profile */}
+          <button
+            onClick={() => handleNavigate('profile')}
+            title="My Profile"
+            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+              activeTab === 'profile'
+                ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <User className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>My Profile</span>}
+          </button>
+
+        </nav>
+
+        {/* SIDEBAR FOOTER (LOGOUT & LIGHT/DARK TOGGLE) */}
+        <div className="p-3 border-t border-slate-200/80 dark:border-slate-800 space-y-2 shrink-0">
+          <button
+            onClick={toggleTheme}
+            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            className={`w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center ${collapsed ? 'justify-center px-0' : 'px-3 justify-between'} transition-colors cursor-pointer`}
+          >
+            <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2'}`}>
+              {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+              {!collapsed && <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>}
+            </div>
+            {!collapsed && (
+              <span className="text-[10px] uppercase font-bold text-slate-400">{isDark ? 'ON' : 'OFF'}</span>
+            )}
+          </button>
+
+          <button
+            onClick={() => {
+              if (isMobile) setMobileSidebarOpen(false);
+              setShowLogoutConfirm(true);
+            }}
+            title="Logout"
+            className={`w-full h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center justify-center ${collapsed ? 'px-0' : 'px-3 gap-2'} transition-colors cursor-pointer`}
+          >
+            <LogOut className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Logout</span>}
+          </button>
+        </div>
+
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 font-sans flex transition-colors duration-300">
+      
+      {/* 1A. DESKTOP SIDEBAR */}
+      <aside className={`hidden lg:flex fixed top-0 left-0 bottom-0 z-40 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 transition-all duration-300 flex-col justify-between ${
+        sidebarCollapsed ? 'w-20' : 'w-64'
+      }`}>
+        {renderSidebarContent(false)}
       </aside>
 
-      {/* MOBILE OVERLAY */}
+      {/* 1B. MOBILE OFF-CANVAS SIDEBAR DRAWER */}
+      <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 transition-transform duration-300 transform lg:hidden flex flex-col justify-between ${
+        mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        {renderSidebarContent(true)}
+      </aside>
+
+      {/* 1C. MOBILE OVERLAY */}
       {mobileSidebarOpen && (
         <div
           onClick={() => setMobileSidebarOpen(false)}

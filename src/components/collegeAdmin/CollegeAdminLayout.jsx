@@ -103,246 +103,264 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 font-sans flex transition-colors duration-300">
-      
-      {/* 1. SIDEBAR (DESKTOP & MOBILE DRAWER) */}
-      <aside className={`fixed inset-y-0 left-0 z-40 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 flex flex-col justify-between transition-all duration-300 transform lg:translate-x-0 ${
-        sidebarCollapsed ? 'lg:w-20' : 'lg:w-64'
-      } ${
-        mobileSidebarOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full'
-      }`}>
-        <div className="flex flex-col h-full">
-          
-          {/* SIDEBAR BRANDING HEADER */}
-          <div className="h-16 px-3 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between shrink-0">
-            {isCollapsedOnDesktop ? (
-              <div className="w-full flex items-center justify-center">
-                <button
-                  onClick={() => setSidebarCollapsed(false)}
-                  className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer flex items-center justify-center"
-                  title="Expand sidebar"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center gap-3 min-w-0">
-                  {college?.college_logo_url || college?.logoUrl ? (
-                    <img
-                      src={college.college_logo_url || college.logoUrl}
-                      alt={college.college_name || college.name}
-                      className="w-8 h-8 rounded-xl object-contain bg-white border border-slate-200 dark:border-slate-700 p-0.5 shadow-xs shrink-0"
-                    />
-                  ) : (
-                    <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${college?.logoBg || 'from-emerald-600 to-teal-700'} flex items-center justify-center text-white font-extrabold text-xs shadow-xs shrink-0`}>
-                      {college?.initials || 'CLG'}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <strong className="block text-xs font-extrabold text-slate-900 dark:text-white truncate max-w-[130px]">
-                      {college?.college_name || college?.name || 'College Admin'}
-                    </strong>
-                    <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold block truncate">
-                      {college?.college_code || college?.code || 'ADMIN'}
-                    </span>
+  const renderSidebarContent = (isMobile = false) => {
+    const collapsed = !isMobile && sidebarCollapsed;
+    return (
+      <div className="flex flex-col h-full overflow-hidden">
+        {/* SIDEBAR BRANDING HEADER */}
+        <div className="h-16 px-3 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between shrink-0">
+          {collapsed ? (
+            <div className="w-full flex items-center justify-center">
+              <button
+                onClick={() => setSidebarCollapsed(false)}
+                className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer flex items-center justify-center"
+                title="Expand sidebar"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-3 min-w-0">
+                {college?.college_logo_url || college?.logoUrl ? (
+                  <img
+                    src={college.college_logo_url || college.logoUrl}
+                    alt={college.college_name || college.name}
+                    className="w-8 h-8 rounded-xl object-contain bg-white border border-slate-200 dark:border-slate-700 p-0.5 shadow-xs shrink-0"
+                  />
+                ) : (
+                  <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${college?.logoBg || 'from-emerald-600 to-teal-700'} flex items-center justify-center text-white font-extrabold text-xs shadow-xs shrink-0`}>
+                    {college?.initials || 'CLG'}
                   </div>
+                )}
+                <div className="min-w-0">
+                  <strong className="block text-xs font-extrabold text-slate-900 dark:text-white truncate max-w-[130px]">
+                    {college?.college_name || college?.name || 'College Admin'}
+                  </strong>
+                  <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold block truncate">
+                    {college?.college_code || college?.code || 'ADMIN'}
+                  </span>
                 </div>
+              </div>
 
+              {isMobile ? (
                 <button
-                  onClick={() => {
-                    if (window.innerWidth <= 1024) {
-                      setMobileSidebarOpen(false);
-                    } else {
-                      setSidebarCollapsed(true);
-                    }
-                  }}
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="p-2 ml-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer shrink-0"
+                  title="Close sidebar"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => setSidebarCollapsed(true)}
                   className="p-2 ml-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer shrink-0"
                   title="Collapse sidebar"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
-              </>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* SIDEBAR NAVIGATION ITEMS */}
+        <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto min-h-0 text-xs font-semibold">
+          
+          {/* Dashboard */}
+          <button
+            onClick={() => handleNavigate('dashboard')}
+            title="Dashboard"
+            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+              activeTab === 'dashboard'
+                ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <LayoutDashboard className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Dashboard</span>}
+          </button>
+
+          {/* Preceptor Management */}
+          <button
+            onClick={() => handleNavigate('preceptors-list')}
+            title="Preceptor Management"
+            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+              activeTab === 'preceptors-list' || activeTab === 'add-preceptor'
+                ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/20'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <User className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Preceptor Management</span>}
+          </button>
+
+          {/* Student Management */}
+          <button
+            onClick={() => handleNavigate('students-list')}
+            title="Student Management"
+            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+              activeTab === 'students-list' || activeTab === 'add-student'
+                ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <GraduationCap className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Student Management</span>}
+          </button>
+
+          {/* Student Promotion & Registered Batches */}
+          <div className="space-y-1">
+            <button
+              onClick={() => handleNavigate('student-promotion', 'All', 'All')}
+              title="Student Promotion"
+              className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 justify-between'} transition-all ${
+                activeTab === 'student-promotion'
+                  ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
+                <TrendingUp className="w-4 h-4 shrink-0" />
+                {!collapsed && <span>Student Promotion</span>}
+              </div>
+              {!collapsed && <ChevronDown className="w-3.5 h-3.5 opacity-60" />}
+            </button>
+
+            {/* Sub-menu Registered Active Student Batches */}
+            {activeStudentBatches.length > 0 && !collapsed && (
+              <div className="pl-9 pr-1 py-1 space-y-1.5">
+                <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider block">
+                  Active Student Batches:
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  {activeStudentBatches.map(b => (
+                    <button
+                      key={b}
+                      onClick={() => handleNavigate('student-promotion', 'All', b)}
+                      className={`px-2 py-0.5 rounded-md text-[11px] font-bold font-mono transition-all border ${
+                        selectedBatchFilter === b && activeTab === 'student-promotion'
+                          ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-400 font-extrabold shadow-xs'
+                          : 'bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      {b}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
 
-          {/* SIDEBAR NAVIGATION ITEMS */}
-          <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto min-h-0 text-xs font-semibold">
-            
-            {/* Dashboard */}
-            <button
-              onClick={() => handleNavigate('dashboard')}
-              title="Dashboard"
-              className={`w-full h-11 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-                activeTab === 'dashboard'
-                  ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <LayoutDashboard className="w-4 h-4 shrink-0" />
-              {!isCollapsedOnDesktop && <span>Dashboard</span>}
-            </button>
+          {/* Assignment Management */}
+          <button
+            onClick={() => handleNavigate('assignments-list')}
+            title="Assignment Management"
+            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+              activeTab === 'assignments-list' || activeTab === 'assign-students'
+                ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/20'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <ClipboardList className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Assignment Management</span>}
+          </button>
 
-            {/* Preceptor Management */}
-            <button
-              onClick={() => handleNavigate('preceptors-list')}
-              title="Preceptor Management"
-              className={`w-full h-11 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-                activeTab === 'preceptors-list' || activeTab === 'add-preceptor'
-                  ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <User className="w-4 h-4 shrink-0" />
-              {!isCollapsedOnDesktop && <span>Preceptor Management</span>}
-            </button>
+          {/* Clinical Case Management */}
+          <button
+            onClick={() => handleNavigate('clinical-cases')}
+            title="Clinical Case Management"
+            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+              activeTab === 'clinical-cases'
+                ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/20'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <FileCheck2 className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Clinical Case Management</span>}
+          </button>
 
-            {/* Student Management */}
-            <button
-              onClick={() => handleNavigate('students-list')}
-              title="Student Management"
-              className={`w-full h-11 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-                activeTab === 'students-list' || activeTab === 'add-student'
-                  ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <GraduationCap className="w-4 h-4 shrink-0" />
-              {!isCollapsedOnDesktop && <span>Student Management</span>}
-            </button>
+          {/* PDF & PPT Format */}
+          <button
+            onClick={() => handleNavigate('pdf-format')}
+            title="PDF & PPT Format"
+            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+              activeTab === 'pdf-format' || activeTab === 'document-branding'
+                ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/20'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <FileText className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>PDF & PPT Format</span>}
+          </button>
 
-            {/* Student Promotion & Registered Batches */}
-            <div className="space-y-1">
-              <button
-                onClick={() => handleNavigate('student-promotion', 'All', 'All')}
-                title="Student Promotion"
-                className={`w-full h-11 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3.5 justify-between'} transition-all ${
-                  activeTab === 'student-promotion'
-                    ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <div className={`flex items-center ${isCollapsedOnDesktop ? 'justify-center' : 'gap-3'}`}>
-                  <TrendingUp className="w-4 h-4 shrink-0" />
-                  {!isCollapsedOnDesktop && <span>Student Promotion</span>}
-                </div>
-                {!isCollapsedOnDesktop && <ChevronDown className="w-3.5 h-3.5 opacity-60" />}
-              </button>
+          {/* My Profile */}
+          <button
+            onClick={() => handleNavigate('profile')}
+            title="My Profile"
+            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+              activeTab === 'profile'
+                ? 'bg-teal-600 text-white font-bold shadow-md shadow-teal-600/20'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <UserCheck className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>My Profile</span>}
+          </button>
 
-              {/* Sub-menu Registered Active Student Batches */}
-              {activeStudentBatches.length > 0 && !isCollapsedOnDesktop && (
-                <div className="pl-9 pr-1 py-1 space-y-1.5">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider block">
-                    Active Student Batches:
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {activeStudentBatches.map(b => (
-                      <button
-                        key={b}
-                        onClick={() => handleNavigate('student-promotion', 'All', b)}
-                        className={`px-2 py-0.5 rounded-md text-[11px] font-bold font-mono transition-all border ${
-                          selectedBatchFilter === b && activeTab === 'student-promotion'
-                            ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-400 font-extrabold shadow-xs'
-                            : 'bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
-                        }`}
-                      >
-                        {b}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+        </nav>
+
+        {/* SIDEBAR FOOTER (LOGOUT & LIGHT/DARK TOGGLE) */}
+        <div className="p-3 border-t border-slate-200/80 dark:border-slate-800 space-y-2 shrink-0">
+          <button
+            onClick={toggleTheme}
+            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            className={`w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center ${collapsed ? 'justify-center px-0' : 'px-3 justify-between'} transition-colors cursor-pointer`}
+          >
+            <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2'}`}>
+              {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+              {!collapsed && <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>}
             </div>
+            {!collapsed && (
+              <span className="text-[10px] uppercase font-bold text-slate-400">{isDark ? 'ON' : 'OFF'}</span>
+            )}
+          </button>
 
-            {/* Assignment Management */}
-            <button
-              onClick={() => handleNavigate('assignments-list')}
-              title="Assignment Management"
-              className={`w-full h-11 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-                activeTab === 'assignments-list' || activeTab === 'assign-students'
-                  ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <ClipboardList className="w-4 h-4 shrink-0" />
-              {!isCollapsedOnDesktop && <span>Assignment Management</span>}
-            </button>
-
-            {/* Clinical Case Management */}
-            <button
-              onClick={() => handleNavigate('clinical-cases')}
-              title="Clinical Case Management"
-              className={`w-full h-11 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-                activeTab === 'clinical-cases'
-                  ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <FileCheck2 className="w-4 h-4 shrink-0" />
-              {!isCollapsedOnDesktop && <span>Clinical Case Management</span>}
-            </button>
-
-            {/* PDF & PPT Format */}
-            <button
-              onClick={() => handleNavigate('pdf-format')}
-              title="PDF & PPT Format"
-              className={`w-full h-11 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-                activeTab === 'pdf-format' || activeTab === 'document-branding'
-                  ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <FileText className="w-4 h-4 shrink-0" />
-              {!isCollapsedOnDesktop && <span>PDF & PPT Format</span>}
-            </button>
-
-            {/* My Profile */}
-            <button
-              onClick={() => handleNavigate('profile')}
-              title="My Profile"
-              className={`w-full h-11 rounded-xl flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-                activeTab === 'profile'
-                  ? 'bg-teal-600 text-white font-bold shadow-md shadow-teal-600/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <UserCheck className="w-4 h-4 shrink-0" />
-              {!isCollapsedOnDesktop && <span>My Profile</span>}
-            </button>
-
-          </nav>
-
-          {/* SIDEBAR FOOTER (LOGOUT & LIGHT/DARK TOGGLE) */}
-          <div className="p-3 border-t border-slate-200/80 dark:border-slate-800 space-y-2 shrink-0">
-            <button
-              onClick={toggleTheme}
-              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-              className={`w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center ${isCollapsedOnDesktop ? 'justify-center px-0' : 'px-3 justify-between'} transition-colors cursor-pointer`}
-            >
-              <div className={`flex items-center ${isCollapsedOnDesktop ? 'justify-center' : 'gap-2'}`}>
-                {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
-                {!isCollapsedOnDesktop && <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>}
-              </div>
-              {!isCollapsedOnDesktop && (
-                <span className="text-[10px] uppercase font-bold text-slate-400">{isDark ? 'ON' : 'OFF'}</span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setShowLogoutConfirm(true)}
-              title="Logout"
-              className={`w-full h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center justify-center ${isCollapsedOnDesktop ? 'px-0' : 'px-3 gap-2'} transition-colors cursor-pointer`}
-            >
-              <LogOut className="w-4 h-4 shrink-0" />
-              {!isCollapsedOnDesktop && <span>Logout</span>}
-            </button>
-          </div>
-
+          <button
+            onClick={() => {
+              if (isMobile) setMobileSidebarOpen(false);
+              setShowLogoutConfirm(true);
+            }}
+            title="Logout"
+            className={`w-full h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center justify-center ${collapsed ? 'px-0' : 'px-3 gap-2'} transition-colors cursor-pointer`}
+          >
+            <LogOut className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Logout</span>}
+          </button>
         </div>
+
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 font-sans flex transition-colors duration-300">
+      
+      {/* 1A. DESKTOP SIDEBAR */}
+      <aside className={`hidden lg:flex fixed top-0 left-0 bottom-0 z-40 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 transition-all duration-300 flex-col justify-between ${
+        sidebarCollapsed ? 'w-20' : 'w-64'
+      }`}>
+        {renderSidebarContent(false)}
       </aside>
 
-      {/* MOBILE OVERLAY */}
+      {/* 1B. MOBILE OFF-CANVAS SIDEBAR DRAWER */}
+      <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 transition-transform duration-300 transform lg:hidden flex flex-col justify-between ${
+        mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        {renderSidebarContent(true)}
+      </aside>
+
+      {/* 1C. MOBILE OVERLAY */}
       {mobileSidebarOpen && (
         <div
           onClick={() => setMobileSidebarOpen(false)}
