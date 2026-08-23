@@ -450,7 +450,7 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
       )}
 
       {/* CONSOLIDATED SHARED SECTIONS */}
-      <div className="space-y-6 max-w-5xl mx-auto">
+      <div className="space-y-6 w-full min-w-0">
         
         {/* SECTION 1: COLLEGE & HOSPITAL IDENTITY (READ ONLY WITH MANDATORY MESSAGE) */}
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">

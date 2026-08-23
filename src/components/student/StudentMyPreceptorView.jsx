@@ -33,7 +33,7 @@ export const StudentMyPreceptorView = ({ student }) => {
 
   if (!assignedPreceptor) {
     return (
-      <div className="space-y-6 animate-fadeIn max-w-3xl mx-auto">
+      <div className="space-y-6 animate-fadeIn w-full min-w-0">
         <div className="pb-4 border-b border-slate-200 dark:border-slate-800">
           <h2 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <Stethoscope className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
@@ -55,7 +55,7 @@ export const StudentMyPreceptorView = ({ student }) => {
   }
 
   return (
-    <div className="space-y-6 animate-fadeIn max-w-3xl mx-auto">
+    <div className="space-y-6 animate-fadeIn w-full min-w-0">
       {/* Header */}
       <div className="pb-4 border-b border-slate-200 dark:border-slate-800">
         <h2 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">

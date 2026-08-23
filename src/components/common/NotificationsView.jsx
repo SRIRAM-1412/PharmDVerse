@@ -53,7 +53,7 @@ export const NotificationsView = ({ userId, userRole, onNavigate, onBack }) => {
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-    <div className="space-y-6 animate-fadeIn max-w-4xl mx-auto pb-12">
+    <div className="space-y-6 animate-fadeIn w-full min-w-0 pb-12">
       {/* HEADER */}
       <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3">

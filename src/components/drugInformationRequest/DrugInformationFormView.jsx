@@ -444,7 +444,7 @@ export const DrugInformationFormView = ({ clinicalCase, student, onBack, isReadO
   const isReadOnly = propReadOnly || status === 'Submitted' || status === 'Approved' || clinicalCase?.status === 'Approved' || clinicalCase?.overall_case_status === 'Approved';
 
   return (
-    <div className="space-y-6 animate-fadeIn max-w-5xl mx-auto pb-12">
+    <div className="space-y-6 animate-fadeIn w-full min-w-0 pb-12">
       
       {/* TOP HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">

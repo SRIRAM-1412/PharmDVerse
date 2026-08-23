@@ -4,11 +4,11 @@ import { setSupabaseAdminHeader } from './supabaseService.js';
 export const DEFAULT_PLATFORM_SETTINGS = {
   id: 1,
   platform_name: "PharmDVerse ERP",
-  tagline: "India's Premier Clinical Pharmacy Case Analysis & ERP Platform",
+  tagline: "From Case Collection to Clinical Excellence",
   logo_url: "/pharmdverse-logo.png",
   favicon_url: "/pharmdverse-logo.png",
   support_email: "support@pharmdverse.org",
-  footer_text: "© 2026 PharmDVerse. All rights reserved."
+  footer_text: "© 2026 PharmDVerse All Rights Reserved"
 };
 
 const LOCAL_CACHE_KEY = 'pharmdverse_platform_settings_cache';

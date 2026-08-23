@@ -88,7 +88,7 @@ export const PlatformSettingsManagementView = ({ onBack }) => {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto min-w-0 w-full text-wrap break-words pb-12">
+    <div className="space-y-6 min-w-0 w-full text-wrap break-words pb-12">
       
       {/* HEADER BANNER */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-md flex items-center justify-between flex-wrap gap-4">
@@ -203,7 +203,7 @@ export const PlatformSettingsManagementView = ({ onBack }) => {
               type="text"
               value={formState.tagline}
               onChange={(e) => handleChange('tagline', e.target.value)}
-              placeholder="India's Premier Clinical Pharmacy Case Analysis & ERP Platform"
+              placeholder="From Case Collection to Clinical Excellence"
               disabled={savingSettings}
               className="w-full h-11 px-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
@@ -218,7 +218,7 @@ export const PlatformSettingsManagementView = ({ onBack }) => {
               rows={2}
               value={formState.footer_text}
               onChange={(e) => handleChange('footer_text', e.target.value)}
-              placeholder="© 2026 PharmDVerse. All rights reserved."
+              placeholder="© 2026 PharmDVerse All Rights Reserved"
               disabled={savingSettings}
               className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />

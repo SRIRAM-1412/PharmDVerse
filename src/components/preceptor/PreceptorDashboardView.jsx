@@ -126,9 +126,9 @@ export const PreceptorDashboardView = ({ preceptor, onNavigate }) => {
   ];
 
   return (
-    <div className="space-y-8 animate-fadeIn w-full">
+    <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6 animate-fadeIn w-full">
       {/* WELCOME CARD WITH TOP-RIGHT WORKFLOW PANEL */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-white via-slate-50 to-purple-50/70 dark:from-[#0f172a] dark:via-slate-900 dark:to-purple-950/40 text-slate-900 dark:text-white relative overflow-hidden shadow-md border border-slate-200/80 dark:border-slate-800">
+      <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-slate-50 via-slate-50 to-purple-50/50 dark:from-slate-800/60 dark:via-slate-800/40 dark:to-purple-950/30 text-slate-900 dark:text-white relative overflow-hidden border border-slate-200/80 dark:border-slate-800">
         <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 w-64 h-64 bg-purple-400/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex flex-col lg:flex-row items-start justify-between gap-6 relative z-10">

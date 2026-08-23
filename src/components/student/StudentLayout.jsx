@@ -136,44 +136,56 @@ export const StudentLayout = ({ student, onLogout }) => {
         <div className="flex flex-col h-full">
           
           {/* SIDEBAR BRANDING HEADER */}
-          <div className="h-16 px-4 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
-            <div className="flex items-center gap-3 min-w-0">
-              {student?.profile_photo_url ? (
-                <img
-                  src={student.profile_photo_url}
-                  alt={student.full_name}
-                  className="w-8 h-8 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-xs shrink-0"
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center text-white font-extrabold text-xs shadow-xs shrink-0">
-                  {student?.full_name ? student.full_name.substring(0, 2).toUpperCase() : 'ST'}
+          <div className="h-16 px-3 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
+            {isCollapsedOnDesktop ? (
+              <div className="w-full flex items-center justify-center">
+                <button
+                  onClick={() => setSidebarCollapsed(false)}
+                  className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer flex items-center justify-center"
+                  title="Expand sidebar"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-3 min-w-0">
+                  {student?.profile_photo_url ? (
+                    <img
+                      src={student.profile_photo_url}
+                      alt={student.full_name}
+                      className="w-8 h-8 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-xs shrink-0"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center text-white font-extrabold text-xs shadow-xs shrink-0">
+                      {student?.full_name ? student.full_name.substring(0, 2).toUpperCase() : 'ST'}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <strong className="block text-xs font-extrabold text-slate-900 dark:text-white truncate max-w-[130px]">
+                      {student?.full_name || 'Student'}
+                    </strong>
+                    <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold block truncate">
+                      Roll: {student?.roll_number}
+                    </span>
+                  </div>
                 </div>
-              )}
-              {!isCollapsedOnDesktop && (
-                <div className="min-w-0">
-                  <strong className="block text-xs font-extrabold text-slate-900 dark:text-white truncate max-w-[130px]">
-                    {student?.full_name || 'Student'}
-                  </strong>
-                  <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold block truncate">
-                    Roll: {student?.roll_number}
-                  </span>
-                </div>
-              )}
-            </div>
 
-            <button
-              onClick={() => {
-                if (window.innerWidth <= 1024) {
-                  setMobileSidebarOpen(false);
-                } else {
-                  setSidebarCollapsed(!sidebarCollapsed);
-                }
-              }}
-              className="p-2 ml-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer shrink-0"
-              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {sidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
-            </button>
+                <button
+                  onClick={() => {
+                    if (window.innerWidth <= 1024) {
+                      setMobileSidebarOpen(false);
+                    } else {
+                      setSidebarCollapsed(true);
+                    }
+                  }}
+                  className="p-2 ml-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer shrink-0"
+                  title="Collapse sidebar"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+              </>
+            )}
           </div>
 
           {/* SIDEBAR NAVIGATION ITEMS */}
@@ -353,15 +365,9 @@ export const StudentLayout = ({ student, onLogout }) => {
         <header className="h-16 px-4 sm:px-8 bg-white/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-20 backdrop-blur-md flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => {
-                if (window.innerWidth <= 1024) {
-                  setMobileSidebarOpen(true);
-                } else {
-                  setSidebarCollapsed(!sidebarCollapsed);
-                }
-              }}
-              className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              title="Toggle Sidebar"
+              onClick={() => setMobileSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              title="Open navigation menu"
             >
               <Menu className="w-5 h-5" />
             </button>

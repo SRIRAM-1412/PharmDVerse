@@ -130,7 +130,7 @@ export const SuperAdminProfileView = ({ admin, onProfileUpdated, onExitToLanding
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto min-w-0 w-full text-wrap break-words pb-12">
+    <div className="space-y-6 min-w-0 w-full text-wrap break-words pb-12">
       
       {/* HEADER BANNER */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-md flex items-center justify-between flex-wrap gap-4">

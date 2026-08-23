@@ -225,45 +225,57 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
     <div className="flex flex-col justify-between h-full">
       <div>
         {/* Sidebar Brand Header */}
-        <div className="h-16 px-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
-          <div className={`flex items-center gap-3 overflow-hidden ${!isMobile && sidebarCollapsed ? 'justify-center w-full' : ''}`}>
-            <img
-              src={platformLogoUrl}
-              alt={`${platformName} Logo`}
-              className="w-8 h-8 object-contain shrink-0 cursor-pointer hover:scale-105 transition-transform"
-              onClick={() => {
-                if (isMobile) setMobileSidebarOpen(false);
-                setShowLogoModal(true);
-              }}
-              onError={(e) => { e.target.src = '/pharmdverse-logo.png'; }}
-              title="Click to view official logo"
-            />
-            {(isMobile || !sidebarCollapsed) && (
-              <div className="flex flex-col">
-                <span className="font-extrabold text-sm text-slate-900 dark:text-white leading-tight truncate max-w-[130px]">
-                  {platformName}
-                </span>
-                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Super Admin</span>
-              </div>
-            )}
-          </div>
-
-          {isMobile ? (
-            <button
-              onClick={() => setMobileSidebarOpen(false)}
-              className="p-2 ml-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer shrink-0"
-              title="Close menu"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
+        <div className="h-16 px-3 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
+          {!isMobile && sidebarCollapsed ? (
+            <div className="w-full flex items-center justify-center">
+              <button
+                onClick={() => setSidebarCollapsed(false)}
+                className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer flex items-center justify-center"
+                title="Expand sidebar"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
           ) : (
-            <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="p-2 ml-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer shrink-0"
-              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-            </button>
+            <>
+              <div className="flex items-center gap-3 overflow-hidden">
+                <img
+                  src={platformLogoUrl}
+                  alt={`${platformName} Logo`}
+                  className="w-8 h-8 object-contain shrink-0 cursor-pointer hover:scale-105 transition-transform"
+                  onClick={() => {
+                    if (isMobile) setMobileSidebarOpen(false);
+                    setShowLogoModal(true);
+                  }}
+                  onError={(e) => { e.target.src = '/pharmdverse-logo.png'; }}
+                  title="Click to view official logo"
+                />
+                <div className="flex flex-col">
+                  <span className="font-extrabold text-sm text-slate-900 dark:text-white leading-tight truncate max-w-[130px]">
+                    {platformName}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Super Admin</span>
+                </div>
+              </div>
+
+              {isMobile ? (
+                <button
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="p-2 ml-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer shrink-0"
+                  title="Close menu"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => setSidebarCollapsed(true)}
+                  className="p-2 ml-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-xs transition-all cursor-pointer shrink-0"
+                  title="Collapse sidebar"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              )}
+            </>
           )}
         </div>
 
@@ -639,15 +651,7 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
               <Menu className="w-5 h-5" />
             </button>
 
-            {sidebarCollapsed && (
-              <button
-                onClick={() => setSidebarCollapsed(false)}
-                className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
-                title="Expand sidebar"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            )}
+
 
             <div className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
               <span className="hidden sm:inline">Governance / College Management / </span>
@@ -697,88 +701,6 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
         {/* Dashboard Main View Container */}
         <main className="p-4 sm:p-6 w-full space-y-6 flex-1 min-w-0">
           
-          {/* SUPER ADMIN WELCOME CARD */}
-          {activeTab !== 'edit_profile' && (
-            <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-white via-slate-50 to-blue-50/70 dark:from-[#0f172a] dark:via-slate-900 dark:to-blue-950/40 text-slate-900 dark:text-white relative overflow-hidden shadow-md border border-slate-200/80 dark:border-slate-800">
-              <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
-
-              <div className="flex flex-col sm:flex-row items-start gap-6 relative z-10">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2 flex items-center justify-center shrink-0 shadow-md">
-                  <img
-                    src={platformLogoUrl}
-                    alt={`${platformName} Logo`}
-                    className="max-w-full max-h-full object-contain"
-                    onError={(e) => { e.target.src = '/pharmdverse-logo.png'; }}
-                  />
-                </div>
-
-                <div className="space-y-2 flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                      <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                      Super Admin Workspace
-                    </span>
-                    <span className="text-xs text-blue-700 dark:text-blue-400 font-mono font-bold">Role: Global Admin</span>
-                  </div>
-
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
-                    Welcome, Super Admin
-                  </h1>
-
-                  <div className="pt-1 flex flex-wrap items-center gap-4 text-xs text-slate-600 dark:text-slate-400 font-medium">
-                    <div>
-                      <span className="text-slate-500 dark:text-slate-400">System Scope: </span>
-                      <strong className="text-slate-900 dark:text-slate-100 font-bold">PharmDVerse Governance & Onboarding</strong>
-                    </div>
-                    <span className="text-slate-300 dark:text-slate-700">•</span>
-                    <div>
-                      <span className="text-slate-500 dark:text-slate-400">Active Portals: </span>
-                      <strong className="text-blue-700 dark:text-blue-400 font-bold">{activeColleges.length} Live Colleges</strong>
-                    </div>
-                    <span className="text-slate-300 dark:text-slate-700">•</span>
-                    <div>
-                      <span className="text-slate-500 dark:text-slate-400">Pending Requests: </span>
-                      <strong className="text-amber-600 dark:text-amber-400 font-bold">
-                        {pendingCount > 0 ? `${pendingCount} Pending (${pendingRequests.length} Total)` : `0 Pending (${pendingRequests.length} Total)`}
-                      </strong>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* FLOATING BULK DELETE BAR (FOR ACTIVE COLLEGES ONLY) */}
-          {selectedIds.length > 0 && activeTab !== 'requests' && activeTab !== 'edit_profile' && (
-            <div className="p-4 rounded-2xl bg-slate-900 text-white dark:bg-slate-800 border border-slate-700 shadow-xl flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 animate-fadeIn sticky top-20 z-20">
-              <div className="flex items-center gap-3">
-                <span className="w-7 h-7 rounded-lg bg-emerald-500 text-slate-950 font-extrabold text-xs flex items-center justify-center">
-                  {selectedIds.length}
-                </span>
-                <span className="text-xs font-bold">
-                  {selectedIds.length === 1 ? '1 College Selected' : `${selectedIds.length} Colleges Selected`}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={clearSelection}
-                  className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
-                >
-                  Clear Selection
-                </button>
-
-                <button
-                  onClick={() => setShowBulkDeleteConfirm(true)}
-                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold flex items-center gap-2 shadow-md shadow-rose-600/30 transition-all transform hover:-translate-y-0.5 cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Delete Selected ({selectedIds.length})</span>
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* EDIT COLLEGE PROFILE FULL PAGE VIEW */}
           {activeTab === 'edit_profile' && editingCollege && (
             <div className="space-y-6 animate-fadeIn">
@@ -863,6 +785,92 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
             <PlatformSettingsManagementView onBack={popTab} />
           )}
 
+          {/* SINGLE UNIFIED MAIN CARD BACKDROP FOR DASHBOARD TABS */}
+          {['requests', 'active', 'inactive', 'expired'].includes(activeTab) && (
+            <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6">
+              
+              {/* SUPER ADMIN WELCOME BANNER (INTEGRATED TOP BLOCK) */}
+              <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-slate-50 via-slate-50 to-blue-50/50 dark:from-slate-800/60 dark:via-slate-800/40 dark:to-blue-950/30 text-slate-900 dark:text-white relative overflow-hidden border border-slate-200/80 dark:border-slate-800">
+                <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
+
+                <div className="flex flex-col sm:flex-row items-start gap-5 relative z-10">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2 flex items-center justify-center shrink-0 shadow-xs">
+                    <img
+                      src={platformLogoUrl}
+                      alt={`${platformName} Logo`}
+                      className="max-w-full max-h-full object-contain"
+                      onError={(e) => { e.target.src = '/pharmdverse-logo.png'; }}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                        <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                        Super Admin Workspace
+                      </span>
+                      <span className="text-[11px] text-blue-700 dark:text-blue-400 font-mono font-bold">Role: Global Admin</span>
+                    </div>
+
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
+                      Welcome, Super Admin
+                    </h1>
+
+                    <div className="pt-1 flex flex-wrap items-center gap-4 text-xs text-slate-600 dark:text-slate-400 font-medium">
+                      <div>
+                        <span className="text-slate-500 dark:text-slate-400">System Scope: </span>
+                        <strong className="text-slate-900 dark:text-slate-100 font-bold">PharmDVerse Governance & Onboarding</strong>
+                      </div>
+                      <span className="text-slate-300 dark:text-slate-700">•</span>
+                      <div>
+                        <span className="text-slate-500 dark:text-slate-400">Active Portals: </span>
+                        <strong className="text-blue-700 dark:text-blue-400 font-bold">{activeColleges.length} Live Colleges</strong>
+                      </div>
+                      <span className="text-slate-300 dark:text-slate-700">•</span>
+                      <div>
+                        <span className="text-slate-500 dark:text-slate-400">Pending Requests: </span>
+                        <strong className="text-amber-600 dark:text-amber-400 font-bold">
+                          {pendingCount > 0 ? `${pendingCount} Pending (${pendingRequests.length} Total)` : `0 Pending (${pendingRequests.length} Total)`}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+          {/* FLOATING BULK DELETE BAR (FOR ACTIVE COLLEGES ONLY) */}
+          {selectedIds.length > 0 && activeTab !== 'requests' && activeTab !== 'edit_profile' && (
+            <div className="p-4 rounded-2xl bg-slate-900 text-white dark:bg-slate-800 border border-slate-700 shadow-xl flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 animate-fadeIn sticky top-20 z-20">
+              <div className="flex items-center gap-3">
+                <span className="w-7 h-7 rounded-lg bg-emerald-500 text-slate-950 font-extrabold text-xs flex items-center justify-center">
+                  {selectedIds.length}
+                </span>
+                <span className="text-xs font-bold">
+                  {selectedIds.length === 1 ? '1 College Selected' : `${selectedIds.length} Colleges Selected`}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={clearSelection}
+                  className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Clear Selection
+                </button>
+
+                <button
+                  onClick={() => setShowBulkDeleteConfirm(true)}
+                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold flex items-center gap-2 shadow-md shadow-rose-600/30 transition-all transform hover:-translate-y-0.5 cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Delete Selected ({selectedIds.length})</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+
+
           {/* TAB 1: REGISTRATION REQUESTS (ONLY APPROVE AND REJECT WITH COMMENTS - NO EDIT/DELETE) */}
           {activeTab === 'requests' && (
             <div className="space-y-4 animate-fadeIn">
@@ -892,7 +900,7 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
                   </p>
                 </div>
               ) : (
-                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-800">
@@ -1321,6 +1329,8 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
               )}
             </div>
           )}
+        </div>
+      )}
 
         </main>
 

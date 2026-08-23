@@ -211,7 +211,7 @@ export const CollegeAdminProfileView = ({ college: initialCollege, onProfileUpda
   const statusMeta = getSubscriptionStatusDetails(expiryDateStr, rawStatus);
 
   return (
-    <div className="space-y-6 animate-fadeIn max-w-4xl mx-auto">
+    <div className="space-y-6 animate-fadeIn w-full min-w-0">
       {/* HEADER */}
       <div className="pb-4 border-b border-slate-200 dark:border-slate-800">
         <h2 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
