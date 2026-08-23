@@ -309,17 +309,17 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
         
         {/* TOPBAR */}
-        <header className="h-16 px-4 sm:px-8 bg-white/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-20 backdrop-blur-md flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <header className="h-16 px-4 sm:px-8 bg-white/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-20 backdrop-blur-md flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <button
               onClick={() => setMobileSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="lg:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
               title="Open navigation menu"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
               {(preceptor?.colleges?.college_logo_url || preceptor?.colleges?.logoUrl) ? (
                 <img
                   src={preceptor?.colleges?.college_logo_url || preceptor?.colleges?.logoUrl}
@@ -331,14 +331,14 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
                   {(preceptor?.colleges?.college_name || 'CLG').substring(0, 3).toUpperCase()}
                 </div>
               )}
-              <h1 className="text-sm font-extrabold text-slate-900 dark:text-white truncate">
+              <h1 className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
                 {preceptor?.colleges?.college_name || 'Pharmacy College'} <span className="text-slate-400 font-normal text-xs hidden sm:inline">| Preceptor Portal</span>
               </h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800">
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800">
               <img
                 src={platformLogoUrl}
                 alt="Platform Logo"

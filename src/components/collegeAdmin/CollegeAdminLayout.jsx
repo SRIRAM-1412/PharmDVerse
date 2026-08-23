@@ -414,17 +414,17 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
         
         {/* TOPBAR */}
-        <header className="h-16 px-4 sm:px-8 bg-white/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-20 backdrop-blur-md flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <header className="h-16 px-4 sm:px-8 bg-white/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-20 backdrop-blur-md flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <button
               onClick={() => setMobileSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="lg:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
               title="Open navigation menu"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
               {(college?.college_logo_url || college?.logoUrl) ? (
                 <img
                   src={college?.college_logo_url || college?.logoUrl}
@@ -436,14 +436,14 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
                   {(college?.college_name || college?.name || 'CLG').substring(0, 3).toUpperCase()}
                 </div>
               )}
-              <h1 className="text-sm font-extrabold text-slate-900 dark:text-white truncate">
+              <h1 className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
                 {college?.college_name || college?.name} <span className="text-slate-400 font-normal text-xs hidden sm:inline">| College Admin Portal</span>
               </h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
               <img
                 src={platformLogoUrl}
                 alt="Platform Logo"
