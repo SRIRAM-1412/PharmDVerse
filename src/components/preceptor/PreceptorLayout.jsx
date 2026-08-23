@@ -138,88 +138,112 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
         </div>
 
         {/* SIDEBAR NAVIGATION ITEMS */}
-        <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto min-h-0 text-xs font-semibold">
-          
-          {/* Dashboard */}
-          <button
-            onClick={() => handleNavigate('dashboard')}
-            title="Dashboard"
-            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-              activeTab === 'dashboard'
-                ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <LayoutDashboard className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>Dashboard</span>}
-          </button>
-
-          {/* Assigned Students */}
-          <button
-            onClick={() => handleNavigate('assigned-students')}
-            title="Assigned Students"
-            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-              activeTab === 'assigned-students'
-                ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <GraduationCap className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>Assigned Students</span>}
-          </button>
-
-          {/* Clinical Case Review */}
-          <button
-            onClick={() => handleNavigate('case-review')}
-            title="Clinical Case Review"
-            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-              activeTab === 'case-review'
-                ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <FolderKanban className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>Clinical Case Review</span>}
-          </button>
-
-          {/* Notifications */}
-          <button
-            onClick={() => handleNavigate('notifications')}
-            title="Notifications"
-            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0 relative' : 'px-3.5 justify-between'} transition-all ${
-              activeTab === 'notifications'
-                ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
-              <Bell className="w-4 h-4 shrink-0" />
-              {!collapsed && <span>Notifications</span>}
-            </div>
-            {unreadCount > 0 && (
-              <span className={`h-5 px-1.5 min-w-[20px] rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center shadow-sm leading-none shrink-0 animate-pulse ${
-                collapsed ? 'absolute -top-1 -right-1' : ''
-              }`}>
-                {unreadCount}
+        <div className="p-3 space-y-4 overflow-y-auto min-h-0 flex-1">
+          {/* SECTION 1: CLINICAL EVALUATION */}
+          <div>
+            {!collapsed && (
+              <span className="px-3 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">
+                Clinical Evaluation
               </span>
             )}
-          </button>
+            <nav className="space-y-1">
+              {/* Dashboard */}
+              <button
+                onClick={() => handleNavigate('dashboard')}
+                title="Dashboard"
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'dashboard'
+                    ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <LayoutDashboard className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">Dashboard</span>}
+                </div>
+              </button>
 
-          {/* My Profile */}
-          <button
-            onClick={() => handleNavigate('profile')}
-            title="My Profile"
-            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-              activeTab === 'profile'
-                ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <User className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>My Profile</span>}
-          </button>
+              {/* Assigned Students */}
+              <button
+                onClick={() => handleNavigate('assigned-students')}
+                title="Assigned Students"
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'assigned-students'
+                    ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <GraduationCap className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">Assigned Students</span>}
+                </div>
+              </button>
 
-        </nav>
+              {/* Clinical Case Review */}
+              <button
+                onClick={() => handleNavigate('case-review')}
+                title="Clinical Case Review"
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'case-review'
+                    ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <FolderKanban className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">Clinical Case Review</span>}
+                </div>
+              </button>
+            </nav>
+          </div>
+
+          {/* SECTION 2: COMMUNICATION & ACCOUNT */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+            {!collapsed && (
+              <span className="px-3 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">
+                Communication & Account
+              </span>
+            )}
+            <nav className="space-y-1">
+              {/* Notifications */}
+              <button
+                onClick={() => handleNavigate('notifications')}
+                title="Notifications"
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'notifications'
+                    ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <Bell className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">Notifications</span>}
+                </div>
+                {!collapsed && unreadCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500 text-white shadow-xs animate-pulse">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* My Profile */}
+              <button
+                onClick={() => handleNavigate('profile')}
+                title="My Profile & Security"
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'profile'
+                    ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <User className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">My Profile & Security</span>}
+                </div>
+              </button>
+            </nav>
+          </div>
+        </div>
 
         {/* SIDEBAR FOOTER (LOGOUT & LIGHT/DARK TOGGLE) */}
         <div className="p-3 border-t border-slate-200/80 dark:border-slate-800 space-y-2 shrink-0">

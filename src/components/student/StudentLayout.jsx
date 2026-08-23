@@ -186,137 +186,166 @@ export const StudentLayout = ({ student, onLogout }) => {
         </div>
 
         {/* SIDEBAR NAVIGATION ITEMS */}
-        <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto min-h-0 text-xs font-semibold">
-          
-          {/* Dashboard */}
-          <button
-            onClick={() => handleNavigate('dashboard')}
-            title="Dashboard"
-            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-              activeTab === 'dashboard'
-                ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-            } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
-          >
-            <LayoutDashboard className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>Dashboard</span>}
-          </button>
-
-          {/* CLINICAL CASE MANAGEMENT SECTION */}
-          <div className="pt-2">
+        <div className="p-3 space-y-4 overflow-y-auto min-h-0 flex-1">
+          {/* SECTION 1: ACADEMIC DASHBOARD */}
+          <div>
             {!collapsed && (
-              <span className="px-3 text-[10px] uppercase font-extrabold tracking-wider text-slate-400 block mb-1">
-                Clinical Case Management
+              <span className="px-3 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">
+                Academic Dashboard
               </span>
             )}
+            <nav className="space-y-1">
+              {/* Dashboard */}
+              <button
+                onClick={() => handleNavigate('dashboard')}
+                title="Dashboard"
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'dashboard'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <LayoutDashboard className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">Dashboard</span>}
+                </div>
+              </button>
+            </nav>
+          </div>
 
-            <div className={`space-y-1 ${collapsed ? '' : 'pl-1'}`}>
+          {/* SECTION 2: CLINICAL CASE WORK */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+            {!collapsed && (
+              <span className="px-3 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">
+                Clinical Case Work
+              </span>
+            )}
+            <nav className="space-y-1">
               <button
                 onClick={() => handleNavigate('add-new-case')}
                 title="Add New Case"
-                className={`w-full h-10 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'add-new-case'
-                    ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                 } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
               >
-                <FilePlus2 className="w-4 h-4 shrink-0" />
-                {!collapsed && <span>Add New Case</span>}
+                <div className="flex items-center gap-2.5 truncate">
+                  <FilePlus2 className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">Add New Case</span>}
+                </div>
               </button>
 
               <button
                 onClick={() => handleNavigate('my-cases')}
                 title="My Clinical Cases"
-                className={`w-full h-10 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'my-cases' || activeTab === 'patient-profile' || activeTab === 'patient-counselling' || activeTab === 'pharmacist-intervention' || activeTab === 'drug-info-request' || activeTab === 'adr-documentation'
-                    ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                 } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
               >
-                <FolderKanban className="w-4 h-4 shrink-0" />
-                {!collapsed && <span>My Clinical Cases</span>}
+                <div className="flex items-center gap-2.5 truncate">
+                  <FolderKanban className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">My Clinical Cases</span>}
+                </div>
               </button>
 
               <button
                 onClick={() => handleNavigate('doc-review')}
                 title="Pre-Submission Review"
-                className={`w-full h-10 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'doc-review'
-                    ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                 } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
               >
-                <FileSearch className="w-4 h-4 shrink-0" />
-                {!collapsed && <span>Pre-Submission Review</span>}
+                <div className="flex items-center gap-2.5 truncate">
+                  <FileSearch className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">Pre-Submission Review</span>}
+                </div>
               </button>
 
               <button
                 onClick={() => handleNavigate('ai-analysis')}
                 title="AI Clinical Case Analysis"
-                className={`w-full h-10 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'ai-analysis'
-                    ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                 } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
               >
-                <Sparkles className="w-4 h-4 shrink-0" />
-                {!collapsed && <span>AI Clinical Case Analysis</span>}
+                <div className="flex items-center gap-2.5 truncate">
+                  <Sparkles className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">AI Clinical Case Analysis</span>}
+                </div>
               </button>
-            </div>
+            </nav>
           </div>
 
-          {/* My Preceptor */}
-          <button
-            onClick={() => handleNavigate('my-preceptor')}
-            title="My Preceptor"
-            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-              activeTab === 'my-preceptor'
-                ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-            } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
-          >
-            <Stethoscope className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>My Preceptor</span>}
-          </button>
-
-          {/* Notifications */}
-          <button
-            onClick={() => handleNavigate('notifications')}
-            title="Notifications"
-            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0 relative' : 'px-3.5 justify-between'} transition-all ${
-              activeTab === 'notifications'
-                ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-            } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
-          >
-            <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
-              <Bell className="w-4 h-4 shrink-0" />
-              {!collapsed && <span>Notifications</span>}
-            </div>
-            {unreadCount > 0 && (
-              <span className={`h-5 px-1.5 min-w-[20px] rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center shadow-sm leading-none shrink-0 animate-pulse ${
-                collapsed ? 'absolute -top-1 -right-1' : ''
-              }`}>
-                {unreadCount}
+          {/* SECTION 3: ROTATION & ACCOUNT */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+            {!collapsed && (
+              <span className="px-3 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">
+                Rotation & Account
               </span>
             )}
-          </button>
+            <nav className="space-y-1">
+              {/* My Preceptor */}
+              <button
+                onClick={() => handleNavigate('my-preceptor')}
+                title="My Preceptor"
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'my-preceptor'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <Stethoscope className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">My Preceptor</span>}
+                </div>
+              </button>
 
-          {/* My Profile */}
-          <button
-            onClick={() => handleNavigate('profile')}
-            title="My Profile"
-            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-              activeTab === 'profile'
-                ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <User className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>My Profile</span>}
-          </button>
+              {/* Notifications */}
+              <button
+                onClick={() => handleNavigate('notifications')}
+                title="Notifications"
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'notifications'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <Bell className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">Notifications</span>}
+                </div>
+                {!collapsed && unreadCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500 text-white shadow-xs animate-pulse">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
 
-        </nav>
+              {/* My Profile */}
+              <button
+                onClick={() => handleNavigate('profile')}
+                title="My Profile & Security"
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'profile'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <User className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">My Profile & Security</span>}
+                </div>
+              </button>
+            </nav>
+          </div>
+        </div>
 
         {/* SIDEBAR FOOTER (LOGOUT & LIGHT/DARK TOGGLE) */}
         <div className="p-3 border-t border-slate-200/80 dark:border-slate-800 space-y-2 shrink-0">

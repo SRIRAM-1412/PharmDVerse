@@ -165,150 +165,192 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
         </div>
 
         {/* SIDEBAR NAVIGATION ITEMS */}
-        <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto min-h-0 text-xs font-semibold">
-          
-          {/* Dashboard */}
-          <button
-            onClick={() => handleNavigate('dashboard')}
-            title="Dashboard"
-            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-              activeTab === 'dashboard'
-                ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <LayoutDashboard className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>Dashboard</span>}
-          </button>
-
-          {/* Preceptor Management */}
-          <button
-            onClick={() => handleNavigate('preceptors-list')}
-            title="Preceptor Management"
-            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-              activeTab === 'preceptors-list' || activeTab === 'add-preceptor'
-                ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <User className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>Preceptor Management</span>}
-          </button>
-
-          {/* Student Management */}
-          <button
-            onClick={() => handleNavigate('students-list')}
-            title="Student Management"
-            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-              activeTab === 'students-list' || activeTab === 'add-student'
-                ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <GraduationCap className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>Student Management</span>}
-          </button>
-
-          {/* Student Promotion & Registered Batches */}
-          <div className="space-y-1">
-            <button
-              onClick={() => handleNavigate('student-promotion', 'All', 'All')}
-              title="Student Promotion"
-              className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 justify-between'} transition-all ${
-                activeTab === 'student-promotion'
-                  ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
-                <TrendingUp className="w-4 h-4 shrink-0" />
-                {!collapsed && <span>Student Promotion</span>}
-              </div>
-              {!collapsed && <ChevronDown className="w-3.5 h-3.5 opacity-60" />}
-            </button>
-
-            {/* Sub-menu Registered Active Student Batches */}
-            {activeStudentBatches.length > 0 && !collapsed && (
-              <div className="pl-9 pr-1 py-1 space-y-1.5">
-                <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider block">
-                  Active Student Batches:
-                </span>
-                <div className="flex flex-wrap gap-1">
-                  {activeStudentBatches.map(b => (
-                    <button
-                      key={b}
-                      onClick={() => handleNavigate('student-promotion', 'All', b)}
-                      className={`px-2 py-0.5 rounded-md text-[11px] font-bold font-mono transition-all border ${
-                        selectedBatchFilter === b && activeTab === 'student-promotion'
-                          ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-400 font-extrabold shadow-xs'
-                          : 'bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
-                      }`}
-                    >
-                      {b}
-                    </button>
-                  ))}
-                </div>
-              </div>
+        <div className="p-3 space-y-4 overflow-y-auto min-h-0 flex-1">
+          {/* SECTION 1: COLLEGE MANAGEMENT */}
+          <div>
+            {!collapsed && (
+              <span className="px-3 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">
+                College Management
+              </span>
             )}
+            <nav className="space-y-1">
+              {/* Dashboard */}
+              <button
+                onClick={() => handleNavigate('dashboard')}
+                title="Dashboard"
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'dashboard'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <LayoutDashboard className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">Dashboard</span>}
+                </div>
+              </button>
+
+              {/* Preceptor Management */}
+              <button
+                onClick={() => handleNavigate('preceptors-list')}
+                title="Preceptor Management"
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'preceptors-list' || activeTab === 'add-preceptor'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <User className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">Preceptor Management</span>}
+                </div>
+              </button>
+
+              {/* Student Management */}
+              <button
+                onClick={() => handleNavigate('students-list')}
+                title="Student Management"
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'students-list' || activeTab === 'add-student'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <GraduationCap className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">Student Management</span>}
+                </div>
+              </button>
+
+              {/* Student Promotion & Registered Batches */}
+              <div className="space-y-1">
+                <button
+                  onClick={() => handleNavigate('student-promotion', 'All', 'All')}
+                  title="Student Promotion"
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    activeTab === 'student-promotion'
+                      ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 truncate">
+                    <TrendingUp className="w-4 h-4 shrink-0" />
+                    {!collapsed && <span className="truncate">Student Promotion</span>}
+                  </div>
+                  {!collapsed && <ChevronDown className="w-3.5 h-3.5 opacity-60 shrink-0" />}
+                </button>
+
+                {/* Sub-menu Registered Active Student Batches */}
+                {activeStudentBatches.length > 0 && !collapsed && (
+                  <div className="pl-9 pr-1 py-1 space-y-1.5">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider block">
+                      Active Student Batches:
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {activeStudentBatches.map(b => (
+                        <button
+                          key={b}
+                          onClick={() => handleNavigate('student-promotion', 'All', b)}
+                          className={`px-2 py-0.5 rounded-md text-[11px] font-bold font-mono transition-all border cursor-pointer ${
+                            selectedBatchFilter === b && activeTab === 'student-promotion'
+                              ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-400 font-extrabold shadow-xs'
+                              : 'bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                          }`}
+                        >
+                          {b}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </nav>
           </div>
 
-          {/* Assignment Management */}
-          <button
-            onClick={() => handleNavigate('assignments-list')}
-            title="Assignment Management"
-            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-              activeTab === 'assignments-list' || activeTab === 'assign-students'
-                ? 'bg-cyan-600 text-white font-bold shadow-md shadow-cyan-600/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <ClipboardList className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>Assignment Management</span>}
-          </button>
+          {/* SECTION 2: ACADEMIC & CLINICAL */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+            {!collapsed && (
+              <span className="px-3 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">
+                Academic & Clinical
+              </span>
+            )}
+            <nav className="space-y-1">
+              {/* Assignment Management */}
+              <button
+                onClick={() => handleNavigate('assignments-list')}
+                title="Assignment Management"
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'assignments-list' || activeTab === 'assign-students'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <ClipboardList className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">Assignment Management</span>}
+                </div>
+              </button>
 
-          {/* Clinical Case Management */}
-          <button
-            onClick={() => handleNavigate('clinical-cases')}
-            title="Clinical Case Management"
-            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-              activeTab === 'clinical-cases'
-                ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <FileCheck2 className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>Clinical Case Management</span>}
-          </button>
+              {/* Clinical Case Management */}
+              <button
+                onClick={() => handleNavigate('clinical-cases')}
+                title="Clinical Case Management"
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'clinical-cases'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <FileCheck2 className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">Clinical Case Management</span>}
+                </div>
+              </button>
 
-          {/* PDF & PPT Format */}
-          <button
-            onClick={() => handleNavigate('pdf-format')}
-            title="PDF & PPT Format"
-            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-              activeTab === 'pdf-format' || activeTab === 'document-branding'
-                ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <FileText className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>PDF & PPT Format</span>}
-          </button>
+              {/* PDF & PPT Format */}
+              <button
+                onClick={() => handleNavigate('pdf-format')}
+                title="PDF & PPT Format"
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'pdf-format' || activeTab === 'document-branding'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <FileText className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">PDF & PPT Format</span>}
+                </div>
+              </button>
+            </nav>
+          </div>
 
-          {/* My Profile */}
-          <button
-            onClick={() => handleNavigate('profile')}
-            title="My Profile"
-            className={`w-full h-11 rounded-xl flex items-center ${collapsed ? 'justify-center px-0' : 'px-3.5 gap-3'} transition-all ${
-              activeTab === 'profile'
-                ? 'bg-teal-600 text-white font-bold shadow-md shadow-teal-600/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <UserCheck className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>My Profile</span>}
-          </button>
-
-        </nav>
+          {/* SECTION 3: ACCOUNT & SECURITY */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+            {!collapsed && (
+              <span className="px-3 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">
+                Account & Security
+              </span>
+            )}
+            <nav className="space-y-1">
+              {/* My Profile */}
+              <button
+                onClick={() => handleNavigate('profile')}
+                title="My Profile & Security"
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'profile'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <UserCheck className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">My Profile & Security</span>}
+                </div>
+              </button>
+            </nav>
+          </div>
+        </div>
 
         {/* SIDEBAR FOOTER (LOGOUT & LIGHT/DARK TOGGLE) */}
         <div className="p-3 border-t border-slate-200/80 dark:border-slate-800 space-y-2 shrink-0">
