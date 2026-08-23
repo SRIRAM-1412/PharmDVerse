@@ -72,36 +72,36 @@ export const CollegePortalView = ({ college: rawCollege, onBackToLanding, onOpen
       <div className="min-h-screen bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 font-sans flex flex-col justify-between transition-colors duration-300">
         
         {/* 1. TOP HEADER NAVIGATION */}
-        <header className="h-16 px-4 sm:px-8 bg-white/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-30 backdrop-blur-md flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <header className="h-16 px-4 sm:px-8 bg-white/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-20 backdrop-blur-md flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             <button
               onClick={onBackToLanding}
-              className="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-1.5 text-xs font-bold"
+              className="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-1.5 text-xs font-bold shrink-0 cursor-pointer"
               title="Back to Landing Page"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4 shrink-0" />
               <span className="hidden sm:inline">Back to All Colleges</span>
             </button>
 
-            <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
+            <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block shrink-0" />
 
-            <div className="flex items-center gap-2">
-              <img src="/pharmdverse-logo.png" alt="PharmDVerse" className="w-6 h-6 object-contain cursor-pointer hover:scale-105 transition-transform" onClick={() => setShowLogoModal(true)} title="Click to view official logo" />
-              <span className="font-extrabold text-xs text-slate-900 dark:text-white">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <img src="/pharmdverse-logo.png" alt="PharmDVerse" className="w-6 h-6 object-contain cursor-pointer hover:scale-105 transition-transform shrink-0" onClick={() => setShowLogoModal(true)} title="Click to view official logo" />
+              <span className="font-extrabold text-xs text-slate-900 dark:text-white truncate">
                 PharmD<span className="text-emerald-600 dark:text-emerald-400">Verse</span>
                 <span className="text-[10px] text-slate-400 font-normal ml-1 hidden md:inline">Cloud Gateway</span>
               </span>
             </div>
           </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <span className="hidden sm:inline-flex text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
             {college.code}
           </span>
 
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center"
+            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center cursor-pointer shrink-0"
             title="Toggle Light/Dark Mode"
           >
             {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
@@ -109,9 +109,9 @@ export const CollegePortalView = ({ college: rawCollege, onBackToLanding, onOpen
 
           <button
             onClick={onBackToLanding}
-            className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-emerald-600 text-white text-xs font-semibold transition-colors"
+            className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-emerald-600 text-white text-xs font-semibold transition-colors shrink-0 cursor-pointer"
           >
-            Main Landing Page
+            <span className="hidden sm:inline">Main </span>Landing Page
           </button>
         </div>
       </header>

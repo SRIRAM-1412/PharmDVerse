@@ -173,7 +173,7 @@ export const WorkflowReferencePanel = ({ role = 'student' }) => {
 
       {/* FULL-FEATURED VECTOR INTERACTIVE WORKFLOW MODAL */}
       {isExpanded && (
-        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 lg:p-8 lg:pl-72 lg:pr-8 animate-fadeIn">
+        <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 lg:p-8 animate-fadeIn">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-4xl lg:max-w-4xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden my-auto">
             
             {/* MODAL HEADER */}
