@@ -342,15 +342,16 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="inline-flex items-center gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-bold bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800 shrink-0">
+          <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800 shrink-0">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800">
               <img
                 src={platformLogoUrl}
                 alt="Platform Logo"
-                className="w-3.5 h-3.5 sm:w-4 sm:h-4 object-contain shrink-0"
+                className="w-4 h-4 object-contain shrink-0 bg-white rounded-xs p-0.5"
                 onError={(e) => { e.target.src = '/pharmdverse-logo.png'; }}
               />
-              <span className="hidden xs:inline">Preceptor<span className="hidden sm:inline"> Workspace</span></span>
+              <span className="hidden sm:inline">Preceptor Workspace</span>
+              <span className="sm:hidden">Preceptor</span>
             </span>
           </div>
         </header>
