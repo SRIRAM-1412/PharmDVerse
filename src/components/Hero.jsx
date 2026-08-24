@@ -1,7 +1,7 @@
 import React from 'react';
 import { useColleges } from '../context/CollegeContext';
 import { usePlatform } from '../context/PlatformContext';
-import { ShieldCheck, Check, MapPin, ExternalLink, Grid, Building2, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Check, CheckCircle2, MapPin, ExternalLink, Grid, Building2, ArrowRight } from 'lucide-react';
 
 export const Hero = ({ onOpenPortal, onOpenAllColleges, onOpenRegisterModal }) => {
   const { activeColleges } = useColleges();
