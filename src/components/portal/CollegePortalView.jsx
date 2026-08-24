@@ -73,25 +73,12 @@ export const CollegePortalView = ({ college: rawCollege, onBackToLanding, onOpen
         
         {/* 1. TOP HEADER NAVIGATION */}
         <header className="h-16 px-4 sm:px-8 bg-white/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-20 backdrop-blur-md flex items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-            <button
-              onClick={onBackToLanding}
-              className="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-1.5 text-xs font-bold shrink-0 cursor-pointer"
-              title="Back to Landing Page"
-            >
-              <ArrowLeft className="w-4 h-4 shrink-0" />
-              <span className="hidden sm:inline">Back to All Colleges</span>
-            </button>
-
-            <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block shrink-0" />
-
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <img src="/pharmdverse-logo.png" alt="PharmDVerse" className="w-6 h-6 object-contain cursor-pointer hover:scale-105 transition-transform shrink-0" onClick={() => setShowLogoModal(true)} title="Click to view official logo" />
-              <span className="font-extrabold text-xs text-slate-900 dark:text-white truncate">
-                PharmD<span className="text-emerald-600 dark:text-emerald-400">Verse</span>
-                <span className="text-[10px] text-slate-400 font-normal ml-1 hidden md:inline">Cloud Gateway</span>
-              </span>
-            </div>
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <img src="/pharmdverse-logo.png" alt="PharmDVerse" className="w-6 h-6 object-contain cursor-pointer hover:scale-105 transition-transform shrink-0" onClick={() => setShowLogoModal(true)} title="Click to view official logo" />
+            <span className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
+              PharmD<span className="text-emerald-600 dark:text-emerald-400">Verse</span>
+              <span className="text-[10px] text-slate-400 font-normal ml-1.5 hidden md:inline">Cloud Gateway</span>
+            </span>
           </div>
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -117,7 +104,7 @@ export const CollegePortalView = ({ college: rawCollege, onBackToLanding, onOpen
       </header>
 
       {/* 2. MAIN DEDICATED COLLEGE LANDING CONTENT */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-10">
+      <main className="flex-1 w-full px-4 sm:px-8 lg:px-12 py-8 sm:py-12 space-y-10">
         
         {/* COLLEGE BRANDING HERO BANNER */}
         <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-white via-slate-50 to-emerald-50/70 dark:from-[#0f172a] dark:via-slate-900 dark:to-emerald-950/40 text-slate-900 dark:text-white relative overflow-hidden shadow-md border border-slate-200/80 dark:border-slate-800">
