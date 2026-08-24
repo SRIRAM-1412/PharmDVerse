@@ -1,34 +1,57 @@
 import React, { useState, useEffect } from 'react';
 import { fetchActiveColleges } from '../data/collegesData';
-import { MapPin, ExternalLink, Grid, Building } from 'lucide-react';
+import { MapPin, ExternalLink, Grid, Building, Search } from 'lucide-react';
 
 export const ActiveColleges = ({ onOpenPortal, onOpenAllColleges }) => {
   const [colleges, setColleges] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    // Dynamic load from API service with limit of 4
-    fetchActiveColleges(4).then((data) => {
+    // Dynamic load from API service with limit of 8
+    fetchActiveColleges(8).then((data) => {
       setColleges(data);
       setLoading(false);
     });
   }, []);
 
+  const filteredColleges = colleges.filter(college => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      college.name?.toLowerCase().includes(term) ||
+      college.city?.toLowerCase().includes(term) ||
+      college.code?.toLowerCase().includes(term)
+    );
+  });
+
   return (
-    <section className="py-10 md:py-12 relative">
+    <section id="active-colleges" className="py-10 md:py-12 relative scroll-mt-20">
       <div className="w-full px-4 sm:px-8 lg:px-12">
         
         {/* Section Header */}
-        <div className="text-center max-w-xl mx-auto mb-8">
+        <div className="text-center max-w-xl mx-auto mb-6">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Active Pharmacy Colleges
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
             Select your college below to access its portal.
           </p>
+
+          {/* Quick Search Input */}
+          <div className="mt-4 relative max-w-md mx-auto">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search college by name, code, or city..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-xs"
+            />
+          </div>
         </div>
 
-        {/* 4 Active Colleges Cards */}
+        {/* Active Colleges Cards */}
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[1, 2, 3, 4].map((n) => (
@@ -37,7 +60,7 @@ export const ActiveColleges = ({ onOpenPortal, onOpenAllColleges }) => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {colleges.map((college) => (
+            {filteredColleges.map((college) => (
               <div
                 key={college.id}
                 className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-500/60 dark:hover:border-emerald-500/60 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"

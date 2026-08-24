@@ -28,9 +28,9 @@ export const StudentValueSection = () => {
       bg: "bg-indigo-100/80 dark:bg-indigo-950/60 border-indigo-200 dark:border-indigo-800"
     },
     {
-      title: "4. Improve Documentation",
-      description: "Pre-Submission Review helps identify missing information, documentation gaps and inconsistencies before submission.",
-      icon: CheckCircle2,
+      title: "4. Improve & Export Documentation",
+      description: "Pre-Submission Review identifies documentation gaps and generates organized PDF/PPT case files for academic use.",
+      icon: FileDown,
       color: "text-sky-600 dark:text-sky-400",
       bg: "bg-sky-100/80 dark:bg-sky-950/60 border-sky-200 dark:border-sky-800"
     },
@@ -47,13 +47,6 @@ export const StudentValueSection = () => {
       icon: UserCheck,
       color: "text-amber-600 dark:text-amber-400",
       bg: "bg-amber-100/80 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800"
-    },
-    {
-      title: "7. Maintain Professional Records",
-      description: "Generate organized PDF/PPT clinical case documentation for academic use.",
-      icon: FileDown,
-      color: "text-rose-600 dark:text-rose-400",
-      bg: "bg-rose-100/80 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800"
     }
   ];
 

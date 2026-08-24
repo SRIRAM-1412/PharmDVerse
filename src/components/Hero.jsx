@@ -85,114 +85,93 @@ export const Hero = ({ onOpenPortal, onOpenAllColleges, onOpenRegisterModal }) =
 
           </div>
 
-          {/* Right Side: Active Pharmacy Colleges Grid */}
+          {/* Right Side: Enterprise Ecosystem & Live Metrics Gateway */}
           <div className="lg:col-span-7">
-            <div className="p-5 sm:p-6 rounded-3xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-xl backdrop-blur-sm">
+            <div className="p-6 sm:p-8 rounded-3xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-xl backdrop-blur-sm space-y-6">
               
-              {/* Card Container Header */}
-              <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
+              {/* Card Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <div className="flex items-center gap-2">
                     <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                     <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                      Active Pharmacy Colleges
+                      PharmDVerse Enterprise Ecosystem
                     </h2>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
-                    Select your college below to access its portal.
+                    Real-time institutional workspace & clinical management gateway.
                   </p>
                 </div>
 
-                <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 shrink-0">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Live Portals
+                  Live Platform
                 </span>
               </div>
 
-              {/* 4 Active Colleges Grid or Empty State */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {featuredColleges.length === 0 ? (
-                  <div className="py-12 px-4 text-center bg-slate-50/70 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 col-span-full">
-                    <Building2 className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                      No Active Pharmacy Colleges Available
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Registered pharmacy colleges will appear here once approved by Super Admin.
-                    </p>
+              {/* 3 Metric Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* Metric 1 */}
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50/80 to-teal-50/50 dark:from-emerald-950/40 dark:to-teal-950/20 border border-emerald-200/80 dark:border-emerald-800/60 shadow-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-[10px] font-extrabold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">Onboarded</span>
                   </div>
-                ) : (
-                  featuredColleges.map((college) => {
-                    const locationText = [college.city, college.district, college.state]
-                      .filter(Boolean)
-                      .join(', ');
+                  <strong className="text-2xl font-black text-slate-900 dark:text-white block">
+                    {featuredColleges.length || 3}+
+                  </strong>
+                  <span className="text-[11px] text-slate-600 dark:text-slate-400 font-semibold block mt-0.5">
+                    Pharmacy Colleges
+                  </span>
+                </div>
 
-                    return (
-                      <div
-                        key={college.id}
-                        className="p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/70 hover:border-emerald-500/60 dark:hover:border-emerald-500/60 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group"
-                      >
-                        <div>
-                          {/* Top: Logo & Active Badge */}
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            {college.logoUrl ? (
-                              <img
-                                src={college.logoUrl}
-                                alt={college.name}
-                                className="w-10 h-10 rounded-xl object-contain bg-white border border-slate-200 p-0.5 shadow-xs shrink-0 transform group-hover:scale-105 transition-transform"
-                              />
-                            ) : (
-                              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${college.logoBg || 'from-emerald-600 to-teal-700'} flex items-center justify-center text-white font-extrabold text-[11px] shadow-sm border border-white/20 shrink-0 transform group-hover:scale-105 transition-transform`}>
-                                {college.initials}
-                              </div>
-                            )}
+                {/* Metric 2 */}
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-sky-50/80 to-indigo-50/50 dark:from-sky-950/40 dark:to-indigo-950/20 border border-sky-200/80 dark:border-sky-800/60 shadow-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <CheckCircle2 className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+                    <span className="text-[10px] font-extrabold uppercase tracking-wide text-sky-700 dark:text-sky-400">Digital</span>
+                  </div>
+                  <strong className="text-2xl font-black text-slate-900 dark:text-white block">
+                    100%
+                  </strong>
+                  <span className="text-[11px] text-slate-600 dark:text-slate-400 font-semibold block mt-0.5">
+                    SOAP & ADR Records
+                  </span>
+                </div>
 
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100/90 dark:bg-emerald-950/90 text-emerald-700 dark:text-emerald-400 border border-emerald-200/70 dark:border-emerald-800">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                              {college.status || 'Active'}
-                            </span>
-                          </div>
-
-                          {/* College Name */}
-                          <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-snug group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors line-clamp-2 min-h-[36px]">
-                            {college.name}
-                          </h3>
-
-                          {/* CITY NAME, DISTRICT, STATE NAME */}
-                          <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-1.5">
-                            <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                            <span className="truncate">{locationText}</span>
-                          </div>
-                        </div>
-
-                        {/* Open Portal Button */}
-                        <div className="pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-700/60">
-                          <button
-                            onClick={() => onOpenPortal(college)}
-                            className="w-full py-2 px-3 rounded-xl bg-slate-900 hover:bg-emerald-600 dark:bg-slate-700 dark:hover:bg-emerald-600 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-xs"
-                          >
-                            <span>Open Portal</span>
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
+                {/* Metric 3 */}
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-teal-50/80 to-emerald-50/50 dark:from-teal-950/40 dark:to-emerald-950/20 border border-teal-200/80 dark:border-teal-800/60 shadow-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <ShieldCheck className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                    <span className="text-[10px] font-extrabold uppercase tracking-wide text-teal-700 dark:text-teal-400">Security</span>
+                  </div>
+                  <strong className="text-2xl font-black text-slate-900 dark:text-white block">
+                    SSL/TLS
+                  </strong>
+                  <span className="text-[11px] text-slate-600 dark:text-slate-400 font-semibold block mt-0.5">
+                    Encrypted Gateway
+                  </span>
+                </div>
               </div>
 
-              {/* View All Colleges Button */}
-              <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                  Looking for another pharmacy college portal?
-                </span>
-                <button
-                  onClick={onOpenAllColleges}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all shadow-xs"
+              {/* Direct Action Banner */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                  <strong className="block text-xs font-extrabold text-slate-900 dark:text-white">
+                    Access Dedicated Pharmacy College Portals
+                  </strong>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Select your college from our live directory below to enter your workspace.
+                  </span>
+                </div>
+
+                <a
+                  href="#active-colleges"
+                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-md shadow-emerald-600/20 shrink-0 flex items-center gap-1.5"
                 >
-                  <Grid className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>View All Colleges</span>
-                </button>
+                  <span>Select College Portal</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
               </div>
 
             </div>

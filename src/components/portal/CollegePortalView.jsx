@@ -35,17 +35,19 @@ export const CollegePortalView = ({ college: rawCollege, onBackToLanding, onOpen
     {
       id: 'admin',
       name: 'College Admin Login',
+      roleBadge: 'Institutional',
       subtitle: 'Institutional Administration & Governance',
       description: 'Central management login for Principal, HODs, Academic Coordinators, and Institutional Admin to manage faculty, students, and hospital affiliations.',
       icon: Building2,
       onOpen: () => onOpenAdminLogin(college),
-      badgeBg: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/80 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800',
-      btnBg: 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/20',
-      iconColor: 'text-indigo-600 dark:text-indigo-400'
+      badgeBg: 'bg-purple-100 text-purple-800 dark:bg-purple-950/80 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+      btnBg: 'bg-purple-600 hover:bg-purple-700 text-white shadow-purple-600/20',
+      iconColor: 'text-purple-600 dark:text-purple-400'
     },
     {
       id: 'preceptor',
       name: 'Preceptor Login',
+      roleBadge: 'Clinical Faculty',
       subtitle: 'Clinical Evaluators & Hospital Doctors',
       description: 'Dedicated evaluation login workspace for Hospital Doctors, Ward Preceptors, and Clinical Faculty to review student patient cases, logbooks, and ward rounds.',
       icon: Stethoscope,
@@ -57,6 +59,7 @@ export const CollegePortalView = ({ college: rawCollege, onBackToLanding, onOpen
     {
       id: 'student',
       name: 'Student Login',
+      roleBadge: 'PharmD Candidate',
       subtitle: 'PharmD Candidates & Interns (1st - 6th Year)',
       description: 'Comprehensive digital logbook login for PharmD students to document clinical cases, SOAP notes, drug interactions, ADR reports, and ward round activities.',
       icon: UserCheck,
@@ -193,7 +196,7 @@ export const CollegePortalView = ({ college: rawCollege, onBackToLanding, onOpen
                       </div>
 
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${item.badgeBg}`}>
-                        Login
+                        {item.roleBadge || 'Role'}
                       </span>
                     </div>
 
