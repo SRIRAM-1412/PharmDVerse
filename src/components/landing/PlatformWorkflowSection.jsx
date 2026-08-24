@@ -15,7 +15,7 @@ export const PlatformWorkflowSection = () => {
       {/* Background ambient lighting */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-tr from-emerald-500/5 via-indigo-500/5 to-teal-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-16">
+      <div className="w-full px-4 sm:px-8 lg:px-12 relative z-10 space-y-16">
         
         {/* Section Header */}
         <div className="text-center space-y-4 max-w-3xl mx-auto">

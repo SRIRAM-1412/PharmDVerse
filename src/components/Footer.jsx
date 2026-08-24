@@ -14,7 +14,7 @@ export const Footer = ({ onOpenInfoModal, onOpenSuperAdmin }) => {
   return (
     <>
       <footer className="border-t border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/80 text-slate-600 dark:text-slate-400 pt-10 pb-6 transition-colors">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-4 sm:px-8 lg:px-12">
           
           {/* Main Footer Links Columns */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pb-8 border-b border-slate-200/60 dark:border-slate-800/60">

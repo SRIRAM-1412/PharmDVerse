@@ -37,7 +37,7 @@ export const Header = ({ onOpenPricing, onOpenContact }) => {
   return (
     <>
       <header className="sticky top-0 z-50 bg-white/90 dark:bg-[#080d1a]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 transition-colors duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+        <div className="w-full px-4 sm:px-8 lg:px-12 py-3.5">
           <div className="flex items-center justify-between">
             
             {/* Left: Platform Logo */}
