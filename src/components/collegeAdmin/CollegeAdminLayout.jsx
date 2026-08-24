@@ -447,7 +447,8 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800 shrink-0">
+          {/* Desktop Only: Vertical Divider + Full Super Admin Style Workspace Badge */}
+          <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800 shrink-0">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
               <img
                 src={platformLogoUrl}
@@ -455,8 +456,20 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
                 className="w-4 h-4 object-contain shrink-0 bg-white rounded-xs p-0.5"
                 onError={(e) => { e.target.src = '/pharmdverse-logo.png'; }}
               />
-              <span className="hidden sm:inline">College Admin Workspace</span>
-              <span className="sm:hidden">College Admin</span>
+              <span>College Admin Workspace</span>
+            </span>
+          </div>
+
+          {/* Mobile Only: Compact Badge without Vertical Divider */}
+          <div className="sm:hidden flex items-center gap-2 shrink-0">
+            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+              <img
+                src={platformLogoUrl}
+                alt="Platform Logo"
+                className="w-3.5 h-3.5 object-contain shrink-0"
+                onError={(e) => { e.target.src = '/pharmdverse-logo.png'; }}
+              />
+              <span className="hidden xs:inline">Admin</span>
             </span>
           </div>
         </header>
