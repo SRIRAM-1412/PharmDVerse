@@ -297,11 +297,20 @@ export const generateOfficialClinicalCasePDF = ({
       doc.setFont(fontFamily, 'bold'); doc.setFontSize(10.5); doc.setTextColor(15, 23, 42);
       doc.text('Preceptor Signature', sigRightX + 25, sigY + 14, { align: 'center' });
       doc.setFont(fontFamily, 'normal'); doc.setFontSize(10.0); doc.setTextColor(2, 132, 199);
-      doc.text(norm.preceptorName, sigRightX + 25, sigY + 19, { align: 'center', maxWidth: 55 });
+      // Measure preceptor name wrapped lines to offset designation dynamically
+      const preceptorNameLines = doc.splitTextToSize(String(norm.preceptorName || ''), 55);
+      doc.text(preceptorNameLines, sigRightX + 25, sigY + 19, { align: 'center' });
+      const nameBlockH = preceptorNameLines.length * 4.2;
       doc.setFontSize(9.0); doc.setTextColor(100, 116, 139);
-      doc.text(String(norm.preceptorDesig || '').toUpperCase(), sigRightX + 25, sigY + 23, { align: 'center', maxWidth: 55 });
+      const desigText = String(norm.preceptorDesig || '').toUpperCase();
+      const desigLines = desigText ? doc.splitTextToSize(desigText, 55) : [];
+      const desigStartY = sigY + 19 + nameBlockH;
+      if (desigLines.length > 0) {
+        doc.text(desigLines, sigRightX + 25, desigStartY, { align: 'center' });
+      }
+      const desigBlockH = desigLines.length > 0 ? desigLines.length * 4.2 : 0;
       doc.setFontSize(9.5); doc.setTextColor(100, 116, 139);
-      doc.text(`Date: ${currentDateStr}`, sigRightX + 25, sigY + 27.5, { align: 'center' });
+      doc.text(`Date: ${currentDateStr}`, sigRightX + 25, desigStartY + desigBlockH + 2, { align: 'center' });
     }
 
     doc.restoreGraphicsState();
@@ -1573,6 +1582,150 @@ export const generateOfficialClinicalCasePDF = ({
   if (selectedForm === 'all' || selectedForm === 'complete' || selectedForm === 'ai_analysis') {
     ensureSpace(45);
     drawFormTitleBanner('AI CLINICAL CASE ANALYSIS & SUMMARY', [16, 185, 129]);
+
+    // -----------------------------------------------------------------------
+    // SECTION 1 — CASE OVERVIEW
+    // -----------------------------------------------------------------------
+    ensureSpace(30);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('Section 1 — Case Overview:', boxX + 1, y);
+    y += 5;
+
+    const sec1GridH = 26;
+    doc.setDrawColor(15, 23, 42);
+    doc.setFillColor(248, 250, 252);
+    doc.rect(boxX, y, boxW, sec1GridH, 'FD');
+    doc.line(boxX + (boxW / 3), y, boxX + (boxW / 3), y + sec1GridH);
+    doc.line(boxX + (boxW * 2 / 3), y, boxX + (boxW * 2 / 3), y + sec1GridH);
+    doc.line(boxX, y + (sec1GridH / 2), boxX + boxW, y + (sec1GridH / 2));
+
+    const col1X = boxX + 2; const col2X = boxX + (boxW / 3) + 2; const col3X = boxX + (boxW * 2 / 3) + 2;
+    const colW = boxW / 3 - 4;
+
+    doc.setFontSize(8); doc.setTextColor(100, 116, 139);
+    doc.text('PATIENT AGE / SEX', col1X, y + 4); doc.text('DEPARTMENT / WARD', col2X, y + 4); doc.text('FINAL DIAGNOSIS', col3X, y + 4);
+
+    const ageSexVal = [norm.demographics?.age ? `${norm.demographics.age} Yrs` : null, norm.demographics?.gender].filter(Boolean).join(' / ') || 'Not documented';
+    const deptWardVal = [norm.demographics?.department, norm.demographics?.ward ? `(${norm.demographics.ward})` : null].filter(Boolean).join(' ') || 'Not documented';
+    const diagVal = norm.diagnosis?.final || (norm.diagnoses?.length > 0 ? norm.diagnoses.join(', ') : 'Not documented');
+
+    doc.setFontSize(9.5); doc.setFont(fontFamily, 'bold'); doc.setTextColor(15, 23, 42);
+    doc.text(doc.splitTextToSize(ageSexVal, colW), col1X, y + 9);
+    doc.text(doc.splitTextToSize(deptWardVal, colW), col2X, y + 9);
+    doc.setTextColor(16, 185, 129);
+    doc.text(doc.splitTextToSize(diagVal, colW), col3X, y + 9);
+
+    doc.setFont(fontFamily, 'normal'); doc.setFontSize(8); doc.setTextColor(100, 116, 139);
+    doc.text('CHIEF COMPLAINT(S)', col1X, y + sec1GridH / 2 + 4); doc.text('PAST MEDICAL HISTORY', col2X, y + sec1GridH / 2 + 4); doc.text('DOCUMENTED ALLERGIES', col3X, y + sec1GridH / 2 + 4);
+
+    const complVal = norm.history?.chiefComplaints || 'Not documented';
+    const pastVal = norm.history?.pastMedicalHistory || 'Not documented';
+    const allergyVal = norm.demographics?.allergyDrugs || 'Not documented';
+
+    doc.setFontSize(9); doc.setFont(fontFamily, 'bold'); doc.setTextColor(15, 23, 42);
+    doc.text(doc.splitTextToSize(complVal, colW), col1X, y + sec1GridH / 2 + 9);
+    doc.text(doc.splitTextToSize(pastVal, colW), col2X, y + sec1GridH / 2 + 9);
+    doc.text(doc.splitTextToSize(allergyVal, colW), col3X, y + sec1GridH / 2 + 9);
+    y += sec1GridH + 4;
+
+    // Case Summary Box
+    const caseSumAgeStr = norm.demographics?.age && norm.demographics.age !== 'N/A' ? `${norm.demographics.age}-year-old` : '';
+    const caseSumGender = norm.demographics?.gender && norm.demographics.gender !== 'N/A' ? norm.demographics.gender.toLowerCase() : 'patient';
+    const caseSumPatient = [caseSumAgeStr, caseSumGender].filter(Boolean).join(' ') || 'patient';
+    const caseSumDept = norm.demographics?.department && norm.demographics.department !== 'N/A' ? `admitted to the ${norm.demographics.department}` : '';
+    const caseSumComplaints = norm.history?.chiefComplaints && norm.history.chiefComplaints !== 'N/A' ? norm.history.chiefComplaints : null;
+    const caseSumDiag = norm.diagnosis?.final && norm.diagnosis.final !== 'N/A' ? norm.diagnosis.final : (norm.diagnoses?.length > 0 ? norm.diagnoses[0] : null);
+    let caseSummaryText = `This case involves a ${caseSumPatient} ${caseSumDept}`.trim();
+    if (caseSumComplaints && caseSumDiag) caseSummaryText += ` presenting with ${caseSumComplaints} and diagnosed with ${caseSumDiag}.`;
+    else if (caseSumComplaints) caseSummaryText += ` presenting with ${caseSumComplaints}.`;
+    else if (caseSumDiag) caseSummaryText += ` with a documented final diagnosis of ${caseSumDiag}.`;
+    else caseSummaryText += '.';
+    if (norm.history?.pastMedicalHistory && norm.history.pastMedicalHistory !== 'N/A' && norm.history.pastMedicalHistory !== 'None') {
+      caseSummaryText += ` Documented past medical history includes ${norm.history.pastMedicalHistory}.`;
+    }
+    drawSectionBox('Case Summary:', caseSummaryText, 16);
+
+    // -----------------------------------------------------------------------
+    // SECTION 2 — PATIENT PROFILE ANALYSIS
+    // -----------------------------------------------------------------------
+    ensureSpace(35);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('Section 2 — Patient Profile Analysis:', boxX + 1, y);
+    y += 5;
+
+    // Anthropometrics Grid
+    const hCm = parseFloat(String(norm.demographics?.height || '').replace(/[^0-9.]/g, ''));
+    const wKg = parseFloat(String(norm.demographics?.weight || '').replace(/[^0-9.]/g, ''));
+    const existBmi = parseFloat(String(norm.demographics?.bmi || '').replace(/[^0-9.]/g, ''));
+    let bmiCalc = null; let heightStr = 'Not documented'; let weightStr = 'Not documented'; let bmiStr = 'Not documented';
+    if (!isNaN(wKg) && !isNaN(hCm) && hCm > 0) {
+      const hM = hCm / 100; bmiCalc = (wKg / (hM * hM)).toFixed(1);
+      heightStr = `${hCm} cm`; weightStr = `${wKg} kg`; bmiStr = `${bmiCalc} kg/m²`;
+    } else if (!isNaN(existBmi) && existBmi > 0) {
+      bmiCalc = existBmi.toFixed(1); bmiStr = `${bmiCalc} kg/m²`;
+      if (!isNaN(hCm)) heightStr = `${hCm} cm`;
+      if (!isNaN(wKg)) weightStr = `${wKg} kg`;
+    }
+    let bmiCategory = '';
+    if (bmiCalc) {
+      const bv = parseFloat(bmiCalc);
+      if (bv < 18.5) bmiCategory = 'Underweight';
+      else if (bv <= 24.9) bmiCategory = 'Normal Weight';
+      else if (bv <= 29.9) bmiCategory = 'Overweight';
+      else if (bv <= 34.9) bmiCategory = 'Class I Obesity';
+      else if (bv <= 39.9) bmiCategory = 'Class II Obesity';
+      else bmiCategory = 'Class III Obesity';
+    }
+
+    const sec2BoxH = 14;
+    doc.setDrawColor(15, 23, 42); doc.setFillColor(248, 250, 252);
+    doc.rect(boxX, y, boxW, sec2BoxH, 'FD');
+    const fifthW = boxW / 5;
+    [1,2,3,4].forEach(i => doc.line(boxX + fifthW * i, y, boxX + fifthW * i, y + sec2BoxH));
+
+    doc.setFontSize(7.5); doc.setTextColor(100, 116, 139); doc.setFont(fontFamily, 'normal');
+    ['AGE', 'SEX', 'HEIGHT', 'WEIGHT', 'BMI'].forEach((label, i) => {
+      doc.text(label, boxX + fifthW * i + 2, y + 4);
+    });
+    doc.setFontSize(9.5); doc.setFont(fontFamily, 'bold'); doc.setTextColor(15, 23, 42);
+    const anthroVals = [
+      norm.demographics?.age ? `${norm.demographics.age} Yrs` : 'N/A',
+      norm.demographics?.gender || 'N/A',
+      heightStr, weightStr
+    ];
+    anthroVals.forEach((val, i) => doc.text(val, boxX + fifthW * i + 2, y + 10));
+    doc.setTextColor(67, 56, 202);
+    doc.text(bmiStr + (bmiCategory ? ` (${bmiCategory})` : ''), boxX + fifthW * 4 + 2, y + 10, { maxWidth: fifthW - 4 });
+    y += sec2BoxH + 4;
+
+    // AI Patient Profile Interpretation
+    const profAgeStr = norm.demographics?.age && norm.demographics.age !== 'N/A' ? `${norm.demographics.age}-year-old` : null;
+    const profSex = norm.demographics?.gender && norm.demographics.gender !== 'N/A' ? norm.demographics.gender.toLowerCase() : 'patient';
+    const profDesc = [profAgeStr, profSex].filter(Boolean).join(' ') || 'patient';
+    let profInterpText = bmiCalc
+      ? `The patient is a ${profDesc}. Calculated BMI of ${bmiStr} based on documented height (${heightStr}) and weight (${weightStr}) is in the ${bmiCategory} range.`
+      : `The patient is a ${profDesc}. Height and weight values are not fully documented to compute BMI.`;
+
+    // Vitals from norm
+    const vitList = Array.isArray(norm.vitals) && norm.vitals.length > 0 ? norm.vitals : [];
+    const vit = vitList[0] || {};
+    const vitSys = parseInt(vit.bp_sys || (typeof vit.bp === 'string' ? vit.bp.split('/')[0] : null), 10);
+    const vitDia = parseInt(vit.bp_dia || (typeof vit.bp === 'string' ? vit.bp.split('/')[1] : null), 10);
+    const vitPulse = parseInt(vit.pulse_rate || vit.pr || vit.pulse, 10);
+    const vitNotes = [];
+    if (!isNaN(vitSys) && !isNaN(vitDia)) {
+      if (vitSys >= 140 || vitDia >= 90) vitNotes.push(`elevated BP (${vitSys}/${vitDia} mmHg)`);
+      else if (vitSys < 90 || vitDia < 60) vitNotes.push(`hypotensive BP (${vitSys}/${vitDia} mmHg)`);
+    }
+    if (!isNaN(vitPulse)) {
+      if (vitPulse > 100) vitNotes.push(`tachycardia (${vitPulse} bpm)`);
+      else if (vitPulse < 60) vitNotes.push(`bradycardia (${vitPulse} bpm)`);
+    }
+    if (vitNotes.length > 0) profInterpText += ` Documented vital signs show ${vitNotes.join(', ')}.`;
+    else if (!isNaN(vitSys) || !isNaN(vitPulse)) profInterpText += ' Documented vital signs are within normal hemodynamically stable limits.';
+    else profInterpText += ' Vital signs are not documented in the saved case file.';
+
+    drawSectionBox('AI Patient Profile Interpretation:', profInterpText, 18);
 
     // Section 3 — Disease-Medication Indication Matrix
     const sec3Lines = norm.drugs.map((d, i) => {
