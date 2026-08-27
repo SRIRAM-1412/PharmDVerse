@@ -972,7 +972,7 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
         college: student?.colleges || selectedCase?.colleges || {},
         caseModulesData: modulesData || {},
         branding: bSettings || {},
-        selectedForm: 'all'
+        selectedForm: 'ai_analysis'
       });
     } catch (err) {
       console.error('Failed to generate College-Branded PDF:', err);

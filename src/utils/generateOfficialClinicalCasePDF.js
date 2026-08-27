@@ -901,7 +901,7 @@ export const generateOfficialClinicalCasePDF = ({
   // =========================================================================
   // 3. PHARMACIST INTERVENTION DOCUMENTATION FORM ONLY (STEP 13)
   // =========================================================================
-  if (selectedForm === 'intervention' || selectedForm === 'all' || selectedForm === 'complete' || selectedForm === 'ai_analysis') {
+  if (selectedForm === 'intervention' || selectedForm === 'all' || selectedForm === 'complete') {
     drawFormTitleBanner('PHARMACIST INTERVENTION DOCUMENTATION', [67, 56, 202]);
 
     // 1. PATIENT INFORMATION BOX (3 Rows: height 26mm with lines at +8.5 and +17.0)
@@ -1090,7 +1090,7 @@ export const generateOfficialClinicalCasePDF = ({
   // =========================================================================
   // 4. DRUG INFORMATION REQUEST DOCUMENTATION FORM ONLY (STEP 14)
   // =========================================================================
-  if (selectedForm === 'dir' || selectedForm === 'all' || selectedForm === 'complete' || selectedForm === 'ai_analysis') {
+  if (selectedForm === 'dir' || selectedForm === 'all' || selectedForm === 'complete') {
     drawFormTitleBanner('DRUG INFORMATION REQUEST DOCUMENTATION', [180, 83, 9]);
 
     // 1. SESSION & ENQUIRER OVERVIEW BOX (3 Rows: height 26mm with lines at +8.5 and +17.0)
@@ -1256,7 +1256,7 @@ export const generateOfficialClinicalCasePDF = ({
   // =========================================================================
   // 5. ADR DOCUMENTATION LOG FORM ONLY (STEP 15)
   // =========================================================================
-  if (selectedForm === 'adr' || selectedForm === 'all' || selectedForm === 'complete' || selectedForm === 'ai_analysis') {
+  if (selectedForm === 'adr' || selectedForm === 'all' || selectedForm === 'complete') {
     drawFormTitleBanner('ADR DOCUMENTATION LOG', [225, 29, 72]);
 
     // 1. GENERAL RECORD INFORMATION BOX
