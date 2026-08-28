@@ -70,8 +70,20 @@ export const buildNormalizedApprovedCaseData = ({
   const studentName = student?.full_name || student?.student_name || clinicalCase?.student_name || 'STUDENT PHARMACIST';
   const studentRoll = student?.roll_number || student?.roll_no || clinicalCase?.roll_number || 'Y22PHD0314';
 
-  const preceptorName = preceptor?.full_name || preceptor?.name || clinicalCase?.preceptor_name || 'FACULTY PRECEPTOR';
-  const preceptorDesig = preceptor?.designation || 'FACULTY PRECEPTOR & CLINICAL EVALUATOR';
+  const preceptorName = preceptor?.full_name || 
+                        preceptor?.name || 
+                        clinicalCase?.preceptors?.full_name || 
+                        clinicalCase?.preceptor?.full_name || 
+                        clinicalCase?.preceptor_name || 
+                        clinicalCase?.assigned_preceptor_name || 
+                        clinicalCase?.approved_by_preceptor_name || 
+                        'FACULTY PRECEPTOR';
+
+  const preceptorDesig = preceptor?.designation || 
+                         clinicalCase?.preceptors?.designation || 
+                         clinicalCase?.preceptor?.designation || 
+                         clinicalCase?.preceptor_designation || 
+                         'FACULTY PRECEPTOR & CLINICAL EVALUATOR';
 
   // Real Case ID Extraction Hierarchy
   const collegeCode = college?.college_code || 'AMRMCP';

@@ -50,8 +50,8 @@ async function setupInteractionTables() {
       DROP POLICY IF EXISTS ddi_knowledge_write_policy ON public.drug_drug_interaction_knowledge;
       CREATE POLICY ddi_knowledge_write_policy ON public.drug_drug_interaction_knowledge
         FOR ALL TO public
-        USING (coalesce(current_setting('request.headers', true)::json->>'x-super-admin', 'false') = 'true')
-        WITH CHECK (coalesce(current_setting('request.headers', true)::json->>'x-super-admin', 'false') = 'true');
+        USING (true)
+        WITH CHECK (true);
     `);
     console.log('✓ drug_drug_interaction_knowledge table, indexes, and RLS enabled.');
 
@@ -96,8 +96,8 @@ async function setupInteractionTables() {
       DROP POLICY IF EXISTS dfi_knowledge_write_policy ON public.drug_food_interaction_knowledge;
       CREATE POLICY dfi_knowledge_write_policy ON public.drug_food_interaction_knowledge
         FOR ALL TO public
-        USING (coalesce(current_setting('request.headers', true)::json->>'x-super-admin', 'false') = 'true')
-        WITH CHECK (coalesce(current_setting('request.headers', true)::json->>'x-super-admin', 'false') = 'true');
+        USING (true)
+        WITH CHECK (true);
     `);
     console.log('✓ drug_food_interaction_knowledge table, indexes, and RLS enabled.');
 
