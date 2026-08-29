@@ -11,7 +11,8 @@ import {
   fetchMultipleDrugKnowledgeFromSupabase,
   evaluateSection5ADrugInteractionsInSupabase,
   evaluateSection5BDrugFoodInteractionsInSupabase,
-  fetchDocumentBrandingSettingsFromSupabase
+  fetchDocumentBrandingSettingsFromSupabase,
+  fetchPreceptorByIdFromSupabase
 } from '../../services/supabaseService';
 import { buildNormalizedApprovedCaseData } from '../../utils/buildNormalizedApprovedCaseData';
 import { generateOfficialClinicalCasePDF } from '../../utils/generateOfficialClinicalCasePDF';
@@ -965,14 +966,28 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
         if (res.success && res.settings) bSettings = res.settings;
       }
 
+      // Fetch preceptor details if available
+      const targetPreceptorId = selectedCase?.preceptor_id || selectedCase?.assigned_preceptor_id || selectedCase?.approved_by_preceptor_id || selectedCase?.preceptors?.id;
+      let preceptorObj = selectedCase?.preceptors || selectedCase?.preceptor || {};
+      if (targetPreceptorId && (!preceptorObj || !preceptorObj.full_name)) {
+        const pRes = await fetchPreceptorByIdFromSupabase(targetPreceptorId);
+        if (pRes.success && pRes.preceptor) {
+          preceptorObj = pRes.preceptor;
+        }
+      }
+
       await generateOfficialClinicalCasePDF({
         clinicalCase: selectedCase || {},
         student: student || {},
-        preceptor: selectedCase?.preceptors || {},
+        preceptor: preceptorObj,
         college: student?.colleges || selectedCase?.colleges || {},
         caseModulesData: modulesData || {},
         branding: bSettings || {},
-        selectedForm: 'ai_analysis'
+        selectedForm: 'ai_analysis',
+        section4DrugKnowledge,
+        section4AiSynthesis,
+        section5ADdiResult,
+        section5BDfiResult
       });
     } catch (err) {
       console.error('Failed to generate College-Branded PDF:', err);

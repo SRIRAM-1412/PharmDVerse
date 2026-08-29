@@ -53,7 +53,11 @@ export const generateOfficialClinicalCasePDF = ({
   college = {},
   caseModulesData = {},
   branding = {},
-  selectedForm = 'profile' // 'profile' | 'counselling' | 'intervention' | 'dir' | 'adr'
+  selectedForm = 'profile', // 'profile' | 'counselling' | 'intervention' | 'dir' | 'adr' | 'ai_analysis'
+  section4DrugKnowledge = [],
+  section4AiSynthesis = null,
+  section5ADdiResult = null,
+  section5BDfiResult = null
 }) => {
   const norm = buildNormalizedApprovedCaseData({
     clinicalCase,
@@ -286,9 +290,12 @@ export const generateOfficialClinicalCasePDF = ({
       doc.setFont(fontFamily, 'bold'); doc.setFontSize(10.5); doc.setTextColor(15, 23, 42);
       doc.text('Student Signature', sigLeftX + 25, sigY + 14, { align: 'center' });
       doc.setFont(fontFamily, 'normal'); doc.setFontSize(10.0); doc.setTextColor(2, 132, 199);
-      doc.text(`${norm.studentName} (${norm.studentRoll})`, sigLeftX + 25, sigY + 19, { align: 'center', maxWidth: 55 });
+      const studentText = `${norm.studentName} (${norm.studentRoll})`;
+      const studentLines = doc.splitTextToSize(studentText, 55);
+      doc.text(studentLines, sigLeftX + 25, sigY + 19, { align: 'center' });
+      const studentBlockH = studentLines.length * 4.2;
       doc.setFontSize(9.5); doc.setTextColor(100, 116, 139);
-      doc.text(`Date: ${currentDateStr}`, sigLeftX + 25, sigY + 23.5, { align: 'center' });
+      doc.text(`Date: ${currentDateStr}`, sigLeftX + 25, sigY + 19 + studentBlockH + 1, { align: 'center' });
     }
 
     // Preceptor Signature Box (Right)
@@ -1584,25 +1591,36 @@ export const generateOfficialClinicalCasePDF = ({
     drawFormTitleBanner('AI CLINICAL CASE ANALYSIS & SUMMARY', [16, 185, 129]);
 
     // -----------------------------------------------------------------------
-    // SECTION 1 — CASE OVERVIEW
+    // SECTION 1 — CASE OVERVIEW (DYNAMIC LAYOUT WITH ZERO OVERLAP)
     // -----------------------------------------------------------------------
-    ensureSpace(30);
+    ensureSpace(35);
     doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
     doc.text('Section 1 — Case Overview:', boxX + 1, y);
     y += 5;
 
-    const sec1GridH = 26;
+    const complVal = norm.history?.chiefComplaints || 'Not documented';
+    const pastVal = norm.history?.pastMedicalHistory || 'Not documented';
+    const allergyVal = norm.demographics?.allergyDrugs || 'Not documented';
+    const colW = boxW / 3 - 4;
+
+    const complLines = doc.splitTextToSize(complVal, colW);
+    const pastLines = doc.splitTextToSize(pastVal, colW);
+    const allergyLines = doc.splitTextToSize(allergyVal, colW);
+
+    const maxBottomLines = Math.max(complLines.length, pastLines.length, allergyLines.length, 1);
+    const bottomRowH = Math.max(maxBottomLines * 4.2 + 6, 13);
+    const sec1GridH = 13 + bottomRowH;
+
     doc.setDrawColor(15, 23, 42);
     doc.setFillColor(248, 250, 252);
     doc.rect(boxX, y, boxW, sec1GridH, 'FD');
     doc.line(boxX + (boxW / 3), y, boxX + (boxW / 3), y + sec1GridH);
     doc.line(boxX + (boxW * 2 / 3), y, boxX + (boxW * 2 / 3), y + sec1GridH);
-    doc.line(boxX, y + (sec1GridH / 2), boxX + boxW, y + (sec1GridH / 2));
+    doc.line(boxX, y + 13, boxX + boxW, y + 13);
 
     const col1X = boxX + 2; const col2X = boxX + (boxW / 3) + 2; const col3X = boxX + (boxW * 2 / 3) + 2;
-    const colW = boxW / 3 - 4;
 
-    doc.setFontSize(8); doc.setTextColor(100, 116, 139);
+    doc.setFontSize(8); doc.setTextColor(100, 116, 139); doc.setFont(fontFamily, 'normal');
     doc.text('PATIENT AGE / SEX', col1X, y + 4); doc.text('DEPARTMENT / WARD', col2X, y + 4); doc.text('FINAL DIAGNOSIS', col3X, y + 4);
 
     const ageSexVal = [norm.demographics?.age ? `${norm.demographics.age} Yrs` : null, norm.demographics?.gender].filter(Boolean).join(' / ') || 'Not documented';
@@ -1616,16 +1634,12 @@ export const generateOfficialClinicalCasePDF = ({
     doc.text(doc.splitTextToSize(diagVal, colW), col3X, y + 9);
 
     doc.setFont(fontFamily, 'normal'); doc.setFontSize(8); doc.setTextColor(100, 116, 139);
-    doc.text('CHIEF COMPLAINT(S)', col1X, y + sec1GridH / 2 + 4); doc.text('PAST MEDICAL HISTORY', col2X, y + sec1GridH / 2 + 4); doc.text('DOCUMENTED ALLERGIES', col3X, y + sec1GridH / 2 + 4);
+    doc.text('CHIEF COMPLAINT(S)', col1X, y + 17); doc.text('PAST MEDICAL HISTORY', col2X, y + 17); doc.text('DOCUMENTED ALLERGIES', col3X, y + 17);
 
-    const complVal = norm.history?.chiefComplaints || 'Not documented';
-    const pastVal = norm.history?.pastMedicalHistory || 'Not documented';
-    const allergyVal = norm.demographics?.allergyDrugs || 'Not documented';
-
-    doc.setFontSize(9); doc.setFont(fontFamily, 'bold'); doc.setTextColor(15, 23, 42);
-    doc.text(doc.splitTextToSize(complVal, colW), col1X, y + sec1GridH / 2 + 9);
-    doc.text(doc.splitTextToSize(pastVal, colW), col2X, y + sec1GridH / 2 + 9);
-    doc.text(doc.splitTextToSize(allergyVal, colW), col3X, y + sec1GridH / 2 + 9);
+    doc.setFontSize(8.5); doc.setFont(fontFamily, 'bold'); doc.setTextColor(15, 23, 42);
+    doc.text(complLines, col1X, y + 21);
+    doc.text(pastLines, col2X, y + 21);
+    doc.text(allergyLines, col3X, y + 21);
     y += sec1GridH + 4;
 
     // Case Summary Box
@@ -1727,71 +1741,207 @@ export const generateOfficialClinicalCasePDF = ({
 
     drawSectionBox('AI Patient Profile Interpretation:', profInterpText, 18);
 
-    // Section 3 — Disease-Medication Indication Matrix
-    const sec3Lines = norm.drugs.map((d, i) => {
-      const gName = d.generic_name !== '—' ? d.generic_name : d.trade_name;
-      const bName = d.trade_name !== '—' && d.trade_name !== d.generic_name ? ` (${d.trade_name})` : '';
-      const ind = d.indication || norm.diagnoses.join(', ') || 'Therapeutic indication under clinical review';
-      return `${i + 1}. ${gName}${bName} — Dose: ${d.dose || 'As prescribed'} ${d.frequency || ''} | Indication: ${ind}`;
-    });
-    const sec3Text = sec3Lines.length > 0 ? sec3Lines.join('\n') : 'No active prescribed drugs documented for indication matrix.';
-    drawSectionBox('Section 3 — Disease–Medication Indication Matrix:', sec3Text, 20);
+    // -----------------------------------------------------------------------
+    // SECTION 3 — LABORATORY ANALYSIS (TABLE FORMAT MATCHING WEB UI)
+    // -----------------------------------------------------------------------
+    ensureSpace(35);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('Section 3 — Laboratory Analysis:', boxX + 1, y);
+    y += 5;
 
-    // Section 4A — Drug Identity, Dosing & Safety Verification
-    const sec4aLines = norm.drugs.map((d, i) => {
-      const gName = d.generic_name !== '—' ? d.generic_name : d.trade_name;
-      const cls = d.drug_class || 'Pharmacotherapeutic Agent';
-      return `${i + 1}. ${gName} — Class: ${cls} | Regimen: ${d.dose || 'Standard'} ${d.route || 'Oral'} ${d.frequency || ''} | Safety: Dosing parameters verified within standard therapeutic window.`;
-    });
-    const sec4aText = sec4aLines.length > 0 ? sec4aLines.join('\n') : 'No active drugs documented for dosing verification.';
-    drawSectionBox('Section 4A — Drug Identity, Dosing & Safety Verification:', sec4aText, 20);
+    const labList = Array.isArray(norm.labs) ? norm.labs : [];
+    if (labList.length > 0) {
+      doc.setFillColor(241, 245, 249);
+      doc.setDrawColor(15, 23, 42);
+      doc.setLineWidth(0.3);
+      doc.rect(boxX, y, boxW, 7, 'FD');
 
-    // Section 4B — Diagnostic & Laboratory Investigation Risks
+      doc.setFont(fontFamily, 'bold'); doc.setFontSize(9); doc.setTextColor(15, 23, 42);
+      doc.text('Parameter Name', boxX + 3, y + 5);
+      doc.text('Result', boxX + 55, y + 5);
+      doc.text('Unit', boxX + 85, y + 5);
+      doc.text('Reference Range', boxX + 115, y + 5);
+      doc.text('Status', boxX + 155, y + 5);
+      y += 7;
+
+      doc.setFont(fontFamily, 'normal'); doc.setFontSize(8.5); doc.setTextColor(15, 23, 42);
+      labList.forEach((lab, idx) => {
+        const pName = String(lab.test_name || lab.parameter_name || lab.testName || `Parameter ${idx + 1}`);
+        const pVal = String(lab.test_value ?? lab.value ?? lab.testValue ?? '—');
+        const pUnit = String(lab.unit || lab.units || '—');
+        const pRange = String(lab.reference_range || lab.referenceRange || '—');
+        const pStatus = String(lab.impression || lab.status || 'Normal');
+
+        const pNameLines = doc.splitTextToSize(pName, 48);
+        const rowH = Math.max(pNameLines.length * 4 + 3, 7);
+
+        if (ensureSpace(rowH)) {
+          doc.setFont(fontFamily, 'normal'); doc.setFontSize(8.5);
+        }
+
+        if (idx % 2 === 1) {
+          doc.setFillColor(248, 250, 252);
+          doc.rect(boxX, y, boxW, rowH, 'FD');
+        } else {
+          doc.rect(boxX, y, boxW, rowH, 'D');
+        }
+
+        doc.setFont(fontFamily, 'bold');
+        doc.text(pNameLines, boxX + 3, y + 4.5);
+        doc.setFont(fontFamily, 'normal');
+        doc.text(pVal, boxX + 55, y + 4.5);
+        doc.text(pUnit, boxX + 85, y + 4.5);
+        doc.text(pRange, boxX + 115, y + 4.5);
+
+        if (pStatus.toLowerCase().includes('high') || pStatus.toLowerCase().includes('increased') || pStatus.toLowerCase().includes('elevated')) {
+          doc.setTextColor(180, 83, 9);
+        } else if (pStatus.toLowerCase().includes('low') || pStatus.toLowerCase().includes('decreased')) {
+          doc.setTextColor(2, 132, 199);
+        } else {
+          doc.setTextColor(16, 185, 129);
+        }
+        doc.setFont(fontFamily, 'bold');
+        doc.text(pStatus, boxX + 155, y + 4.5);
+        doc.setTextColor(15, 23, 42);
+        y += rowH;
+      });
+      y += 4;
+    } else {
+      drawSectionBox(null, 'No laboratory investigation results documented for this clinical case.', 14);
+    }
+
+    // -----------------------------------------------------------------------
+    // SECTION 4A — DRUG IDENTITY, DOSING & SAFETY VERIFICATION
+    // -----------------------------------------------------------------------
+    ensureSpace(35);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('Section 4A — Drug Identity, Dosing & Safety Verification:', boxX + 1, y);
+    y += 5;
+
+    const drugList = Array.isArray(norm.drugs) ? norm.drugs : [];
+    if (drugList.length > 0) {
+      const drugCardLines = drugList.map((d, i) => {
+        const gName = d.generic_name !== '—' ? d.generic_name : d.trade_name;
+        const bName = d.trade_name !== '—' && d.trade_name !== d.generic_name ? ` (${d.trade_name})` : '';
+        const regimen = `Dose: ${d.dose || 'As prescribed'} | Route: ${d.route_of_admin || 'Oral'} | Freq: ${d.frequency || 'OD'} | Dates: ${d.start_date || '—'} to ${d.stop_date || 'Ongoing'}`;
+        const cls = d.drug_class || 'Pharmacotherapeutic Agent';
+        const safetyStr = `Safety: Dosing parameters verified within standard therapeutic window.`;
+        return `${i + 1}. ${gName}${bName}\n   Class: ${cls}\n   Regimen: ${regimen}\n   Indication: ${d.indication || 'Therapeutic indication under clinical review'}\n   ${safetyStr}`;
+      });
+      drawSectionBox(null, drugCardLines.join('\n\n'), 24);
+    } else {
+      drawSectionBox(null, 'No active prescribed drugs documented for safety verification.', 14);
+    }
+
+    // -----------------------------------------------------------------------
+    // SECTION 4B — DIAGNOSTIC & LABORATORY INVESTIGATION RISKS
+    // -----------------------------------------------------------------------
+    ensureSpace(30);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('Section 4B — Diagnostic & Laboratory Investigation Risks:', boxX + 1, y);
+    y += 5;
+
     const labCount = norm.labs ? norm.labs.length : 0;
     const sec4bText = labCount > 0
       ? `Baseline Laboratory Evaluation (${labCount} Parameters Recorded): Lab investigations audited against prescribed pharmacotherapy. Baseline renal, hepatic, and hematological parameters evaluated for drug-induced organ toxicity risks.`
       : 'No baseline laboratory investigation data recorded. Routine baseline serum creatinine, LFTs, and CBC recommended prior to long-term therapy.';
-    drawSectionBox('Section 4B — Diagnostic & Laboratory Investigation Risks:', sec4bText, 16);
+    drawSectionBox(null, sec4bText, 16);
 
-    // Section 5A — Drug-Drug Interaction Matrix
-    const sec5aText = norm.drugs.length >= 2
-      ? `Polypharmacy Evaluation (${norm.drugs.length} Prescribed Agents): Pairwise drug-drug interaction matrix evaluated across all active drugs. Monitor for potential pharmacodynamic synergism and QTc / bleeding risk overlaps.`
-      : 'Monotherapy / Low-Drug Regimen: Minimal risk of drug-drug interactions detected for single active agent.';
-    drawSectionBox('Section 5A — Drug–Drug Interaction Matrix:', sec5aText, 16);
+    // -----------------------------------------------------------------------
+    // SECTION 5A — DRUG-DRUG INTERACTION MATRIX
+    // -----------------------------------------------------------------------
+    ensureSpace(35);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('Section 5A — Drug–Drug Interaction Matrix:', boxX + 1, y);
+    y += 5;
 
-    // Section 5B — Drug-Food Interaction & Dietary Precautions
-    const sec5bText = norm.drugs.length > 0
-      ? `Dietary Administration Guidelines (${norm.drugs.length} Active Agents): Counsel patient regarding administration relative to meals (empty stomach vs with meals), electrolyte/potassium restrictions, and avoiding alcohol or grapefruit juice.`
-      : 'No active drugs recorded for dietary interaction evaluation.';
-    drawSectionBox('Section 5B — Drug–Food Interaction & Dietary Precautions:', sec5bText, 16);
+    if (section5ADdiResult && section5ADdiResult.hasInteractions && Array.isArray(section5ADdiResult.interactions) && section5ADdiResult.interactions.length > 0) {
+      const ddiLines = section5ADdiResult.interactions.map((inter, idx) => {
+        return `Pair #${idx + 1}: ${inter.drugAGeneric} + ${inter.drugBGeneric} [Severity: ${inter.severity || 'Major'}]\nDescription: ${inter.interactionDescription || 'Pharmacodynamic Interaction'}\nMechanism: ${inter.mechanism || 'Synergistic / Additive activity'}\nClinical Management: ${inter.management || inter.clinicalSignificance || 'Monitor patient parameters closely.'}`;
+      });
+      drawSectionBox(null, ddiLines.join('\n\n'), 24);
+    } else if (drugList.length >= 2) {
+      const sec5aText = `Polypharmacy Evaluation (${drugList.length} Prescribed Agents): Pairwise drug-drug interaction matrix evaluated across all active drugs. Monitor for potential pharmacodynamic synergism, QTc prolongation, and mucosal bleeding overlaps.`;
+      drawSectionBox(null, sec5aText, 16);
+    } else {
+      drawSectionBox(null, 'Monotherapy / Low-Drug Regimen: Minimal risk of drug-drug interactions detected for single active agent.', 14);
+    }
 
-    // Section 6A — ADR Causality & Risk Synthesis
-    const sec6aText = adr?.suspected_drug
-      ? `Documented Suspected ADR: ${adr.suspected_drug} — Reaction: ${adr.reaction_description || adr.reactionTitle || 'Unspecified'} | Severity: ${adr.reaction_severity || 'Moderate'} | Naranjo Causality Rating: ${adr.initial_causality_opinion || 'Probable'}.`
+    // -----------------------------------------------------------------------
+    // SECTION 5B — DRUG-FOOD INTERACTION & DIETARY PRECAUTIONS
+    // -----------------------------------------------------------------------
+    ensureSpace(35);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('Section 5B — Drug–Food Interaction & Dietary Precautions:', boxX + 1, y);
+    y += 5;
+
+    if (section5BDfiResult && section5BDfiResult.hasInteractions && Array.isArray(section5BDfiResult.interactions) && section5BDfiResult.interactions.length > 0) {
+      const dfiLines = section5BDfiResult.interactions.map((inter, idx) => {
+        return `Drug-Food #${idx + 1}: ${inter.drugGeneric} + ${inter.foodOrBeverage} [Severity: ${inter.severity || 'Moderate'}]\nInteraction: ${inter.interactionDescription || 'Dietary Interaction'}\nAdministration Advice: ${inter.counsellingPoint || inter.management || 'Administer relative to meals as directed.'}`;
+      });
+      drawSectionBox(null, dfiLines.join('\n\n'), 20);
+    } else if (drugList.length > 0) {
+      const sec5bText = `Dietary Administration Guidelines (${drugList.length} Active Agents): Counsel patient regarding administration relative to meals (empty stomach vs with meals), electrolyte/potassium restrictions, and avoiding alcohol or grapefruit juice.`;
+      drawSectionBox(null, sec5bText, 16);
+    } else {
+      drawSectionBox(null, 'No active drugs recorded for dietary interaction evaluation.', 14);
+    }
+
+    // -----------------------------------------------------------------------
+    // SECTION 6A — ADR CAUSALITY & RISK SYNTHESIS
+    // -----------------------------------------------------------------------
+    ensureSpace(30);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('Section 6A — Adverse Drug Reaction (ADR) Causality & Risk Synthesis:', boxX + 1, y);
+    y += 5;
+
+    const sec6aText = adr?.suspected_drug || adr?.reactionTitle || adr?.suspectedMedication
+      ? `Documented Suspected ADR: ${adr.suspected_drug || adr.reactionTitle || adr.suspectedMedication}\nReaction Description: ${adr.reaction_description || adr.reactionTitle || 'Unspecified'}\nSeverity: ${adr.reaction_severity || 'Moderate'} | Seriousness: ${adr.reaction_seriousness || 'Hospitalization'}\nNaranjo / WHO Causality Rating: ${adr.initial_causality_opinion || adr.naranjoCausality || 'Probable'} (Score: ${adr.causalityScore || '5'})`
       : 'No Adverse Drug Reaction (ADR) report saved under ADR Documentation for this clinical case.';
-    drawSectionBox('Section 6A — Adverse Drug Reaction (ADR) Causality & Risk Synthesis:', sec6aText, 16);
+    drawSectionBox(null, sec6aText, 16);
 
-    // Section 6B — Patient Counselling & Regimen Education Audit
-    const sec6bText = counselling?.points_covered || counselling?.disease_counselled
-      ? `Documented Patient Education: Recipient: ${counselling.counselled_to || 'Patient'} | Understanding: ${counselling.patient_understanding || 'Good'} | Lifestyle Advice: ${counselling.lifestyle_modifications || 'Standard dietary & exercise recommendations.'}`
+    // -----------------------------------------------------------------------
+    // SECTION 6B — PATIENT COUNSELLING AUDIT
+    // -----------------------------------------------------------------------
+    ensureSpace(30);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('Section 6B — Patient Counselling & Regimen Education Audit:', boxX + 1, y);
+    y += 5;
+
+    const sec6bText = counselling?.points_covered || counselling?.disease_counselled || counselling?.counselled_to
+      ? `Recipient: ${counselling.counselled_to || 'Patient'}\nDisease / Drugs Counselled: ${counselling.disease_counselled || norm.diagnoses.join(', ') || 'Prescribed Regimen'}\nPoints Covered: ${counselling.points_covered || 'Dosing, timing, adverse effects, lifestyle'}\nPatient Understanding: ${counselling.patient_understanding || 'Good'}\nLifestyle Advice: ${counselling.lifestyle_modifications || 'Standard dietary & exercise recommendations.'}`
       : 'No patient counselling record saved under Patient Counselling for this clinical case.';
-    drawSectionBox('Section 6B — Patient Counselling & Regimen Education Audit:', sec6bText, 16);
+    drawSectionBox(null, sec6bText, 16);
 
-    // Section 6C — Pharmacist Clinical Intervention Evaluation
-    const sec6cText = intervention?.prescription_problems || intervention?.problem_details
-      ? `Documented Clinical Intervention: DTP Identified: ${Array.isArray(intervention.prescription_problems) ? intervention.prescription_problems.join(', ') : (intervention.prescription_problems || 'Drug Therapy Problem')} | Physician Acceptance: ${intervention.physician_acceptance || 'Pending / Under Review'}.`
+    // -----------------------------------------------------------------------
+    // SECTION 6C — PHARMACIST CLINICAL INTERVENTION EVALUATION
+    // -----------------------------------------------------------------------
+    ensureSpace(30);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('Section 6C — Pharmacist Clinical Intervention Evaluation:', boxX + 1, y);
+    y += 5;
+
+    const sec6cText = intervention?.prescription_problems || intervention?.problem_details || intervention?.problemDescription
+      ? `DTP Identified: ${Array.isArray(intervention.prescription_problems) ? intervention.prescription_problems.join(', ') : (intervention.prescription_problems || intervention.problemDescription || 'Drug Therapy Problem')}\nProblem Details: ${intervention.problem_details || intervention.problemDescription || 'Clinical intervention recorded.'}\nRecommendations: ${intervention.recommendations || intervention.actionsTaken || 'Dose adjustment / drug monitoring'}\nPhysician Acceptance: ${intervention.physician_acceptance || intervention.physicianAcceptance || 'Accepted'}`
       : 'No pharmacist intervention record saved under Pharmacist Intervention for this clinical case.';
-    drawSectionBox('Section 6C — Pharmacist Clinical Intervention Evaluation:', sec6cText, 16);
+    drawSectionBox(null, sec6cText, 16);
 
-    // Section 6D — Drug Information Query & Evidence Review
-    const sec6dText = dir?.query_text || dir?.question_category
-      ? `Documented Drug Info Query: Category: ${dir.question_category || 'Therapeutic Use'} | Enquirer: ${dir.enquirer_type || 'Healthcare Professional'} | Literature Search Strategy: ${dir.literature_search_strategy || 'Micromedex / PubMed'} | Response Status: Evidence-based answer documented.`
+    // -----------------------------------------------------------------------
+    // SECTION 6D — DRUG INFORMATION QUERY & EVIDENCE REVIEW
+    // -----------------------------------------------------------------------
+    ensureSpace(30);
+    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+    doc.text('Section 6D — Drug Information Query & Evidence Review:', boxX + 1, y);
+    y += 5;
+
+    const sec6dText = dir?.query_text || dir?.question_category || dir?.detailsOfEnquiry
+      ? `Category: ${dir.question_category || dir.questionCategory || 'Therapeutic Use'}\nEnquirer: ${dir.enquirer_type || dir.enquirerName || 'Healthcare Professional'}\nQuery: ${dir.query_text || dir.detailsOfEnquiry || 'Clinical drug enquiry'}\nSearch Strategy: ${dir.literature_search_strategy || 'Micromedex / PubMed / BNF'}\nResponse Summary: ${dir.information_provided || dir.informationProvided || 'Evidence-based response documented.'}`
       : 'No drug information request record saved under Drug Information Request for this clinical case.';
-    drawSectionBox('Section 6D — Drug Information Query & Evidence Review:', sec6dText, 16);
+    drawSectionBox(null, sec6dText, 16);
 
     const ageStr = norm?.demographics?.age ? `${norm.demographics.age}-year-old` : 'patient';
     const genderStr = norm?.demographics?.gender ? norm.demographics.gender.toLowerCase() : 'patient';
-    const diagStr = (Array.isArray(norm?.diagnoses) && norm.diagnoses.length > 0) ? norm.diagnoses.join(', ') : 'presenting clinical condition';
+    const diagStr = norm.diagnosis?.final || (Array.isArray(norm?.diagnoses) && norm.diagnoses.length > 0 ? norm.diagnoses.join(', ') : 'presenting clinical condition');
     const drugCount = Array.isArray(norm?.drugs) ? norm.drugs.length : 0;
 
     let ddiStr = adr?.suspected_drug ? ` A suspected adverse reaction to ${adr.suspected_drug} was documented.` : '';
