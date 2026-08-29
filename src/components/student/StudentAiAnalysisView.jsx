@@ -991,7 +991,6 @@ export const StudentAiAnalysisView = ({ student, onNavigate }) => {
       });
     } catch (err) {
       console.error('Failed to generate College-Branded PDF:', err);
-      window.print();
     } finally {
       setDownloadingPDF(false);
     }

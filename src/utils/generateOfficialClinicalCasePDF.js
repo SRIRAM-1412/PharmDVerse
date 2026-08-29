@@ -341,11 +341,13 @@ export const generateOfficialClinicalCasePDF = ({
     const lines = doc.splitTextToSize(String(contentText || 'N/A'), boxW - 6);
     const actualBoxH = Math.max(lines.length * 5.2 + 4, minBoxH);
 
-    ensureSpace(actualBoxH + 12);
+    ensureSpace(actualBoxH + (title ? 12 : 6));
 
-    doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
-    doc.text(title, boxX + 1, y);
-    y += 5.5;
+    if (title && String(title).trim() !== '') {
+      doc.setFont(fontFamily, 'bold'); doc.setFontSize(titleFontSize); doc.setTextColor(15, 23, 42);
+      doc.text(String(title), boxX + 1, y);
+      y += 5.5;
+    }
 
     doc.setDrawColor(15, 23, 42);
     doc.setFillColor(248, 250, 252);
