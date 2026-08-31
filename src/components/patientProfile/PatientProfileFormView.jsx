@@ -9,7 +9,8 @@ import {
   fetchDrugKnowledgeFromSupabase,
   fetchActiveOtherInvestigationKnowledgeFromSupabase,
   fetchPatientOtherInvestigationsFromSupabase,
-  savePatientOtherInvestigationsInSupabase
+  savePatientOtherInvestigationsInSupabase,
+  fetchLabParameterKnowledgeFromSupabase
 } from '../../services/supabaseService';
 import { resolveTradeNameToGeneric } from '../../utils/prescriptionParserService';
 import { PatientProfilePDFPreviewModal } from './PatientProfilePDFPreviewModal';
@@ -147,6 +148,7 @@ export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOn
 
   // 6. Dynamic Lab Investigations (Array)
   const [labInvestigations, setLabInvestigations] = useState(DEFAULT_LAB_ROWS);
+  const [liveLabCategoryMap, setLiveLabCategoryMap] = useState(LAB_CATEGORY_MAP);
 
   // 7. Other & Final Diagnosis
   const [otherInvestigations, setOtherInvestigations] = useState('');
@@ -254,6 +256,33 @@ export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOn
       setDoc(clinicalCase.date_of_collection || '');
 
       const res = await fetchPatientProfileByCaseIdFromSupabase(clinicalCase.id);
+
+      // ALWAYS load master data (even for new blank profiles)
+      const masterRes = await fetchActiveOtherInvestigationKnowledgeFromSupabase();
+      if (masterRes.success) setActiveOtherInvMaster(masterRes.data || []);
+
+      const labMasterRes = await fetchLabParameterKnowledgeFromSupabase();
+      if (labMasterRes.success && labMasterRes.data && labMasterRes.data.length > 0) {
+        const newMap = {};
+        labMasterRes.data.forEach(item => {
+          const cat = item.category || 'General';
+          if (!newMap[cat]) newMap[cat] = [];
+          
+          let refRange = '';
+          if (item.evaluation_type === 'numeric' && item.min_reference_range !== null && item.max_reference_range !== null) {
+            refRange = `${item.min_reference_range}-${item.max_reference_range} ${item.unit || ''}`.trim();
+          } else if (item.evaluation_type === 'positive_negative' || item.evaluation_type === 'present_absent') {
+            refRange = 'Qualitative';
+          }
+          
+          newMap[cat].push({
+            parameter_name: item.parameter_name,
+            reference_range: refRange
+          });
+        });
+        setLiveLabCategoryMap(newMap);
+      }
+
       if (res.success && res.profile) {
         const p = res.profile;
         setExistingProfileId(p.id);
@@ -305,10 +334,6 @@ export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOn
         setFinalDiagnosis(p?.final_diagnosis || clinicalCase?.final_diagnosis || '');
         setDischargeSummary(p.discharge_summary || '');
         setProfileStatus(p.status || 'Draft');
-
-        // Load Active Master Other Investigations
-        const masterRes = await fetchActiveOtherInvestigationKnowledgeFromSupabase();
-        if (masterRes.success) setActiveOtherInvMaster(masterRes.data || []);
 
         // Load Patient Structured Other Investigations
         const structRes = await fetchPatientOtherInvestigationsFromSupabase(p.id);
@@ -385,8 +410,9 @@ export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOn
 
   // Dynamic Lab Investigations Handlers
   const handleAddLabRow = () => {
-    const defaultCat = 'Haematological Patterns';
-    const defaultParamObj = LAB_CATEGORY_MAP[defaultCat][0];
+    const cats = Object.keys(liveLabCategoryMap);
+    const defaultCat = cats.includes('Haematological Patterns') ? 'Haematological Patterns' : (cats[0] || 'General');
+    const defaultParamObj = liveLabCategoryMap[defaultCat]?.[0] || { parameter_name: '', reference_range: '' };
     setLabInvestigations([
       ...labInvestigations,
       {
@@ -399,8 +425,8 @@ export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOn
   };
 
   const handleLabCategoryChange = (idx, newCategory) => {
-    const paramsList = LAB_CATEGORY_MAP[newCategory] || LAB_CATEGORY_MAP['General'];
-    const defaultParamObj = paramsList[0];
+    const paramsList = liveLabCategoryMap[newCategory] || liveLabCategoryMap['General'] || [];
+    const defaultParamObj = paramsList[0] || { parameter_name: '', reference_range: '' };
     const copy = [...labInvestigations];
     copy[idx] = {
       category: newCategory,
@@ -414,7 +440,7 @@ export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOn
   const handleLabParameterChange = (idx, newParamName) => {
     const copy = [...labInvestigations];
     const currentCat = copy[idx].category;
-    const paramsList = LAB_CATEGORY_MAP[currentCat] || LAB_CATEGORY_MAP['General'];
+    const paramsList = liveLabCategoryMap[currentCat] || liveLabCategoryMap['General'] || [];
     const foundObj = paramsList.find(p => p.parameter_name === newParamName) || { parameter_name: newParamName, reference_range: '' };
 
     copy[idx].parameter_name = foundObj.parameter_name;
@@ -1058,9 +1084,9 @@ export const PatientProfileFormView = ({ clinicalCase, student, onBack, isReadOn
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {labInvestigations.map((lab, idx) => {
-                const categoryList = Object.keys(LAB_CATEGORY_MAP);
-                const currentCategory = LAB_CATEGORY_MAP[lab.category] ? lab.category : categoryList[0];
-                const parameterOptions = LAB_CATEGORY_MAP[currentCategory] || [];
+                const categoryList = Object.keys(liveLabCategoryMap).length > 0 ? Object.keys(liveLabCategoryMap) : ['General'];
+                const currentCategory = liveLabCategoryMap[lab.category] ? lab.category : categoryList[0];
+                const parameterOptions = liveLabCategoryMap[currentCategory] || [];
                 const valStatus = evaluateTestValueStatus(lab.test_value, lab.reference_range);
 
                 let testValueClasses = "w-28 h-8 px-2 rounded-lg border bg-transparent font-mono font-bold focus:outline-none transition-colors ";
