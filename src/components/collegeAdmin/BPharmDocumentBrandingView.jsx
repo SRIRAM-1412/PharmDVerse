@@ -156,11 +156,17 @@ export const BPharmDocumentBrandingView = ({ college: initialCollege }) => {
 
     if (res.success) {
       const saved = res.pdfSettings || res.settings || {};
+      
+      // Seamlessly upgrade old 'PharmDVerse' defaults to the new dynamic platformName
+      const upgradeFooterText = (saved.footer_left_text && saved.footer_left_text !== 'PharmDVerse') 
+        ? saved.footer_left_text 
+        : platformName;
+
       setSettings({
         ...DEFAULT_SHARED_SETTINGS,
-        watermark_text_line1: saved.watermark_text_line1 || 'PHARMDVERSE',
-        footer_left_text: saved.footer_left_text || platformName,
         ...saved,
+        watermark_text_line1: saved.watermark_text_line1 || 'PHARMDVERSE',
+        footer_left_text: upgradeFooterText,
         footer_enabled: saved.footer_enabled ?? saved.repeat_footer ?? true,
         watermark_enabled: saved.watermark_enabled ?? saved.show_watermark ?? true
       });
