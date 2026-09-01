@@ -28,14 +28,25 @@ const parseBoolean = (val, defaultVal = true) => {
  * Download Excel Template for Master Data
  */
 export const downloadMasterExcelTemplate = (masterType) => {
-  let filename = '';
+  
+  let platformPrefix = 'PharmDVerse';
+  try {
+    const cached = typeof window !== 'undefined' ? window.localStorage.getItem('pharmdverse_platform_settings_cache') : null;
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed.platform_name) platformPrefix = parsed.platform_name.replace(/[^a-zA-Z0-9]/g, '');
+    }
+  } catch (e) {}
+  
+  let filename = `${platformPrefix}_Template.xlsx`;
+
   let sheetName = '';
   let headers = [];
   let sampleRow = {};
 
   switch (masterType) {
     case 'drug_knowledge':
-      filename = 'PharmDVerse_Drug_Knowledge_Template.xlsx';
+      filename = `${platformPrefix}_Drug_Knowledge_Template.xlsx`;
       sheetName = 'Drug Knowledge Master';
       headers = [
         'generic_name', 'brand_names', 'primary_drug_class', 'additional_drug_classes',
@@ -58,7 +69,7 @@ export const downloadMasterExcelTemplate = (masterType) => {
       break;
 
     case 'lab_knowledge':
-      filename = 'PharmDVerse_Lab_Parameter_Template.xlsx';
+      filename = `${platformPrefix}_Lab_Parameter_Template.xlsx`;
       sheetName = 'Lab Parameter Master';
       headers = [
         'parameter_name', 'category', 'evaluation_type', 'increased_significance',
@@ -82,7 +93,7 @@ export const downloadMasterExcelTemplate = (masterType) => {
       break;
 
     case 'other_inv_knowledge':
-      filename = 'PharmDVerse_Other_Investigation_Template.xlsx';
+      filename = `${platformPrefix}_Other_Investigation_Template.xlsx`;
       sheetName = 'Other Investigation Master';
       headers = [
         'investigation_name', 'category', 'description', 'expected_findings',
@@ -99,7 +110,7 @@ export const downloadMasterExcelTemplate = (masterType) => {
       break;
 
     case 'ddi_knowledge':
-      filename = 'PharmDVerse_Drug_Drug_Interaction_Template.xlsx';
+      filename = `${platformPrefix}_Drug_Drug_Interaction_Template.xlsx`;
       sheetName = 'Drug-Drug Interaction Master';
       headers = [
         'drug_a_generic', 'drug_b_generic', 'interaction_description', 'mechanism',
@@ -120,7 +131,7 @@ export const downloadMasterExcelTemplate = (masterType) => {
       break;
 
     case 'dfi_knowledge':
-      filename = 'PharmDVerse_Drug_Food_Interaction_Template.xlsx';
+      filename = `${platformPrefix}_Drug_Food_Interaction_Template.xlsx`;
       sheetName = 'Drug-Food Interaction Master';
       headers = [
         'drug_generic', 'food_or_beverage', 'interaction_description', 'mechanism',

@@ -542,6 +542,18 @@ export const generateClinicalCasePPTX = async ({
 
   // Save presentation file directly (Requirement 10)
   const cleanCaseId = String(norm.caseId).replace(/[^A-Za-z0-9_-]/g, '_');
-  const fileName = `PHARMDVERSE_${cleanCaseId}_Approved_Case.pptx`;
+  
+  let platformPrefix = 'PHARMDVERSE';
+  try {
+    const cached = typeof window !== 'undefined' ? window.localStorage.getItem('pharmdverse_platform_settings_cache') : null;
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed.platform_name) {
+        platformPrefix = parsed.platform_name.toUpperCase().replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+      }
+    }
+  } catch (e) {}
+
+  const fileName = `${platformPrefix}_${cleanCaseId}_Approved_Case.pptx`;
   await pptx.writeFile({ fileName });
 };
