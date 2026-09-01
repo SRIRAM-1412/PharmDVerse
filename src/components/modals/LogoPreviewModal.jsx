@@ -1,5 +1,6 @@
 import React from 'react';
 import { ModalWrapper } from './ModalWrapper';
+import { usePlatform } from '../../context/PlatformContext';
 
 export const LogoPreviewModal = ({ isOpen, onClose }) => {
   const { platformSettings } = usePlatform();

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ModalWrapper } from './ModalWrapper';
+import { usePlatform } from '../../context/PlatformContext';
 import { authenticateSuperAdmin } from '../../services/authService';
 import { checkExistingActiveSessionInSupabase, createActiveSessionInSupabase, invalidateAndCreateNewActiveSessionInSupabase } from '../../services/supabaseService';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
@@ -8,6 +9,9 @@ import { LoginHeader } from './LoginHeader';
 import { SessionConflictModal } from './SessionConflictModal';
 
 export const SuperAdminModal = ({ isOpen, onClose, onLoginSuccess }) => {
+  const { platformSettings } = usePlatform();
+  const platformLogoUrl = platformSettings?.logo_url || '/pharmdverse-logo.png';
+  const platformName = platformSettings?.platform_name || 'PharmDVerse';
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -128,8 +132,8 @@ export const SuperAdminModal = ({ isOpen, onClose, onLoginSuccess }) => {
               title="Click to view official logo"
             >
               <img
-                src="/pharmdverse-logo.png"
-                alt="PharmDVerse Logo"
+                src={platformLogoUrl}
+                alt={`${platformName} Logo`}
                 className="w-20 h-20 sm:w-24 sm:h-24 object-contain filter drop-shadow-md transition-transform duration-300 group-hover:scale-105"
               />
             </button>

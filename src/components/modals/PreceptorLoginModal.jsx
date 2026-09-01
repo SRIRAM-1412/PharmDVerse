@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ModalWrapper } from './ModalWrapper';
+import { usePlatform } from '../../context/PlatformContext';
 import { authenticatePreceptorInSupabase, checkExistingActiveSessionInSupabase, createActiveSessionInSupabase, invalidateAndCreateNewActiveSessionInSupabase } from '../../services/supabaseService';
 import { Eye, EyeOff, LogIn, AlertTriangle, Loader2, CheckCircle2 } from 'lucide-react';
 import { LogoPreviewModal } from './LogoPreviewModal';
@@ -7,6 +8,9 @@ import { LoginHeader } from './LoginHeader';
 import { SessionConflictModal } from './SessionConflictModal';
 
 export const PreceptorLoginModal = ({ isOpen, onClose, initialCollege, onLoginSuccess }) => {
+  const { platformSettings } = usePlatform();
+  const platformLogoUrl = platformSettings?.logo_url || '/pharmdverse-logo.png';
+  const platformName = platformSettings?.platform_name || 'PharmDVerse';
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -126,8 +130,8 @@ export const PreceptorLoginModal = ({ isOpen, onClose, initialCollege, onLoginSu
               title="Click to view official logo"
             >
               <img
-                src="/pharmdverse-logo.png"
-                alt="PharmDVerse Logo"
+                src={platformLogoUrl}
+                alt={`${platformName} Logo`}
                 className="w-20 h-20 sm:w-24 sm:h-24 object-contain filter drop-shadow-md transition-transform duration-300 group-hover:scale-105"
               />
             </button>

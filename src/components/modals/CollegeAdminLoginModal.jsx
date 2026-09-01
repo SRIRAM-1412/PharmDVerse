@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ModalWrapper } from './ModalWrapper';
+import { usePlatform } from '../../context/PlatformContext';
 import { useColleges } from '../../context/CollegeContext';
 import { checkExistingActiveSessionInSupabase, createActiveSessionInSupabase, invalidateAndCreateNewActiveSessionInSupabase } from '../../services/supabaseService';
 import { Eye, EyeOff, LogIn, AlertTriangle, Loader2, CheckCircle2 } from 'lucide-react';
@@ -128,8 +129,8 @@ export const CollegeAdminLoginModal = ({ isOpen, onClose, initialCollege, onLogi
               title="Click to view official logo"
             >
               <img
-                src="/pharmdverse-logo.png"
-                alt="PharmDVerse Logo"
+                src={platformLogoUrl}
+                alt={`${platformName} Logo`}
                 className="w-20 h-20 sm:w-24 sm:h-24 object-contain filter drop-shadow-md transition-transform duration-300 group-hover:scale-105"
               />
             </button>
