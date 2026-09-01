@@ -190,57 +190,21 @@ export const generateOfficialClinicalCasePDF = ({
 
     if (showAutonomous && norm.isAutonomous) {
       doc.setFont(fontFamily, 'bold');
-      doc.setFontSize(bodyFontSize); // 12pt
-      doc.setTextColor(2, 132, 199);
-      doc.text('(Autonomous)', pageWidth / 2, textY, { align: 'center' });
-      textY += 4;
-    }
+      doc.setFontSize(9); // Use standard 9pt for footers to prevent overlap
+      doc.setTextColor(100, 116, 139); // Match PPTX slate-500 color
 
-    if (showHospitalName) {
-      doc.setFont(fontFamily, 'bold');
-      doc.setFontSize(bodyFontSize); // 12pt
-      doc.setTextColor(15, 23, 42);
-      doc.text(norm.hospitalName.toUpperCase(), pageWidth / 2, textY, { align: 'center', maxWidth: 135 });
-    }
+      let leftStr = footerLeftText;
+      if (showGeneratedDatetime) {
+        leftStr += ` | ${currentDateStr}`;
+      }
+      doc.text(leftStr, marginX, textY);
 
-    // Sub-header Banner Bar
-    doc.setFillColor(15, 23, 42);
-    doc.rect(marginX, 30.5, contentWidth, 7.5, 'F');
-    doc.setFont('courier', 'bold');
-    doc.setFontSize(9.5);
-    doc.setTextColor(255, 255, 255);
-    doc.text(getFormTitleBanner(), marginX + 3, 35.5, { align: 'left', maxWidth: 110 });
-
-    doc.setFontSize(8.5);
-    doc.text(`(CASE ID: ${norm.caseId})`, pageWidth - marginX - 3, 33.5, { align: 'right' });
-    doc.setFontSize(7.5);
-    doc.setTextColor(52, 211, 153); // Emerald-400 green
-    doc.text('APPROVED', pageWidth - marginX - 3, 36.8, { align: 'right' });
-    doc.restoreGraphicsState();
-  };
-
-  // --- FOOTER DRAWING ---
-  const drawPageFooter = (pageNum, totalPages) => {
-    doc.saveGraphicsState();
-    const textY = pageHeight - 8;
-    doc.setDrawColor(203, 213, 225);
-    doc.setLineWidth(0.3);
-    doc.line(marginX, textY - 4, pageWidth - marginX, textY - 4);
-
-    doc.setFont(fontFamily, 'normal');
-    doc.setFontSize(bodyFontSize); // 12pt
-    doc.setTextColor(2, 132, 199);
-
-    let leftStr = footerLeftText;
-    if (showGeneratedDatetime) {
-      leftStr += ` • ${currentDateStr}`;
-    }
-    doc.text(leftStr, marginX, textY, { maxWidth: 65 });
-
-    doc.text(footerCenterText, pageWidth / 2, textY, { align: 'center', maxWidth: 70 });
+    doc.setTextColor(30, 41, 59); // Dark slate for center
+      doc.text(footerCenterText, pageWidth / 2, textY, { align: 'center', maxWidth: 80 });
 
     if (showPageNumber) {
-      doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - marginX, textY, { align: 'right' });
+      doc.setTextColor(100, 116, 139);
+        doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - marginX, textY, { align: 'right' });
     }
     doc.restoreGraphicsState();
   };
