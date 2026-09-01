@@ -259,7 +259,7 @@ export const PlatformSettingsManagementView = ({ onBack }) => {
                     <span>{uploadingLogo ? 'Uploading...' : 'Upload Logo'}</span>
                     <input
                       type="file"
-                      accept="image/png,image/jpeg,image/svg+xml"
+                      accept="image/*"
                       onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'logo')}
                       className="hidden"
                       disabled={uploadingLogo || savingSettings}
@@ -294,7 +294,7 @@ export const PlatformSettingsManagementView = ({ onBack }) => {
                     <span>{uploadingFavicon ? 'Uploading...' : 'Upload Favicon'}</span>
                     <input
                       type="file"
-                      accept="image/png,image/x-icon,image/vnd.microsoft.icon"
+                      accept="image/*"
                       onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'favicon')}
                       className="hidden"
                       disabled={uploadingFavicon || savingSettings}
