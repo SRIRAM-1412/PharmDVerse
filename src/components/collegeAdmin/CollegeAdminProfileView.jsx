@@ -686,7 +686,13 @@ const handleReset = () => {
         </div>
 
         {/* BUTTONS: SAVE CHANGES, RESET */}
-        <div className="flex items-center justify-end gap-3 pt-2">
+          <div className="flex items-center justify-end gap-3 pt-2">
+          {successMsg && (
+            <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 animate-in fade-in slide-in-from-right-4 duration-300">
+              <CheckCircle2 className="w-4 h-4" /> {successMsg}
+            </span>
+          )}
+          
           <button
             type="button"
             onClick={handleReset}
