@@ -43,15 +43,15 @@ export const GlobalToastRenderer = () => {
   }
   
   const top = Math.max(10, Math.min(window.innerHeight - 60, y - 60));
-  const left = Math.max(10, Math.min(window.innerWidth - 300, x + 20));
+  const left = Math.max(10, Math.min(window.innerWidth - 320, x + 15));
 
   return (
     <div 
-      style={{ top: `${top}px`, left: `${left}px`, zIndex: 999999, position: 'fixed' }}
+      style={{ top: `${top}px`, left: `${left}px`, zIndex: 999999, position: 'fixed', maxWidth: '300px' }}
       className={`p-3 rounded-2xl border shadow-xl flex items-center gap-2.5 text-xs font-extrabold animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200 pointer-events-none ${bg}`}
     >
       <Icon className={`w-4 h-4 shrink-0 ${iconColor}`} />
-      <span className="whitespace-nowrap">{message}</span>
+      <span className="whitespace-pre-wrap break-words">{message}</span>
     </div>
   );
 };
