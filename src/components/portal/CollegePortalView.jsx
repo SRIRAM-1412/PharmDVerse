@@ -6,6 +6,9 @@ import { LogoPreviewModal } from '../modals/LogoPreviewModal';
 export const CollegePortalView = ({ college: rawCollege, onBackToLanding, onOpenAdminLogin, onOpenPreceptorLogin, onOpenStudentLogin }) => {
   const { isDark, toggleTheme } = useTheme();
   const [showLogoModal, setShowLogoModal] = useState(false);
+  const { platformSettings } = usePlatform();
+  const platformName = platformSettings?.platform_name || 'PharmDVerse';
+  const logoUrl = platformSettings?.logo_url || '/pharmdverse-logo.png';
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -24,11 +27,11 @@ export const CollegePortalView = ({ college: rawCollege, onBackToLanding, onOpen
     city: rawCollege.city || '',
     state: rawCollege.state || '',
     district: rawCollege.district || '',
-    websiteUrl: rawCollege.websiteUrl || rawCollege.website_url || `https://${(rawCollege.code || rawCollege.college_code || 'clg').toLowerCase()}.pharmdverse.com`,
+    websiteUrl: rawCollege.websiteUrl || rawCollege.website_url || `https://${(rawCollege.code || rawCollege.college_code || 'clg').toLowerCase()}.${platformName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
     status: rawCollege.status || 'Active'
   };
 
-  const baseUrl = college.websiteUrl || `https://${(college.code || 'clg').toLowerCase()}.pharmdverse.com`;
+  const baseUrl = college.websiteUrl || `https://${(college.code || 'clg').toLowerCase()}.${platformName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`;
   const locationText = [college.city, college.district, college.state].filter(Boolean).join(', ');
 
   const logins = [
@@ -77,9 +80,9 @@ export const CollegePortalView = ({ college: rawCollege, onBackToLanding, onOpen
         {/* 1. TOP HEADER NAVIGATION */}
         <header className="h-16 px-4 sm:px-8 bg-white/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-20 backdrop-blur-md flex items-center justify-between gap-2.5">
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <img src="/pharmdverse-logo.png" alt="PharmDVerse" className="w-6 h-6 object-contain cursor-pointer hover:scale-105 transition-transform shrink-0" onClick={() => setShowLogoModal(true)} title="Click to view official logo" />
+            <img src={logoUrl} alt={platformName} className="w-6 h-6 object-contain cursor-pointer hover:scale-105 transition-transform shrink-0" onClick={() => setShowLogoModal(true)} title="Click to view official logo" />
             <span className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
-              PharmD<span className="text-emerald-600 dark:text-emerald-400">Verse</span>
+              {platformName}
               <span className="text-[10px] text-slate-400 font-normal ml-1.5 hidden md:inline">Cloud Gateway</span>
             </span>
           </div>
@@ -260,7 +263,7 @@ export const CollegePortalView = ({ college: rawCollege, onBackToLanding, onOpen
 
       {/* 3. CLEAN FOOTER */}
       <footer className="py-6 px-4 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 text-center text-xs text-slate-500 dark:text-slate-400">
-        <p>© 2026 PharmDVerse. Dedicated Gateway for {college.name}. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} {platformName}. Dedicated Gateway for {college.name}. All rights reserved.</p>
       </footer>
 
     </div>
