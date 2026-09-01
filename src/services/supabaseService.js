@@ -181,7 +181,7 @@ export const fetchDocumentBrandingSettingsFromSupabase = async (collegeId) => {
   if (!collegeId) return { success: false, error: 'College ID required' };
   try {
     const { data, error } = await supabase
-      .from('document_branding_settings')
+      .from('pharmd_branding_settings')
       .select('*')
       .eq('college_id', collegeId)
       .maybeSingle();
@@ -306,7 +306,7 @@ export const fetchDocumentBrandingSettingsFromSupabase = async (collegeId) => {
 export const savePdfBrandingSettingsInSupabase = async (collegeId, pdfPayload) => {
   try {
     const { data: existing } = await supabase
-      .from('document_branding_settings')
+      .from('pharmd_branding_settings')
       .select('id')
       .eq('college_id', collegeId)
       .maybeSingle();
@@ -351,11 +351,11 @@ export const savePdfBrandingSettingsInSupabase = async (collegeId, pdfPayload) =
     };
 
     if (existing) {
-      const { data, error } = await supabase.from('document_branding_settings').update(payload).eq('id', existing.id).select();
+      const { data, error } = await supabase.from('pharmd_branding_settings').update(payload).eq('id', existing.id).select();
       if (error) return { success: false, error: error.message };
       return { success: true, settings: { ...data[0], repeat_header: data[0].header_enabled, repeat_footer: data[0].footer_enabled } };
     } else {
-      const { data, error } = await supabase.from('document_branding_settings').insert([payload]).select();
+      const { data, error } = await supabase.from('pharmd_branding_settings').insert([payload]).select();
       if (error) return { success: false, error: error.message };
       return { success: true, settings: { ...data[0], repeat_header: data[0].header_enabled, repeat_footer: data[0].footer_enabled } };
     }
@@ -367,7 +367,7 @@ export const savePdfBrandingSettingsInSupabase = async (collegeId, pdfPayload) =
 export const savePptBrandingSettingsInSupabase = async (collegeId, pptPayload) => {
   try {
     const { data: existing } = await supabase
-      .from('document_branding_settings')
+      .from('pharmd_branding_settings')
       .select('id')
       .eq('college_id', collegeId)
       .maybeSingle();
@@ -394,7 +394,7 @@ export const savePptBrandingSettingsInSupabase = async (collegeId, pptPayload) =
 
     if (existing) {
       const { data, error } = await supabase
-        .from('document_branding_settings')
+        .from('pharmd_branding_settings')
         .update({ footer_text: pptJsonStr })
         .eq('id', existing.id)
         .select();
@@ -403,7 +403,7 @@ export const savePptBrandingSettingsInSupabase = async (collegeId, pptPayload) =
       return { success: true, pptSettings: updatedPptSettings };
     } else {
       const { data, error } = await supabase
-        .from('document_branding_settings')
+        .from('pharmd_branding_settings')
         .insert([{ college_id: collegeId, footer_text: pptJsonStr }])
         .select();
 
@@ -1748,6 +1748,7 @@ export const insertStudentToSupabase = async (collegeId, studentData) => {
       course: studentData.course || 'Pharm.D',
       academic_year: studentData.academicYear || '2026–2027',
       year: studentData.year,
+      semester: studentData.semester || null,
       username: studentData.rollNumber,
       password_hash: passwordHash,
       profile_photo_url: studentData.profilePhotoUrl || null,
@@ -1774,6 +1775,7 @@ export const updateStudentInSupabase = async (studentId, studentData) => {
       course: studentData.course || 'Pharm.D',
       academic_year: studentData.academicYear || '2026–2027',
       year: studentData.year,
+      semester: studentData.semester || null,
       username: studentData.rollNumber,
       profile_photo_url: studentData.profilePhotoUrl || null,
       status: studentData.status || 'Active'
@@ -1802,7 +1804,7 @@ export const deleteStudentFromSupabase = async (studentId) => {
   }
 };
 
-export const promoteStudentsBatchInSupabase = async (studentIds, targetYear, targetAcademicYear) => {
+export const promoteStudentsBatchInSupabase = async (studentIds, targetYear, targetAcademicYear, targetSemester = null) => {
   try {
     if (!studentIds || studentIds.length === 0) return { success: false, error: 'No students selected for promotion.' };
     
@@ -1811,6 +1813,9 @@ export const promoteStudentsBatchInSupabase = async (studentIds, targetYear, tar
     };
     if (targetAcademicYear) {
       payload.academic_year = targetAcademicYear;
+    }
+    if (targetSemester) {
+      payload.semester = targetSemester;
     }
 
     const { data, error } = await supabase
@@ -1944,6 +1949,8 @@ export const updateCollegeProfileAndSubscriptionInSupabase = async (collegeId, p
       principal_email: profileData.principalEmail || null,
       hospital_name: profileData.hospitalName || null,
       hospital_logo_url: profileData.hospitalLogoUrl || null,
+      affiliation_name: profileData.affiliationName || null,
+      affiliation_logo_url: profileData.affiliationLogoUrl || null,
       is_autonomous: Boolean(profileData.isAutonomous),
       status: profileData.subscriptionStatus === 'Active' ? 'Active' : 'Inactive',
       updated_at: new Date().toISOString()
@@ -4768,3 +4775,34 @@ export const bulkInsertDrugFoodInteractionsInSupabase = async (records) => {
     return { success: false, error: err.message };
   }
 };
+
+export const fetchBPharmBrandingSettingsFromSupabase = async (collegeId) => {
+  if (!collegeId) return { success: false, error: 'College ID required' };
+  try {
+    const { data, error } = await supabase.from('bpharm_branding_settings').select('*').eq('college_id', collegeId).maybeSingle();
+    if (error) return { success: false, error: error.message };
+    if (data) return { success: true, settings: data };
+    return { success: true, settings: { show_college_logo: true, show_affiliation_logo: true, show_college_name: true, show_affiliation_name: true, show_autonomous: true, watermark_enabled: true, watermark_text_line1: 'PHARMDVERSE', watermark_text_line2: 'Practical Record System', watermark_opacity: 10, watermark_position: 'Center', footer_enabled: true, footer_left_text: 'PharmDVerse', footer_center_text: 'Official Practical Record', show_page_number: true, show_generated_datetime: true, paper_size: 'A4', orientation: 'Portrait' }, isDefault: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+export const saveBPharmBrandingSettingsInSupabase = async (collegeId, payload) => {
+  try {
+    const { data: existing } = await supabase.from('bpharm_branding_settings').select('id').eq('college_id', collegeId).maybeSingle();
+    const savePayload = { ...payload, college_id: collegeId, updated_at: new Date().toISOString() };
+    if (existing) {
+      const { data, error } = await supabase.from('bpharm_branding_settings').update(savePayload).eq('id', existing.id).select().single();
+      if (error) throw error;
+      return { success: true, data };
+    } else {
+      const { data, error } = await supabase.from('bpharm_branding_settings').insert([savePayload]).select().single();
+      if (error) throw error;
+      return { success: true, data };
+    }
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+

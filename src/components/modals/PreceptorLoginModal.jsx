@@ -97,7 +97,7 @@ export const PreceptorLoginModal = ({ isOpen, onClose, initialCollege, onLoginSu
           <LoginHeader
             college={initialCollege}
             portalTitle="Preceptor Portal"
-            portalSubtitle="Hospital Doctor & Evaluator Gateway"
+            portalSubtitle="Faculty & Evaluator Gateway"
             onClose={onClose}
           />
         }
@@ -110,7 +110,7 @@ export const PreceptorLoginModal = ({ isOpen, onClose, initialCollege, onLoginSu
               Preceptor Portal Login
             </h2>
             <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 leading-relaxed">
-              Hospital Doctor & Evaluator Login for {collegeName}
+              Faculty / Evaluator Login for {collegeName}
             </p>
           </div>
 
@@ -139,6 +139,9 @@ export const PreceptorLoginModal = ({ isOpen, onClose, initialCollege, onLoginSu
             </label>
             <input
               type="text"
+              id="preceptor_username"
+              name="preceptor_username"
+              autoComplete="username"
               required
               value={username}
               onChange={(e) => { setUsername(e.target.value); setFieldErrors(prev => ({ ...prev, username: '' })); }}
@@ -164,6 +167,9 @@ export const PreceptorLoginModal = ({ isOpen, onClose, initialCollege, onLoginSu
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
+                id="preceptor_password"
+                name="preceptor_password"
+                autoComplete="current-password"
                 required
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setFieldErrors(prev => ({ ...prev, password: '' })); }}
@@ -232,6 +238,7 @@ export const PreceptorLoginModal = ({ isOpen, onClose, initialCollege, onLoginSu
               )}
             </button>
           </div>
+
         </form>
       </ModalWrapper>
       <LogoPreviewModal isOpen={showLogoModal} onClose={() => setShowLogoModal(false)} />

@@ -10,6 +10,7 @@ export const PreceptorListView = ({ college, onAddNew }) => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Active' | 'Inactive'
+  const [departmentFilter, setDepartmentFilter] = useState('All'); // 'All' | 'Pharmacy Practice' | 'Pharmacology'
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,7 +48,9 @@ export const PreceptorListView = ({ college, onAddNew }) => {
       p.qualification?.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesStatus = statusFilter === 'All' || p.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesDept = departmentFilter === 'All' || p.department === departmentFilter;
+
+    return matchesSearch && matchesStatus && matchesDept;
   });
 
   const totalPages = Math.ceil(filteredPreceptors.length / itemsPerPage) || 1;
@@ -80,10 +83,10 @@ export const PreceptorListView = ({ college, onAddNew }) => {
         <div>
           <h2 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <User className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            <span>Clinical Preceptors Directory</span>
+            <span>Pharm.D & B.Pharm Preceptors</span>
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Registered hospital evaluators & ward preceptors for <strong className="text-slate-800 dark:text-slate-200">{college?.name}</strong>.
+            Registered clinical evaluators & preceptors for <strong className="text-slate-800 dark:text-slate-200">{college?.name || 'your institution'}</strong>.
           </p>
         </div>
 
@@ -123,10 +126,21 @@ export const PreceptorListView = ({ college, onAddNew }) => {
           />
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-end flex-wrap">
           <div className="flex items-center gap-2">
             <Filter className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Status:</span>
+            <select
+              value={departmentFilter}
+              onChange={(e) => {
+                setDepartmentFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-8 px-2.5 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-transparent hover:border-slate-300 dark:hover:border-slate-700 focus:outline-none cursor-pointer"
+            >
+              <option value="All">All Departments</option>
+              <option value="Pharmacy Practice">Pharmacy Practice</option>
+              <option value="Pharmacology">Pharmacology</option>
+            </select>
           </div>
 
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">

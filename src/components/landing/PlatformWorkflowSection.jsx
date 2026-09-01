@@ -294,7 +294,7 @@ export const PlatformWorkflowSection = () => {
                 <span>STUDENT</span>
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Create, document, analyze, review and submit clinical cases for faculty evaluation.
+                Create, document, analyze, review and submit clinical cases and practicals for faculty evaluation.
               </p>
             </div>
 
@@ -305,7 +305,7 @@ export const PlatformWorkflowSection = () => {
                 <span>PRECEPTOR</span>
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Review assigned clinical cases, return for corrections or approve and lock cases.
+                Review assigned clinical cases and practicals, return for corrections or approve and lock cases.
               </p>
             </div>
 

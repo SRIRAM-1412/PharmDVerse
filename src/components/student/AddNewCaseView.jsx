@@ -126,7 +126,7 @@ export const AddNewCaseView = ({ student, onCancel, onSuccess }) => {
             <span>Add New Clinical Patient Case</span>
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Initiate a new Pharm.D clinical case logbook entry for hospital ward rounds.
+            Initiate a new student clinical case logbook entry for hospital ward rounds.
           </p>
         </div>
 

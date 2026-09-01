@@ -13,6 +13,7 @@ export const AddStudentView = ({ college, onCancel, onSuccess }) => {
     course: 'Pharm.D',
     academicYear: '2026–2027',
     year: '1st Year',
+    semester: '',
     password: '',
     confirmPassword: '',
     profilePhotoUrl: '',
@@ -79,6 +80,7 @@ export const AddStudentView = ({ college, onCancel, onSuccess }) => {
       course: 'Pharm.D',
       academicYear: '2026–2027',
       year: '1st Year',
+      semester: '',
       password: '',
       confirmPassword: '',
       profilePhotoUrl: '',
@@ -129,10 +131,10 @@ export const AddStudentView = ({ college, onCancel, onSuccess }) => {
         <div>
           <h2 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <UserCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            <span>Add New Pharm.D Student</span>
+            <span>Add New {formData.course} Student</span>
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Enroll PharmD candidate for <strong className="text-slate-800 dark:text-slate-200">{college?.name}</strong>.
+            Enroll {formData.course} candidate for <strong className="text-slate-800 dark:text-slate-200">{college?.name}</strong>.
           </p>
         </div>
 
@@ -283,14 +285,24 @@ export const AddStudentView = ({ college, onCancel, onSuccess }) => {
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                     Course *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     name="course"
-                    readOnly
-                    disabled
                     value={formData.course}
-                    className="w-full h-[46px] px-3.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 cursor-not-allowed"
-                  />
+                    onChange={(e) => {
+                      const newCourse = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        course: newCourse,
+                        year: '1st Year',
+                        semester: newCourse === 'B.Pharm' ? 'Sem 1' : ''
+                      }));
+                      setFormError('');
+                    }}
+                    className="w-full h-[46px] px-3.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/50 focus:outline-none"
+                  >
+                    <option value="Pharm.D">Pharm.D (6-Year)</option>
+                    <option value="B.Pharm">B.Pharm (4-Year)</option>
+                  </select>
                 </div>
 
                 <div>
@@ -322,10 +334,34 @@ export const AddStudentView = ({ college, onCancel, onSuccess }) => {
                     <option value="2nd Year">2nd Year</option>
                     <option value="3rd Year">3rd Year</option>
                     <option value="4th Year">4th Year</option>
-                    <option value="5th Year">5th Year</option>
-                    <option value="6th Year">6th Year (Internship)</option>
+                    {formData.course === 'Pharm.D' && <option value="5th Year">5th Year</option>}
+                    {formData.course === 'Pharm.D' && <option value="6th Year">6th Year (Internship)</option>}
                   </select>
                 </div>
+
+                {/* Semester dropdown — only for B.Pharm */}
+                {formData.course === 'B.Pharm' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Semester *
+                    </label>
+                    <select
+                      name="semester"
+                      value={formData.semester}
+                      onChange={handleChange}
+                      className="w-full h-[46px] px-3.5 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/50 focus:outline-none font-semibold text-indigo-600 dark:text-indigo-400"
+                    >
+                      <option value="Sem 1">Sem 1</option>
+                      <option value="Sem 2">Sem 2</option>
+                      <option value="Sem 3">Sem 3</option>
+                      <option value="Sem 4">Sem 4</option>
+                      <option value="Sem 5">Sem 5</option>
+                      <option value="Sem 6">Sem 6</option>
+                      <option value="Sem 7">Sem 7</option>
+                      <option value="Sem 8">Sem 8</option>
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -62,10 +62,21 @@ export const AssignStudentsView = ({ college, onCancel, onSuccess }) => {
 
   const selectedPreceptor = preceptors.find(p => p.id === selectedPreceptorId);
 
-  // STRICT ROLL NUMBER SEARCH FILTER
-  const filteredStudentsByRoll = students.filter(s => 
-    s.roll_number?.toLowerCase().includes(rollSearchQuery.trim().toLowerCase())
-  );
+  // STRICT ROLL NUMBER SEARCH FILTER + SMART DEPARTMENT/COURSE FILTER
+  const filteredStudentsByRoll = students.filter(s => {
+    const matchesRoll = s.roll_number?.toLowerCase().includes(rollSearchQuery.trim().toLowerCase());
+    
+    let matchesCourse = true;
+    if (selectedPreceptor) {
+      if (selectedPreceptor.department === 'Pharmacy Practice') {
+        matchesCourse = s.course === 'Pharm.D';
+      } else if (selectedPreceptor.department === 'Pharmacology') {
+        matchesCourse = s.course === 'B.Pharm';
+      }
+    }
+    
+    return matchesRoll && matchesCourse;
+  });
 
   const handleSelectAll = () => {
     const visibleIds = filteredStudentsByRoll.map(s => s.id);
@@ -141,7 +152,7 @@ export const AssignStudentsView = ({ college, onCancel, onSuccess }) => {
             <span>Assign Students to Preceptor</span>
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Map Pharm.D candidates to ward preceptors for <strong className="text-slate-800 dark:text-slate-200">{college?.name}</strong>.
+            Map Pharm.D & B.Pharm candidates to preceptors for <strong className="text-slate-800 dark:text-slate-200">{college?.name}</strong>.
           </p>
         </div>
 
@@ -231,7 +242,7 @@ export const AssignStudentsView = ({ college, onCancel, onSuccess }) => {
                 <span>2. Select Unassigned Students (Strictly by Roll Number)</span>
               </h3>
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                {students.length} Unassigned Candidates
+                {filteredStudentsByRoll.length} Eligible Unassigned
               </span>
             </div>
 
@@ -269,9 +280,16 @@ export const AssignStudentsView = ({ college, onCancel, onSuccess }) => {
           {/* Student Cards List */}
           <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
             {filteredStudentsByRoll.length === 0 ? (
-              <p className="py-8 text-center text-xs text-slate-400">
-                No students found matching Roll Number search query.
-              </p>
+              <div className="py-8 text-center px-4">
+                <p className="text-xs text-slate-500 font-semibold mb-1">
+                  No eligible students found.
+                </p>
+                <p className="text-[11px] text-slate-400">
+                  {selectedPreceptor 
+                    ? `Note: Only ${selectedPreceptor.department === 'Pharmacology' ? 'B.Pharm' : 'Pharm.D'} students are shown for this preceptor.` 
+                    : 'Select a preceptor first to view eligible students.'}
+                </p>
+              </div>
             ) : (
               filteredStudentsByRoll.map(s => {
                 const isSelected = selectedStudentIds.includes(s.id);

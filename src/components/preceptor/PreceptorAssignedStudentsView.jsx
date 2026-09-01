@@ -79,8 +79,8 @@ export const PreceptorAssignedStudentsView = ({ preceptor, initialFilter = 'All'
           <GraduationCap className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
           <span>My Assigned Students</span>
         </h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          Pharm.D candidates currently allocated under your preceptorshp. Click "View" to open student clinical cases.
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-lg">
+          Pharmacy students currently allocated under your preceptorshp. Click "View" to open student clinical cases.
         </p>
       </div>
 

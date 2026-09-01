@@ -141,6 +141,9 @@ export const CollegeAdminLoginModal = ({ isOpen, onClose, initialCollege, onLogi
             </label>
             <input
               type="text"
+              id="collegeadmin_username"
+              name="collegeadmin_username"
+              autoComplete="username"
               required
               value={username}
               onChange={(e) => { setUsername(e.target.value); setFieldErrors(prev => ({ ...prev, username: '' })); }}
@@ -166,6 +169,9 @@ export const CollegeAdminLoginModal = ({ isOpen, onClose, initialCollege, onLogi
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
+                id="collegeadmin_password"
+                name="collegeadmin_password"
+                autoComplete="current-password"
                 required
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setFieldErrors(prev => ({ ...prev, password: '' })); }}

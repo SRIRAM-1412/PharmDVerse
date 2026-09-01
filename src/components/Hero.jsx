@@ -9,7 +9,7 @@ export const Hero = ({ onOpenPortal, onOpenAllColleges, onOpenRegisterModal }) =
   const featuredColleges = activeColleges.slice(0, 4);
 
   const platformName = platformSettings?.platform_name || 'PharmDVerse';
-  const tagline = platformSettings?.tagline || 'Clinical Case Management Platform';
+  const tagline = platformSettings?.tagline || 'Clinical Case & Practical Record Platform';
 
   return (
     <section id="hero" className="relative pt-20 pb-8 md:pt-24 md:pb-10 overflow-hidden">
@@ -38,7 +38,7 @@ export const Hero = ({ onOpenPortal, onOpenAllColleges, onOpenRegisterModal }) =
 
             {/* Description */}
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-normal max-w-xl">
-              {platformName} is a cloud-based ERP platform built exclusively for pharmacy colleges to streamline clinical case documentation, academic management, preceptor collaboration, and institutional workflows through one secure platform.
+              {platformName} is a cloud-based ERP platform built exclusively for pharmacy colleges to streamline clinical case documentation, practical record logging, academic management, preceptor collaboration, and institutional workflows through one secure platform.
             </p>
 
             {/* Display ONLY Three Badges Below Description */}

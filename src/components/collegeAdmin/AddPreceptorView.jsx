@@ -10,7 +10,7 @@ export const AddPreceptorView = ({ college, onCancel, onSuccess }) => {
     email: '',
     qualification: '',
     designation: '',
-    department: '',
+    department: 'Pharmacy Practice',
     password: '',
     confirmPassword: '',
     profilePhotoUrl: '',
@@ -276,15 +276,17 @@ export const AddPreceptorView = ({ college, onCancel, onSuccess }) => {
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                     Department *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     name="department"
                     required
                     value={formData.department}
                     onChange={handleChange}
-                    placeholder="Enter department"
-                    className="w-full h-[46px] px-3.5 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/50 focus:outline-none"
-                  />
+                    className="w-full h-[46px] px-3.5 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/50 focus:outline-none appearance-none"
+                  >
+                    <option value="" disabled>Select department</option>
+                    <option value="Pharmacy Practice">Pharmacy Practice</option>
+                    <option value="Pharmacology">Pharmacology</option>
+                  </select>
                 </div>
               </div>
             </div>

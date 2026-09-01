@@ -3,11 +3,11 @@ import { UserCheck, Stethoscope, GraduationCap, Building2, ShieldCheck, ArrowRig
 import { fetchPreceptorAssignedStudentsFromSupabase, fetchAllPreceptorCasesFromSupabase } from '../../services/supabaseService';
 import { WorkflowReferencePanel } from '../common/WorkflowReferencePanel';
 
-export const PreceptorDashboardView = ({ preceptor, onNavigate }) => {
+export const PharmacologyPreceptorDashboardView = ({ preceptor, onNavigate }) => {
   const [assignedCount, setAssignedCount] = useState(0);
   const [loadingAssigned, setLoadingAssigned] = useState(true);
 
-  const [cases, setCases] = useState([]);
+  const [records, setCases] = useState([]);
   const [loadingCases, setLoadingCases] = useState(true);
 
   useEffect(() => {
@@ -34,49 +34,45 @@ export const PreceptorDashboardView = ({ preceptor, onNavigate }) => {
 
   // Compute real-time case status counts
   const getEffectiveCaseStatus = (c) => c?.status || c?.overall_case_status || 'Draft';
-  const totalCasesCount = cases.length;
-  const submittedCount = cases.filter(c => getEffectiveCaseStatus(c) === 'Submitted').length;
-  const underReviewCount = cases.filter(c => getEffectiveCaseStatus(c) === 'Under Review').length;
-  const returnedCount = cases.filter(c => getEffectiveCaseStatus(c) === 'Returned').length;
-  const approvedCount = cases.filter(c => getEffectiveCaseStatus(c) === 'Approved').length;
-  const pendingReviewsCount = cases.filter(c => {
-    const st = getEffectiveCaseStatus(c);
-    return st === 'Submitted' || st === 'Under Review';
-  }).length;
+  const totalCasesCount = records.length;
+  const submittedCount = records.filter(c => getEffectiveCaseStatus(c) === 'Submitted').length;
+  const underReviewCount = records.filter(c => getEffectiveCaseStatus(c) === 'Under Review').length;
+  const returnedCount = records.filter(c => getEffectiveCaseStatus(c) === 'Returned').length;
+  const approvedCount = records.filter(c => getEffectiveCaseStatus(c) === 'Approved').length;
 
   const summaryCards = [
     {
-      id: 'total_cases',
-      title: 'Total Clinical Cases',
+      id: 'total_records',
+      title: 'Total Practical Records',
       count: totalCasesCount,
       filter: 'All',
-      target: 'case-review',
+      target: 'evaluate-practicals',
       icon: FolderKanban,
       iconColor: 'text-slate-700 dark:text-slate-300',
       badgeBg: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700',
       borderLeft: 'border-l-slate-600',
-      description: 'Total clinical cases submitted across all assigned candidates',
+      description: 'Total practical records submitted across all assigned candidates',
       loading: loadingCases
     },
     {
       id: 'submitted',
-      title: 'Submitted Cases',
+      title: 'Submitted Records',
       count: submittedCount,
       filter: 'Submitted',
-      target: 'case-review',
+      target: 'evaluate-practicals',
       icon: Send,
       iconColor: 'text-blue-600 dark:text-blue-400',
       badgeBg: 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border-blue-200 dark:border-blue-800',
       borderLeft: 'border-l-blue-500',
-      description: 'Submitted cases awaiting preceptor review',
+      description: 'Submitted records awaiting preceptor review',
       loading: loadingCases
     },
     {
       id: 'under_review',
-      title: 'Under Review Cases',
+      title: 'Under Review Records',
       count: underReviewCount,
       filter: 'Under Review',
-      target: 'case-review',
+      target: 'evaluate-practicals',
       icon: FileSearch,
       iconColor: 'text-amber-600 dark:text-amber-400',
       badgeBg: 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border-amber-200 dark:border-amber-800',
@@ -86,10 +82,10 @@ export const PreceptorDashboardView = ({ preceptor, onNavigate }) => {
     },
     {
       id: 'returned',
-      title: 'Returned Cases',
+      title: 'Returned Records',
       count: returnedCount,
       filter: 'Returned',
-      target: 'case-review',
+      target: 'evaluate-practicals',
       icon: RotateCcw,
       iconColor: 'text-rose-600 dark:text-rose-400',
       badgeBg: 'bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border-rose-200 dark:border-rose-800',
@@ -99,28 +95,15 @@ export const PreceptorDashboardView = ({ preceptor, onNavigate }) => {
     },
     {
       id: 'approved',
-      title: 'Approved Cases',
+      title: 'Approved Records',
       count: approvedCount,
       filter: 'Approved',
-      target: 'case-review',
+      target: 'evaluate-practicals',
       icon: CheckCircle2,
       iconColor: 'text-emerald-600 dark:text-emerald-400',
       badgeBg: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
       borderLeft: 'border-l-emerald-500',
-      description: 'Verified and signed off clinical cases',
-      loading: loadingCases
-    },
-    {
-      id: 'pending_reviews',
-      title: 'Pending Reviews',
-      count: pendingReviewsCount,
-      filter: 'Pending Review',
-      target: 'case-review',
-      icon: Clock,
-      iconColor: 'text-purple-600 dark:text-purple-400',
-      badgeBg: 'bg-purple-100 text-purple-800 dark:bg-purple-950/80 dark:text-purple-300 border-purple-200 dark:border-purple-800',
-      borderLeft: 'border-l-purple-500',
-      description: 'Urgent cases requiring preceptor action',
+      description: 'Verified and signed off practical records',
       loading: loadingCases
     }
   ];
@@ -198,7 +181,7 @@ export const PreceptorDashboardView = ({ preceptor, onNavigate }) => {
               Total Assigned Students
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Pharm.D candidates currently allocated under your preceptorship.
+              Pharmacy students currently allocated under your preceptorship.
             </p>
           </div>
         </div>
@@ -219,10 +202,10 @@ export const PreceptorDashboardView = ({ preceptor, onNavigate }) => {
               ● Active Account
             </span>
             <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 mt-1">
-              My Clinical Profile
+              My Evaluator Profile
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              View your read-only profile & hospital department credentials.
+              View your read-only profile & academic department credentials.
             </p>
           </div>
         </div>
@@ -233,9 +216,9 @@ export const PreceptorDashboardView = ({ preceptor, onNavigate }) => {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <FolderKanban className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-            <span>Clinical Case Review Workflow</span>
+            <span>Practical Record Review Workflow</span>
           </h2>
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Click card to review cases</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Click card to review records</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -244,7 +227,7 @@ export const PreceptorDashboardView = ({ preceptor, onNavigate }) => {
             return (
               <div
                 key={card.id}
-                onClick={() => onNavigate(card.target || 'case-review', card.filter)}
+                onClick={() => onNavigate(card.target || 'evaluate-practicals', card.filter)}
                 className={`p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between group border-l-4 ${card.borderLeft}`}
               >
                 <div>
@@ -271,12 +254,85 @@ export const PreceptorDashboardView = ({ preceptor, onNavigate }) => {
                 </div>
 
                 <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold group-hover:text-purple-600 dark:group-hover:text-purple-400">
-                  <span>Review Cases</span>
+                  <span>Review Records</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* TIER 2: SUBJECT-WISE QUEUE (To-Do List) */}
+      <div className="space-y-4 pt-6 border-t border-slate-200/80 dark:border-slate-800">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <FolderKanban className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            <span>Subject-Wise Grading Queue</span>
+          </h2>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Select a subject to begin grading</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {/* General Pharma */}
+          <div
+            onClick={() => onNavigate('evaluate-practicals', 'general-pharma')}
+            className="p-6 rounded-3xl bg-gradient-to-br from-indigo-50/50 to-white dark:from-indigo-950/20 dark:to-slate-900 border border-indigo-100 dark:border-indigo-900/50 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between group"
+          >
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-600 dark:text-indigo-400">Queue</span>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+              </div>
+              <h3 className="text-lg font-extrabold text-slate-900 dark:text-white mt-2 leading-tight">
+                General Pharmacology Practicals
+              </h3>
+            </div>
+            <div className="mt-6 flex items-baseline gap-2">
+              <span className="text-3xl font-black text-indigo-600 dark:text-indigo-400">0</span>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Pending Evaluation</span>
+            </div>
+          </div>
+
+          {/* Systemic Pharma 1 */}
+          <div
+            onClick={() => onNavigate('evaluate-practicals', 'systemic-pharma-1')}
+            className="p-6 rounded-3xl bg-gradient-to-br from-purple-50/50 to-white dark:from-purple-950/20 dark:to-slate-900 border border-purple-100 dark:border-purple-900/50 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between group"
+          >
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-purple-600 dark:text-purple-400">Queue</span>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+              </div>
+              <h3 className="text-lg font-extrabold text-slate-900 dark:text-white mt-2 leading-tight">
+                Systemic Pharmacology-I Practicals
+              </h3>
+            </div>
+            <div className="mt-6 flex items-baseline gap-2">
+              <span className="text-3xl font-black text-purple-600 dark:text-purple-400">0</span>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Pending Evaluation</span>
+            </div>
+          </div>
+
+          {/* Systemic Pharma 2 */}
+          <div
+            onClick={() => onNavigate('evaluate-practicals', 'systemic-pharma-2')}
+            className="p-6 rounded-3xl bg-gradient-to-br from-blue-50/50 to-white dark:from-blue-950/20 dark:to-slate-900 border border-blue-100 dark:border-blue-900/50 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between group"
+          >
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400">Queue</span>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+              </div>
+              <h3 className="text-lg font-extrabold text-slate-900 dark:text-white mt-2 leading-tight">
+                Systemic Pharmacology-II Practicals
+              </h3>
+            </div>
+            <div className="mt-6 flex items-baseline gap-2">
+              <span className="text-3xl font-black text-blue-600 dark:text-blue-400">0</span>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Pending Evaluation</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -312,8 +312,13 @@ export const AssignmentListView = ({ college, onAddNew }) => {
                         <span className="text-[10px] font-mono font-bold text-slate-500">Batch {s.batch}</span>
                       </td>
 
-                      <td className="py-3.5 px-5 text-slate-600 dark:text-slate-400 font-medium">
-                        {s.course}
+                      <td className="py-3.5 px-5">
+                        <span className="font-bold text-slate-800 dark:text-slate-200">{s.course}</span>
+                        {s.course === 'B.Pharm' && s.semester && (
+                          <span className="block text-[10px] text-sky-600 dark:text-sky-400 font-bold mt-0.5">
+                            {s.semester}
+                          </span>
+                        )}
                       </td>
 
                       <td className="py-3.5 px-5 font-mono text-slate-600 dark:text-slate-400">

@@ -280,8 +280,8 @@ export const MyClinicalCasesView = ({ student, initialFilter = 'All', targetCase
             <ClipboardList className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             <span>My Clinical Patient Cases</span>
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Pharm.D logbook patient cases created by <strong className="text-slate-800 dark:text-slate-200">{student?.full_name}</strong>.
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-lg">
+            Student logbook patient cases created by <strong className="text-slate-800 dark:text-slate-200">{student?.full_name}</strong>.
           </p>
         </div>
 

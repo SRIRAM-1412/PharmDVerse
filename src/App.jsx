@@ -20,8 +20,10 @@ import { verifyActiveSessionTokenInSupabase, invalidateActiveSessionByTokenInSup
 import { SuperAdminDashboard } from './components/admin/SuperAdminDashboard';
 import { CollegePortalView } from './components/portal/CollegePortalView';
 import { CollegeAdminLayout } from './components/collegeAdmin/CollegeAdminLayout';
-import { PreceptorLayout } from './components/preceptor/PreceptorLayout';
-import { StudentLayout } from './components/student/StudentLayout';
+import { PharmPracticePreceptorLayout } from './components/preceptor/PharmPracticePreceptorLayout';
+import { PharmacologyPreceptorLayout } from './components/preceptor/PharmacologyPreceptorLayout';
+import { PharmDStudentLayout } from './components/student/PharmDStudentLayout';
+import { BPharmStudentLayout } from './components/student/BPharmStudentLayout';
 
 // Modals
 import { PricingModal } from './components/modals/PricingModal';
@@ -355,19 +357,33 @@ export default function App() {
 
         ) : viewMode === 'preceptor_portal' && loggedPreceptor ? (
           
-          /* 3. FULL PAGE PRECEPTOR PORTAL VIEW */
-          <PreceptorLayout
-            preceptor={loggedPreceptor}
-            onLogout={handlePreceptorLogout}
-          />
+          /* 3. FULL PAGE PRECEPTOR PORTAL VIEW (FORKED BY DEPARTMENT) */
+          (loggedPreceptor.department === 'Pharmacology' ? (
+            <PharmacologyPreceptorLayout
+              preceptor={loggedPreceptor}
+              onLogout={handlePreceptorLogout}
+            />
+          ) : (
+            <PharmPracticePreceptorLayout
+              preceptor={loggedPreceptor}
+              onLogout={handlePreceptorLogout}
+            />
+          ))
 
         ) : viewMode === 'student_portal' && loggedStudent ? (
           
-          /* 4. FULL PAGE STUDENT PORTAL VIEW */
-          <StudentLayout
-            student={loggedStudent}
-            onLogout={handleStudentLogout}
-          />
+          /* 4. FULL PAGE STUDENT PORTAL VIEW (FORKED BY COURSE) */
+          (loggedStudent.course === 'B.Pharm' ? (
+            <BPharmStudentLayout
+              student={loggedStudent}
+              onLogout={handleStudentLogout}
+            />
+          ) : (
+            <PharmDStudentLayout
+              student={loggedStudent}
+              onLogout={handleStudentLogout}
+            />
+          ))
 
         ) : viewMode === 'college_portal' && activePortalCollege ? (
           

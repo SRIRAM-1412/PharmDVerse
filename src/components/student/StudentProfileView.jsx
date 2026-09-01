@@ -15,8 +15,8 @@ export const StudentProfileView = ({ student, onLogout, forcePasswordReset = fal
           <UserCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
           <span>My Student Profile</span>
         </h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          Read-only Pharm.D candidate profile and academic registration details.
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-lg">
+          Read-only student candidate profile and academic registration details.
         </p>
       </div>
 
@@ -40,7 +40,7 @@ export const StudentProfileView = ({ student, onLogout, forcePasswordReset = fal
           <div className="space-y-1.5 flex-1">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
-                Pharm.D Candidate
+                {student?.course || 'Pharmacy'} Candidate
               </span>
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                 Roll: {student.roll_number}
@@ -97,6 +97,13 @@ export const StudentProfileView = ({ student, onLogout, forcePasswordReset = fal
             <span className="text-slate-400 font-medium text-[11px] block">Year of Study</span>
             <strong className="text-slate-900 dark:text-white font-bold text-emerald-600 dark:text-emerald-400">{student.year}</strong>
           </div>
+
+          {student.course === 'B.Pharm' && (
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 space-y-1">
+              <span className="text-slate-400 font-medium text-[11px] block">Current Semester</span>
+              <strong className="text-slate-900 dark:text-white font-bold text-sky-600 dark:text-sky-400">{student.semester || '—'}</strong>
+            </div>
+          )}
 
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 space-y-1">
             <span className="text-slate-400 font-medium text-[11px] block">Mobile Number</span>

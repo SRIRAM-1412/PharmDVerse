@@ -3,7 +3,7 @@ import { UserCheck, Stethoscope, ArrowRight, ShieldCheck, FolderKanban, FileEdit
 import { fetchStudentAssignedPreceptorFromSupabase, fetchStudentCasesFromSupabase } from '../../services/supabaseService';
 import { WorkflowReferencePanel } from '../common/WorkflowReferencePanel';
 
-export const StudentDashboardView = ({ student, onNavigate }) => {
+export const PharmDStudentDashboardView = ({ student, onNavigate }) => {
   const [assignedPreceptor, setAssignedPreceptor] = useState(null);
   const [loadingPreceptor, setLoadingPreceptor] = useState(true);
 

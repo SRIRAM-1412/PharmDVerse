@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { User, UserCheck, GraduationCap, Building2, Plus, ArrowRight, ShieldCheck, CheckCircle2, MapPin, Award, Sparkles, FolderKanban, FileEdit, Send, FileSearch, RotateCcw, Loader2 } from 'lucide-react';
+import { User, Users, UserCheck, GraduationCap, Building2, Plus, ArrowRight, ShieldCheck, CheckCircle2, MapPin, Award, Sparkles, FolderKanban, FileEdit, Send, FileSearch, RotateCcw, Loader2 } from 'lucide-react';
 import { fetchPreceptorsFromSupabase, fetchStudentsFromSupabase, fetchAllCollegeClinicalCasesFromSupabase } from '../../services/supabaseService';
 import { WorkflowReferencePanel } from '../common/WorkflowReferencePanel';
 
 export const CollegeAdminDashboardView = ({ college, onNavigate }) => {
   const [preceptorsCount, setPreceptorsCount] = useState(0);
   const [studentsCount, setStudentsCount] = useState(0);
+  const [pharmDCount, setPharmDCount] = useState(0);
+  const [bPharmCount, setBPharmCount] = useState(0);
   const [loadingUsers, setLoadingUsers] = useState(true);
 
   const [cases, setCases] = useState([]);
@@ -22,7 +24,12 @@ export const CollegeAdminDashboardView = ({ college, onNavigate }) => {
       ]);
 
       if (precRes.success) setPreceptorsCount((precRes.data || []).length);
-      if (studRes.success) setStudentsCount((studRes.data || []).length);
+      if (studRes.success) {
+        const studentList = studRes.data || [];
+        setStudentsCount(studentList.length);
+        setPharmDCount(studentList.filter(s => s.course === 'Pharm.D').length);
+        setBPharmCount(studentList.filter(s => s.course === 'B.Pharm').length);
+      }
       setLoadingUsers(false);
 
       setLoadingCases(true);
@@ -57,10 +64,28 @@ export const CollegeAdminDashboardView = ({ college, onNavigate }) => {
     {
       title: 'Total Students',
       value: loadingUsers ? <Loader2 className="w-5 h-5 animate-spin text-emerald-400" /> : studentsCount,
-      subtitle: 'Enrolled Pharm.D Candidates',
-      icon: GraduationCap,
+      subtitle: 'All Enrolled Candidates',
+      icon: Users,
       color: 'text-emerald-600 dark:text-emerald-400',
       bg: 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-900',
+      target: 'students-list'
+    },
+    {
+      title: 'Pharm.D Candidates',
+      value: loadingUsers ? <Loader2 className="w-5 h-5 animate-spin text-sky-400" /> : pharmDCount,
+      subtitle: '6-Year Program',
+      icon: GraduationCap,
+      color: 'text-sky-600 dark:text-sky-400',
+      bg: 'bg-sky-50 dark:bg-sky-950/60 border-sky-200 dark:border-sky-900',
+      target: 'students-list'
+    },
+    {
+      title: 'B.Pharm Candidates',
+      value: loadingUsers ? <Loader2 className="w-5 h-5 animate-spin text-purple-400" /> : bPharmCount,
+      subtitle: '4-Year Program',
+      icon: GraduationCap,
+      color: 'text-purple-600 dark:text-purple-400',
+      bg: 'bg-purple-50 dark:bg-purple-950/60 border-purple-200 dark:border-purple-900',
       target: 'students-list'
     }
   ];
@@ -75,7 +100,20 @@ export const CollegeAdminDashboardView = ({ college, onNavigate }) => {
       iconColor: 'text-emerald-600 dark:text-emerald-400',
       badgeBg: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
       borderLeft: 'border-l-emerald-500',
-      description: 'Officially approved clinical case logbook entries across all departments'
+      description: 'Officially approved clinical case logbook entries across all departments',
+      target: 'clinical-cases'
+    },
+    {
+      id: 'approved_practicals',
+      title: 'Approved Practicals',
+      count: 0, // Placeholder
+      filter: 'Approved',
+      icon: CheckCircle2,
+      iconColor: 'text-teal-600 dark:text-teal-400',
+      badgeBg: 'bg-teal-100 text-teal-800 dark:bg-teal-950/80 dark:text-teal-300 border-teal-200 dark:border-teal-800',
+      borderLeft: 'border-l-teal-500',
+      description: 'Officially approved laboratory practical records by Pharmacology Evaluators',
+      target: 'practical-records'
     }
   ];
 
@@ -149,7 +187,7 @@ export const CollegeAdminDashboardView = ({ college, onNavigate }) => {
       </div>
 
       {/* TOP USER ACADEMIC CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {userStats.map((st, i) => {
           const IconComponent = st.icon;
           return (
@@ -186,18 +224,18 @@ export const CollegeAdminDashboardView = ({ college, onNavigate }) => {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <FolderKanban className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            <span>Institutional Clinical Case Workflow</span>
+            <span>Institutional Approvals & Workflows</span>
           </h2>
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Click card to manage cases</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Click card to view details</span>
         </div>
 
-        <div className="grid grid-cols-1 max-w-xl gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 max-w-4xl gap-6">
           {summaryCards.map((card) => {
             const IconComp = card.icon;
             return (
               <div
                 key={card.id}
-                onClick={() => onNavigate('clinical-cases', card.filter)}
+                onClick={() => onNavigate(card.target, card.filter)}
                 className={`p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between group border-l-4 ${card.borderLeft}`}
               >
                 <div>
@@ -282,7 +320,7 @@ export const CollegeAdminDashboardView = ({ college, onNavigate }) => {
               Add New Student
             </strong>
             <span className="text-[11px] text-slate-500 dark:text-slate-400">
-              Enroll Pharm.D candidate
+              Enroll new candidate
             </span>
           </button>
 

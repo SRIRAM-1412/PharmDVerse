@@ -23,6 +23,7 @@ import { LabKnowledgeManagementView } from './LabKnowledgeManagementView';
 import { OtherInvestigationManagementView } from './OtherInvestigationManagementView';
 import { DrugDrugInteractionManagementView } from './DrugDrugInteractionManagementView';
 import { DrugFoodInteractionManagementView } from './DrugFoodInteractionManagementView';
+import { BPharmExperimentMasterView } from './BPharmExperimentMasterView';
 import { SuperAdminProfileView } from './SuperAdminProfileView';
 import { PlatformSettingsManagementView } from './PlatformSettingsManagementView';
 
@@ -418,7 +419,7 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
             {(isMobile || !sidebarCollapsed) && (
               <span className="px-3 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">
-                Master Data
+                MASTER DATA - PHARM.D
               </span>
             )}
             <nav className="space-y-1">
@@ -519,6 +520,76 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
                 <div className="flex items-center gap-2.5 truncate">
                   <Utensils className="w-4 h-4 shrink-0" />
                   {(isMobile || !sidebarCollapsed) && <span className="truncate">Drug–Food Interaction Master</span>}
+                </div>
+              </button>
+            </nav>
+          </div>
+
+          {/* Master Data - B.Pharm Management */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+            {(isMobile || !sidebarCollapsed) && (
+              <span className="px-3 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">
+                MASTER DATA - B.PHARM
+              </span>
+            )}
+            <nav className="space-y-1">
+              <button
+                onClick={() => {
+                  pushTab('bpharm_gen_pharma');
+                  setEditingCollege(null);
+                  clearSelection();
+                  if (isMobile) setMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'bpharm_gen_pharma'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="General Pharmacology Master"
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <FlaskConical className="w-4 h-4 shrink-0" />
+                  {(isMobile || !sidebarCollapsed) && <span className="truncate">General Pharmacology Master</span>}
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  pushTab('bpharm_sys_pharma_1');
+                  setEditingCollege(null);
+                  clearSelection();
+                  if (isMobile) setMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'bpharm_sys_pharma_1'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Systemic Pharmacology-I Master"
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <FlaskConical className="w-4 h-4 shrink-0" />
+                  {(isMobile || !sidebarCollapsed) && <span className="truncate">Systemic Pharmacology-I Master</span>}
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  pushTab('bpharm_sys_pharma_2');
+                  setEditingCollege(null);
+                  clearSelection();
+                  if (isMobile) setMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'bpharm_sys_pharma_2'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Systemic Pharmacology-II Master"
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <FlaskConical className="w-4 h-4 shrink-0" />
+                  {(isMobile || !sidebarCollapsed) && <span className="truncate">Systemic Pharmacology-II Master</span>}
                 </div>
               </button>
             </nav>
@@ -764,6 +835,21 @@ export const SuperAdminDashboard = ({ onExitToLanding }) => {
           {/* TAB 0E: DRUG-FOOD INTERACTION KNOWLEDGE MASTER MANAGEMENT */}
           {activeTab === 'dfi_knowledge' && (
             <DrugFoodInteractionManagementView />
+          )}
+
+          {/* TAB BPHARM 1: GENERAL PHARMACOLOGY MASTER */}
+          {activeTab === 'bpharm_gen_pharma' && (
+            <BPharmExperimentMasterView subjectName="General Pharmacology" />
+          )}
+
+          {/* TAB BPHARM 2: SYSTEMIC PHARMACOLOGY-I MASTER */}
+          {activeTab === 'bpharm_sys_pharma_1' && (
+            <BPharmExperimentMasterView subjectName="Systemic Pharmacology-I" />
+          )}
+
+          {/* TAB BPHARM 3: SYSTEMIC PHARMACOLOGY-II MASTER */}
+          {activeTab === 'bpharm_sys_pharma_2' && (
+            <BPharmExperimentMasterView subjectName="Systemic Pharmacology-II" />
           )}
 
           {/* TAB 0F: SUPER ADMIN MY PROFILE & SECURITY */}

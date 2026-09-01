@@ -5,7 +5,7 @@ import { PreceptorReviewCaseView } from './PreceptorReviewCaseView';
 import { OfficialClinicalCasePDFModal } from '../modals/OfficialClinicalCasePDFModal';
 import { ModalWrapper } from '../modals/ModalWrapper';
 
-export const PreceptorCaseReviewView = ({ preceptor, initialFilter = 'All', targetCaseId = null, onClearTargetCase }) => {
+export const PharmacologyPracticalReviewView = ({ preceptor, initialFilter = 'All', targetCaseId = null, onClearTargetCase }) => {
   const [cases, setCases] = useState([]);
   const [moduleStatuses, setModuleStatuses] = useState({});
   const [loading, setLoading] = useState(true);
@@ -116,7 +116,7 @@ export const PreceptorCaseReviewView = ({ preceptor, initialFilter = 'All', targ
       c.department?.toLowerCase().includes(searchQuery.toLowerCase());
 
     let matchesStatus = true;
-    if (statusFilter === 'All' || statusFilter === 'All Cases') {
+    if (statusFilter === 'All' || statusFilter === 'All Records') {
       matchesStatus = true;
     } else if (statusFilter === 'Pending Review') {
       matchesStatus = caseStatus === 'Submitted' || caseStatus === 'Under Review';
@@ -188,7 +188,7 @@ export const PreceptorCaseReviewView = ({ preceptor, initialFilter = 'All', targ
   };
 
   const filterTabs = [
-    { label: 'All Cases', value: 'All' },
+    { label: 'All Records', value: 'All' },
     { label: 'Submitted', value: 'Submitted' },
     { label: 'Under Review', value: 'Under Review' },
     { label: 'Returned', value: 'Returned' },
@@ -201,10 +201,10 @@ export const PreceptorCaseReviewView = ({ preceptor, initialFilter = 'All', targ
       <div className="pb-4 border-b border-slate-200 dark:border-slate-800">
         <h2 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
           <FolderKanban className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-          <span>Clinical Case Review</span>
+          <span>Practical Record Review</span>
         </h2>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          Review, evaluate, and approve clinical cases submitted by candidates under your supervision.
+          Review, evaluate, and approve practical records submitted by candidates under your supervision.
         </p>
       </div>
 
@@ -219,7 +219,7 @@ export const PreceptorCaseReviewView = ({ preceptor, initialFilter = 'All', targ
               setSearchQuery(e.target.value);
               setCurrentPage(1);
             }}
-            placeholder="Search case ID, student name, roll number..."
+            placeholder="Search record ID, student name, roll number..."
             className="w-full pl-9 pr-3.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/80 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
           />
         </div>
@@ -248,17 +248,17 @@ export const PreceptorCaseReviewView = ({ preceptor, initialFilter = 'All', targ
       {loading ? (
         <div className="py-16 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800">
           <Loader2 className="w-8 h-8 text-cyan-500 animate-spin mx-auto mb-2" />
-          <p className="text-xs font-semibold text-slate-500">Loading Clinical Cases...</p>
+          <p className="text-xs font-semibold text-slate-500">Loading Practical Records...</p>
         </div>
       ) : paginatedCases.length === 0 ? (
         <div className="py-16 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
           <FolderKanban className="w-10 h-10 text-slate-400 mx-auto mb-3" />
           <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
-            No clinical cases found.
+            No practical records found.
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
             {searchQuery || statusFilter !== 'All'
-              ? 'No clinical cases matched your filter criteria.'
+              ? 'No practical records matched your filter criteria.'
               : 'None of your assigned students have submitted cases for review yet.'}
           </p>
         </div>
@@ -308,7 +308,7 @@ export const PreceptorCaseReviewView = ({ preceptor, initialFilter = 'All', targ
                           <button
                             onClick={() => handleOpenReview(c)}
                             className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all"
-                            title={isApproved ? "View Approved Case" : "Review Clinical Case"}
+                            title={isApproved ? "View Approved Case" : "Review Practical Record"}
                           >
                             <Eye className="w-3.5 h-3.5" />
                             <span>{isApproved ? 'View Case' : caseStatus === 'Under Review' ? 'Continue Review' : caseStatus === 'Returned' ? 'View Case' : isResubmitted(c) ? '⚡ Review Resubmission' : 'Review Case'}</span>
@@ -327,7 +327,7 @@ export const PreceptorCaseReviewView = ({ preceptor, initialFilter = 'All', targ
                           <button
                             onClick={() => setCaseToDelete(c)}
                             className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:hover:bg-rose-900 dark:text-rose-400 border border-rose-200 dark:border-rose-800 transition-all"
-                            title="Permanently Delete Clinical Case"
+                            title="Permanently Delete Practical Record"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -343,7 +343,7 @@ export const PreceptorCaseReviewView = ({ preceptor, initialFilter = 'All', targ
           {/* PAGINATION CONTROLS */}
           <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
             <span className="text-slate-500 dark:text-slate-400">
-              Showing <strong className="text-slate-800 dark:text-slate-200">{paginatedCases.length}</strong> of <strong className="text-slate-800 dark:text-slate-200">{filteredCases.length}</strong> clinical cases
+              Showing <strong className="text-slate-800 dark:text-slate-200">{paginatedCases.length}</strong> of <strong className="text-slate-800 dark:text-slate-200">{filteredCases.length}</strong> practical records
             </span>
 
             <div className="flex items-center gap-2">
@@ -388,7 +388,7 @@ export const PreceptorCaseReviewView = ({ preceptor, initialFilter = 'All', targ
         <ModalWrapper
           isOpen={Boolean(caseToDelete)}
           onClose={() => setCaseToDelete(null)}
-          title={`Delete Clinical Case ${caseToDelete.case_id}`}
+          title={`Delete Practical Record ${caseToDelete.case_id}`}
           subtitle="Permanent Database Deletion"
           maxWidth="max-w-md"
         >
@@ -397,7 +397,7 @@ export const PreceptorCaseReviewView = ({ preceptor, initialFilter = 'All', targ
               <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
               <div>
                 <strong className="block font-bold text-sm mb-0.5">Warning: Irreversible Action</strong>
-                Are you sure you want to permanently delete Clinical Case <strong>{caseToDelete.case_id}</strong>? This will permanently erase all patient profiles, counselling records, interventions, drug queries, and ADR reports from the database.
+                Are you sure you want to permanently delete Practical Record <strong>{caseToDelete.case_id}</strong>? This will permanently erase all patient profiles, counselling records, interventions, drug queries, and ADR reports from the database.
               </div>
             </div>
 
@@ -422,7 +422,7 @@ export const PreceptorCaseReviewView = ({ preceptor, initialFilter = 'All', targ
                     setCaseToDelete(null);
                     loadCases();
                   } else {
-                    alert(res.error || 'Failed to delete clinical case.');
+                    alert(res.error || 'Failed to delete practical record.');
                   }
                 }}
                 className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-md shadow-rose-600/20 disabled:opacity-50 flex items-center gap-1.5"

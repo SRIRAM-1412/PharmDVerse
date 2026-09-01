@@ -35,7 +35,7 @@ export const StudentValueSection = () => {
       bg: "bg-sky-100/80 dark:bg-sky-950/60 border-sky-200 dark:border-sky-800"
     },
     {
-      title: "5. Develop Pharm.D Skills",
+      title: "5. Develop Pharmacy Skills",
       description: "Practice ADR documentation, patient counselling and pharmacist interventions.",
       icon: Stethoscope,
       color: "text-purple-600 dark:text-purple-400",
@@ -62,7 +62,7 @@ export const StudentValueSection = () => {
         <div className="text-center space-y-4 max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-100/90 dark:bg-emerald-950/80 border border-emerald-300/70 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-semibold tracking-wide shadow-xs">
             <GraduationCap className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span>Pharm.D Academic & Clinical Excellence</span>
+            <span>Pharm.D & B.Pharm Academic Excellence</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
@@ -70,7 +70,7 @@ export const StudentValueSection = () => {
           </h2>
 
           <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-normal max-w-2xl mx-auto">
-            One platform to document, analyse, review and improve your Pharm.D clinical learning.
+            One platform to document, analyze, review, and improve your Pharm.D clinical learning and B.Pharm laboratory practicals.
           </p>
         </div>
 
@@ -107,7 +107,7 @@ export const StudentValueSection = () => {
           <div className="relative z-10 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-4xl mx-auto">
             <Sparkles className="w-6 h-6 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <p className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white leading-relaxed">
-              "PharmDVerse brings your Pharm.D clinical learning journey together — from patient case documentation to analysis, preceptor review and final case records."
+              "PharmDVerse brings your pharmacy learning journey together — from clinical case documentation and virtual lab experiments to preceptor review and final records."
             </p>
           </div>
         </div>

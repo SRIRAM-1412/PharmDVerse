@@ -154,6 +154,9 @@ export const SuperAdminModal = ({ isOpen, onClose, onLoginSuccess }) => {
               <div className="relative">
                 <input
                   type="email"
+                  id="superadmin_username"
+                  name="superadmin_username"
+                  autoComplete="username"
                   value={loginEmail}
                   onChange={(e) => {
                     setLoginEmail(e.target.value);
@@ -181,6 +184,9 @@ export const SuperAdminModal = ({ isOpen, onClose, onLoginSuccess }) => {
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  id="superadmin_password"
+                  name="superadmin_password"
+                  autoComplete="current-password"
                   value={loginPassword}
                   onChange={(e) => {
                     setLoginPassword(e.target.value);

@@ -11,6 +11,7 @@ export const StudentListView = ({ college, onAddNew }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Active' | 'Inactive'
   const [batchFilter, setBatchFilter] = useState('All'); // 'All' | 'Y22' | 'Y23' | 'Y24' | 'Y25' | 'Y26' | 'Y27'
+  const [courseFilter, setCourseFilter] = useState('All'); // 'All' | 'Pharm.D' | 'B.Pharm'
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -49,8 +50,9 @@ export const StudentListView = ({ college, onAddNew }) => {
     
     const matchesStatus = statusFilter === 'All' || s.status === statusFilter;
     const matchesBatch = batchFilter === 'All' || s.batch === batchFilter;
+    const matchesCourse = courseFilter === 'All' || s.course === courseFilter;
 
-    return matchesSearch && matchesStatus && matchesBatch;
+    return matchesSearch && matchesStatus && matchesBatch && matchesCourse;
   });
 
   const totalPages = Math.ceil(filteredStudents.length / itemsPerPage) || 1;
@@ -89,10 +91,10 @@ export const StudentListView = ({ college, onAddNew }) => {
         <div>
           <h2 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <GraduationCap className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            <span>Pharm.D Students Directory</span>
+            <span>Pharm.D & B.Pharm Directory</span>
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Enrolled Pharm.D candidates & clinical interns for <strong className="text-slate-800 dark:text-slate-200">{college?.name}</strong>.
+            Enrolled Pharm.D & B.Pharm candidates for <strong className="text-slate-800 dark:text-slate-200">{college?.name}</strong>.
           </p>
         </div>
 
@@ -133,6 +135,23 @@ export const StudentListView = ({ college, onAddNew }) => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+          {/* Course Filter */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Course:</span>
+            <select
+              value={courseFilter}
+              onChange={(e) => {
+                setCourseFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-8 px-2.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+            >
+              <option value="All">All Courses</option>
+              <option value="Pharm.D">Pharm.D</option>
+              <option value="B.Pharm">B.Pharm</option>
+            </select>
+          </div>
+
           {/* Batch Filter */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Batch:</span>
@@ -191,7 +210,7 @@ export const StudentListView = ({ college, onAddNew }) => {
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
             {searchQuery || statusFilter !== 'All' || batchFilter !== 'All'
               ? 'No students matched your search filters. Try adjusting your query.'
-              : 'Add your first Pharm.D student to enable digital logbook access.'}
+              : 'Add your first student to enable digital logbook access.'}
           </p>
         </div>
       ) : (

@@ -4,22 +4,41 @@ import { fetchStudentsFromSupabase, promoteStudentsBatchInSupabase } from '../..
 import { useInlineNotification } from '../../hooks/useInlineNotification';
 import { InlineActionNotification } from '../common/InlineActionNotification';
 
-const NEXT_YEAR_MAP = {
-  '1st Year': '2nd Year',
-  '2nd Year': '3rd Year',
-  '3rd Year': '4th Year',
-  '4th Year': '5th Year',
-  '5th Year': '6th Year (Internship)',
-  '6th Year (Internship)': 'Graduated / Alumnus',
-  '6th Year': 'Graduated / Alumnus'
+const getNextPromotionPreview = (course, year, semester) => {
+  if (course === 'B.Pharm') {
+    const semNum = parseInt(semester?.replace('Sem ', '') || '1');
+    if (semNum >= 8) return { year: 'Graduated / Alumnus', semester: null };
+    
+    const nextSem = semNum + 1;
+    let nextYear = year;
+    if (nextSem === 3) nextYear = '2nd Year';
+    else if (nextSem === 5) nextYear = '3rd Year';
+    else if (nextSem === 7) nextYear = '4th Year';
+    
+    return { year: nextYear, semester: `Sem ${nextSem}` };
+  } else {
+    // Pharm.D logic
+    const nextYearMap = {
+      '1st Year': '2nd Year',
+      '2nd Year': '3rd Year',
+      '3rd Year': '4th Year',
+      '4th Year': '5th Year',
+      '5th Year': '6th Year (Internship)',
+      '6th Year (Internship)': 'Graduated / Alumnus',
+      '6th Year': 'Graduated / Alumnus'
+    };
+    return { year: nextYearMap[year] || 'Graduated / Alumnus', semester: null };
+  }
 };
 
 export const StudentPromotionView = ({ college, initialBatch = 'All' }) => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState('Pharm.D');
   const [selectedBatch, setSelectedBatch] = useState(initialBatch || 'All');
   const [selectedCurrentYear, setSelectedCurrentYear] = useState('All');
+  const [selectedCurrentSemester, setSelectedCurrentSemester] = useState('All');
 
   useEffect(() => {
     if (initialBatch) {
@@ -30,6 +49,7 @@ export const StudentPromotionView = ({ college, initialBatch = 'All' }) => {
   // Selection state for batch promotion
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   const [targetYear, setTargetYear] = useState('5th Year');
+  const [targetSemester, setTargetSemester] = useState('Sem 1');
   const [targetAcademicYear, setTargetAcademicYear] = useState('2026–2027');
   
   // Modal & Promotion loading
@@ -60,20 +80,33 @@ export const StudentPromotionView = ({ college, initialBatch = 'All' }) => {
       student.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.roll_number?.toLowerCase().includes(searchQuery.toLowerCase());
     
+    const matchesCourse = student.course === selectedCourse;
     const matchesBatch = selectedBatch === 'All' || student.batch === selectedBatch;
     const matchesYear = selectedCurrentYear === 'All' || student.year === selectedCurrentYear;
+    const matchesSemester = selectedCourse !== 'B.Pharm' || selectedCurrentSemester === 'All' || student.semester === selectedCurrentSemester;
 
-    return matchesSearch && matchesBatch && matchesYear;
+    return matchesSearch && matchesCourse && matchesBatch && matchesYear && matchesSemester;
   });
 
   // Automatically update target year based on selected batch / current year filter
   useEffect(() => {
-    if (selectedCurrentYear !== 'All' && NEXT_YEAR_MAP[selectedCurrentYear]) {
-      setTargetYear(NEXT_YEAR_MAP[selectedCurrentYear]);
-    } else if (filteredStudents.length > 0 && NEXT_YEAR_MAP[filteredStudents[0].year]) {
-      setTargetYear(NEXT_YEAR_MAP[filteredStudents[0].year]);
+    let baseYear = null;
+    let baseSemester = null;
+
+    if (selectedCurrentYear !== 'All') {
+      baseYear = selectedCurrentYear;
+      baseSemester = selectedCourse === 'B.Pharm' && selectedCurrentSemester !== 'All' ? selectedCurrentSemester : null;
+    } else if (filteredStudents.length > 0) {
+      baseYear = filteredStudents[0].year;
+      baseSemester = filteredStudents[0].semester;
     }
-  }, [selectedCurrentYear, selectedBatch, students.length]);
+
+    if (baseYear) {
+      const preview = getNextPromotionPreview(selectedCourse, baseYear, baseSemester);
+      setTargetYear(preview.year);
+      if (preview.semester) setTargetSemester(preview.semester);
+    }
+  }, [selectedCurrentYear, selectedCurrentSemester, selectedCourse, selectedBatch, students.length]);
 
   // Selection handlers
   const handleSelectAll = () => {
@@ -94,14 +127,15 @@ export const StudentPromotionView = ({ college, initialBatch = 'All' }) => {
     if (selectedStudentIds.length === 0) return;
     setPromoting(true);
 
-    const res = await promoteStudentsBatchInSupabase(selectedStudentIds, targetYear, targetAcademicYear);
+    const semesterToPass = selectedCourse === 'B.Pharm' ? targetSemester : null;
+    const res = await promoteStudentsBatchInSupabase(selectedStudentIds, targetYear, targetAcademicYear, semesterToPass);
     setPromoting(false);
     setShowConfirmModal(false);
 
     if (res.success) {
       showNotification({
         type: 'success',
-        message: `✓ Successfully promoted ${selectedStudentIds.length} student(s) to ${targetYear} (${targetAcademicYear})!`
+        message: `✓ Successfully promoted ${selectedStudentIds.length} student(s) to ${targetYear} ${semesterToPass ? `(${semesterToPass})` : ''}!`
       });
       setSelectedStudentIds([]);
       await loadStudents();
@@ -181,11 +215,11 @@ export const StudentPromotionView = ({ college, initialBatch = 'All' }) => {
       {/* PROMOTION ACTION & FILTER PANEL */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-5">
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
           {/* Search Box */}
           <div className="space-y-1">
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-              Search Student / Roll No
+              Search
             </label>
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -193,10 +227,29 @@ export const StudentPromotionView = ({ college, initialBatch = 'All' }) => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search name or roll no..."
+                placeholder="Name/Roll no..."
                 className="w-full h-10 pl-9 pr-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-xs font-semibold text-slate-900 dark:text-white"
               />
             </div>
+          </div>
+
+          {/* Course Filter */}
+          <div className="space-y-1">
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+              Filter by Course
+            </label>
+            <select
+              value={selectedCourse}
+              onChange={(e) => {
+                setSelectedCourse(e.target.value);
+                setSelectedCurrentYear('All');
+                setSelectedCurrentSemester('All');
+              }}
+              className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white"
+            >
+              <option value="Pharm.D">Pharm.D</option>
+              <option value="B.Pharm">B.Pharm</option>
+            </select>
           </div>
 
           {/* Filter by Batch */}
@@ -209,7 +262,7 @@ export const StudentPromotionView = ({ college, initialBatch = 'All' }) => {
               onChange={(e) => setSelectedBatch(e.target.value)}
               className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white"
             >
-              <option value="All">All Batches ({students.length})</option>
+              <option value="All">All Batches</option>
               {uniqueBatches.map(b => (
                 <option key={b} value={b}>{b} Batch</option>
               ))}
@@ -219,26 +272,45 @@ export const StudentPromotionView = ({ college, initialBatch = 'All' }) => {
           {/* Filter by Current Year */}
           <div className="space-y-1">
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-              Filter by Current Year
+              Current Year
             </label>
             <select
               value={selectedCurrentYear}
               onChange={(e) => setSelectedCurrentYear(e.target.value)}
               className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white"
             >
-              <option value="All">All Academic Years</option>
+              <option value="All">All Years</option>
               <option value="1st Year">1st Year</option>
               <option value="2nd Year">2nd Year</option>
               <option value="3rd Year">3rd Year</option>
               <option value="4th Year">4th Year</option>
-              <option value="5th Year">5th Year</option>
-              <option value="6th Year (Internship)">6th Year (Internship)</option>
+              {selectedCourse === 'Pharm.D' && <option value="5th Year">5th Year</option>}
+              {selectedCourse === 'Pharm.D' && <option value="6th Year (Internship)">6th Year (Internship)</option>}
             </select>
           </div>
 
+          {/* Filter by Current Semester (B.Pharm Only) */}
+          {selectedCourse === 'B.Pharm' && (
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                Current Semester
+              </label>
+              <select
+                value={selectedCurrentSemester}
+                onChange={(e) => setSelectedCurrentSemester(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white"
+              >
+                <option value="All">All Semesters</option>
+                {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
+                  <option key={s} value={`Sem ${s}`}>Sem {s}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Target Year Selector */}
           <div className="space-y-1">
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+            <label className="block text-xs font-bold text-emerald-700 dark:text-emerald-400">
               Promote To Year
             </label>
             <select
@@ -249,11 +321,29 @@ export const StudentPromotionView = ({ college, initialBatch = 'All' }) => {
               <option value="2nd Year">2nd Year</option>
               <option value="3rd Year">3rd Year</option>
               <option value="4th Year">4th Year</option>
-              <option value="5th Year">5th Year</option>
-              <option value="6th Year (Internship)">6th Year (Internship)</option>
+              {selectedCourse === 'Pharm.D' && <option value="5th Year">5th Year</option>}
+              {selectedCourse === 'Pharm.D' && <option value="6th Year (Internship)">6th Year (Internship)</option>}
               <option value="Graduated / Alumnus">Graduated / Alumnus</option>
             </select>
           </div>
+
+          {/* Target Semester (B.Pharm Only) */}
+          {selectedCourse === 'B.Pharm' && (
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                Promote To Sem
+              </label>
+              <select
+                value={targetSemester}
+                onChange={(e) => setTargetSemester(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/40 text-xs font-extrabold text-emerald-700 dark:text-emerald-300"
+              >
+                {[2, 3, 4, 5, 6, 7, 8].map(s => (
+                  <option key={s} value={`Sem ${s}`}>Sem {s}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* BATCH PROMOTION ACTION TOOLBAR */}
@@ -328,7 +418,7 @@ export const StudentPromotionView = ({ college, initialBatch = 'All' }) => {
                   <th className="p-4">Roll Number</th>
                   <th className="p-4">Student Name</th>
                   <th className="p-4">Batch</th>
-                  <th className="p-4">Current Year</th>
+                  <th className="p-4">Current Session</th>
                   <th className="p-4">Promotion Target Preview</th>
                   <th className="p-4 text-right">Quick Action</th>
                 </tr>
@@ -336,7 +426,9 @@ export const StudentPromotionView = ({ college, initialBatch = 'All' }) => {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-semibold">
                 {filteredStudents.map(student => {
                   const isSelected = selectedStudentIds.includes(student.id);
-                  const nextYearPreview = NEXT_YEAR_MAP[student.year] || targetYear;
+                  const nextPreview = getNextPromotionPreview(student.course || 'Pharm.D', student.year, student.semester);
+                  const previewYear = selectedStudentIds.length > 0 ? targetYear : nextPreview.year;
+                  const previewSem = selectedStudentIds.length > 0 ? targetSemester : nextPreview.semester;
 
                   return (
                     <tr
@@ -359,22 +451,33 @@ export const StudentPromotionView = ({ college, initialBatch = 'All' }) => {
                       </td>
                       <td className="p-4 font-bold text-slate-900 dark:text-white">
                         {student.full_name}
+                        <div className="text-[10px] text-slate-400 font-medium mt-0.5">{student.course || 'Pharm.D'}</div>
                       </td>
                       <td className="p-4">
                         <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono font-bold text-[11px]">
                           {student.batch || 'N/A'}
                         </span>
                       </td>
-                      <td className="p-4">
-                        <span className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-800 text-[11px]">
-                          {student.year || 'Pharm.D'}
-                        </span>
+                      <td className="p-4 space-y-1">
+                        <div className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-800 text-[11px] inline-block">
+                          {student.year || 'Unknown Year'}
+                        </div>
+                        {student.course === 'B.Pharm' && student.semester && (
+                          <div className="px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 font-bold border border-sky-200 dark:border-sky-800 text-[11px] inline-block ml-1">
+                            {student.semester}
+                          </div>
+                        )}
                       </td>
-                      <td className="p-4">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800 text-[11px]">
+                      <td className="p-4 space-y-1">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800 text-[11px]">
                           <ArrowRight className="w-3 h-3 text-emerald-500" />
-                          <span>{targetYear || nextYearPreview}</span>
-                        </span>
+                          <span>{previewYear}</span>
+                        </div>
+                        {student.course === 'B.Pharm' && previewSem && (
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800 text-[11px] ml-1">
+                            <span>{previewSem}</span>
+                          </div>
+                        )}
                       </td>
                       <td className="p-4 text-right">
                         <button

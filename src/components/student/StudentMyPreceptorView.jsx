@@ -62,8 +62,8 @@ export const StudentMyPreceptorView = ({ student }) => {
           <Stethoscope className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
           <span>My Assigned Preceptor</span>
         </h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          Clinical preceptor assigned to review your Pharm.D case logbook & ward rounds.
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-lg">
+          Clinical preceptor assigned to review your student case logbook & ward rounds.
         </p>
       </div>
 

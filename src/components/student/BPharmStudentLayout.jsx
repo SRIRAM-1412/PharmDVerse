@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, GraduationCap, User, LogOut, Sun, Moon, Menu, X, Stethoscope, ShieldCheck, Bell, FolderKanban, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Stethoscope, User, LogOut, Sun, Moon, Menu, X, UserCheck, ShieldCheck, ClipboardList, FilePlus2, FolderKanban, Bell, Sparkles, FileSearch, ChevronLeft, ChevronRight, FlaskConical, Beaker, Pipette, FileCheck } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
-import { PreceptorDashboardView } from './PreceptorDashboardView';
-import { PreceptorAssignedStudentsView } from './PreceptorAssignedStudentsView';
-import { PreceptorCaseReviewView } from './PreceptorCaseReviewView';
-import { PreceptorProfileView } from './PreceptorProfileView';
+import { BPharmStudentDashboardView } from './BPharmStudentDashboardView';
+import { BPharmStudentPracticalsView } from './BPharmStudentPracticalsView';
+import { BPharmStudentRecordsView } from './BPharmStudentRecordsView';
+import { StudentMyPreceptorView } from './StudentMyPreceptorView';
+import { StudentProfileView } from './StudentProfileView';
 import { NotificationsView } from '../common/NotificationsView';
 import { LeaveWorkspaceModal } from '../modals/LeaveWorkspaceModal';
 import { LogoutConfirmModal } from '../modals/LogoutConfirmModal';
@@ -15,16 +16,17 @@ import { usePlatform } from '../../context/PlatformContext';
 
 import { fetchUnreadNotificationsCountFromSupabase } from '../../services/supabaseService';
 
-export const PreceptorLayout = ({ preceptor, onLogout }) => {
+export const BPharmStudentLayout = ({ student, onLogout }) => {
   const { isDark, toggleTheme } = useTheme();
   const { platformSettings } = usePlatform();
   const platformLogoUrl = platformSettings?.logo_url || '/pharmdverse-logo.png';
   const { activeTab, setActiveTab, pushTab, popTab, showLeaveModal, setShowLeaveModal } = useWorkspaceHistory('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [preceptorCaseFilter, setPreceptorCaseFilter] = useState('All');
+  const [caseFilter, setCaseFilter] = useState('All');
+  const [selectedCaseForForm, setSelectedCaseForForm] = useState(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [forcePasswordReset, setForcePasswordReset] = useState(preceptor?.force_password_reset || false);
+  const [forcePasswordReset, setForcePasswordReset] = useState(student?.force_password_reset || false);
   const [showLogoModal, setShowLogoModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
@@ -43,8 +45,8 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
   const isCollapsedOnDesktop = sidebarCollapsed && !mobileSidebarOpen;
 
   const loadUnreadCount = async () => {
-    if (!preceptor?.id) return;
-    const res = await fetchUnreadNotificationsCountFromSupabase(preceptor.id);
+    if (!student?.id) return;
+    const res = await fetchUnreadNotificationsCountFromSupabase(student.id);
     if (res.success) {
       setUnreadCount(res.count || 0);
     }
@@ -52,9 +54,10 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
 
   useEffect(() => {
     loadUnreadCount();
+    // Poll notifications every 30 seconds for real-time feel
     const interval = setInterval(loadUnreadCount, 30000);
     return () => clearInterval(interval);
-  }, [preceptor?.id, activeTab]);
+  }, [student?.id, activeTab]);
 
   // Force Password Reset: auto-navigate to profile tab and block other navigation
   useEffect(() => {
@@ -68,12 +71,50 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
   const handleNavigate = (tab, filter = 'All', caseId = null) => {
     // Block navigation if force password reset is active
     if (forcePasswordReset && tab !== 'profile') return;
-    setPreceptorCaseFilter(filter);
+    setCaseFilter(filter);
     setTargetCaseId(caseId || null);
     pushTab(tab);
     setMobileSidebarOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     loadUnreadCount();
+  };
+
+  const [navSourceTab, setNavSourceTab] = useState(null);
+  const [targetHighlightField, setTargetHighlightField] = useState(null);
+
+  const handleOpenPatientProfile = (clinicalCase, sourceTab = null, highlightFieldId = null) => {
+    setSelectedCaseForForm(clinicalCase);
+    if (sourceTab) setNavSourceTab(sourceTab);
+    setTargetHighlightField(highlightFieldId || null);
+    handleNavigate('patient-profile');
+  };
+
+  const handleOpenPatientCounselling = (clinicalCase, sourceTab = null, highlightFieldId = null) => {
+    setSelectedCaseForForm(clinicalCase);
+    if (sourceTab) setNavSourceTab(sourceTab);
+    setTargetHighlightField(highlightFieldId || null);
+    handleNavigate('patient-counselling');
+  };
+
+  const handleOpenPharmacistIntervention = (clinicalCase, sourceTab = null, highlightFieldId = null) => {
+    setSelectedCaseForForm(clinicalCase);
+    if (sourceTab) setNavSourceTab(sourceTab);
+    setTargetHighlightField(highlightFieldId || null);
+    handleNavigate('pharmacist-intervention');
+  };
+
+  const handleOpenDrugInformationRequest = (clinicalCase, sourceTab = null, highlightFieldId = null) => {
+    setSelectedCaseForForm(clinicalCase);
+    if (sourceTab) setNavSourceTab(sourceTab);
+    setTargetHighlightField(highlightFieldId || null);
+    handleNavigate('drug-info-request');
+  };
+
+  const handleOpenADRDocumentation = (clinicalCase, sourceTab = null, highlightFieldId = null) => {
+    setSelectedCaseForForm(clinicalCase);
+    if (sourceTab) setNavSourceTab(sourceTab);
+    setTargetHighlightField(highlightFieldId || null);
+    handleNavigate('adr-documentation');
   };
 
   const renderSidebarContent = (isMobile = false) => {
@@ -95,23 +136,23 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
           ) : (
             <>
               <div className="flex items-center gap-3 min-w-0">
-                {preceptor?.profile_photo_url ? (
+                {student?.profile_photo_url ? (
                   <img
-                    src={preceptor.profile_photo_url}
-                    alt={preceptor.full_name}
+                    src={student.profile_photo_url}
+                    alt={student.full_name}
                     className="w-8 h-8 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-xs shrink-0"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-600 to-blue-700 flex items-center justify-center text-white font-extrabold text-xs shadow-xs shrink-0">
-                    {preceptor?.full_name ? preceptor.full_name.substring(0, 2).toUpperCase() : 'PR'}
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center text-white font-extrabold text-xs shadow-xs shrink-0">
+                    {student?.full_name ? student.full_name.substring(0, 2).toUpperCase() : 'ST'}
                   </div>
                 )}
                 <div className="min-w-0">
                   <strong className="block text-xs font-extrabold text-slate-900 dark:text-white truncate max-w-[130px]">
-                    {preceptor?.full_name || 'Preceptor'}
+                    {student?.full_name || 'Student'}
                   </strong>
-                  <span className="text-[10px] font-semibold text-cyan-600 dark:text-cyan-400 block truncate">
-                    {preceptor?.department || 'Clinical Evaluator'}
+                  <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold block truncate">
+                    Roll: {student?.roll_number}
                   </span>
                 </div>
               </div>
@@ -139,11 +180,11 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
 
         {/* SIDEBAR NAVIGATION ITEMS */}
         <div className="p-3 space-y-4 overflow-y-auto min-h-0 flex-1">
-          {/* SECTION 1: CLINICAL EVALUATION */}
+          {/* SECTION 1: ACADEMIC DASHBOARD */}
           <div>
             {!collapsed && (
               <span className="px-3 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">
-                Clinical Evaluation
+                Academic Dashboard
               </span>
             )}
             <nav className="space-y-1">
@@ -153,67 +194,83 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
                 title="Dashboard"
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'dashboard'
-                    ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
+                } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
               >
                 <div className="flex items-center gap-2.5 truncate">
                   <LayoutDashboard className="w-4 h-4 shrink-0" />
                   {!collapsed && <span className="truncate">Dashboard</span>}
                 </div>
               </button>
-
-              {/* Assigned Students */}
+              
+              {/* My Pharmacology Practicals */}
               <button
-                onClick={() => handleNavigate('assigned-students')}
-                title="Assigned Students"
+                onClick={() => handleNavigate('pharmacology-practicals')}
+                title="My Pharmacology Practicals"
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'assigned-students'
-                    ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
+                  activeTab === 'pharmacology-practicals'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
+                } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
               >
                 <div className="flex items-center gap-2.5 truncate">
-                  <GraduationCap className="w-4 h-4 shrink-0" />
-                  {!collapsed && <span className="truncate">Assigned Students</span>}
+                  <FlaskConical className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">My Pharmacology Practicals</span>}
                 </div>
               </button>
 
-              {/* Clinical Case Review */}
+              {/* My Official Records */}
               <button
-                onClick={() => handleNavigate('case-review')}
-                title="Clinical Case Review"
+                onClick={() => handleNavigate('bpharm-records')}
+                title="My Official Records"
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'case-review'
-                    ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
+                  activeTab === 'bpharm-records'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
+                } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
               >
                 <div className="flex items-center gap-2.5 truncate">
-                  <FolderKanban className="w-4 h-4 shrink-0" />
-                  {!collapsed && <span className="truncate">Clinical Case Review</span>}
+                  <FileCheck className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">My Official Records</span>}
                 </div>
               </button>
             </nav>
           </div>
 
-          {/* SECTION 2: COMMUNICATION & ACCOUNT */}
+          {/* SECTION 3: EVALUATOR & ACCOUNT */}
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
             {!collapsed && (
               <span className="px-3 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">
-                Communication & Account
+                Evaluator & Account
               </span>
             )}
             <nav className="space-y-1">
+              {/* My Evaluator */}
+              <button
+                onClick={() => handleNavigate('my-preceptor')}
+                title="My Evaluator"
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'my-preceptor'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <Stethoscope className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">My Evaluator</span>}
+                </div>
+              </button>
+
               {/* Notifications */}
               <button
                 onClick={() => handleNavigate('notifications')}
                 title="Notifications"
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'notifications'
-                    ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
+                } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
               >
                 <div className="flex items-center gap-2.5 truncate">
                   <Bell className="w-4 h-4 shrink-0" />
@@ -232,7 +289,7 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
                 title="My Profile & Security"
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'profile'
-                    ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
@@ -279,7 +336,7 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 font-sans flex flex-col transition-colors duration-300">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 font-sans flex transition-colors duration-300">
       
       {/* 1A. DESKTOP SIDEBAR */}
       <aside className={`hidden lg:flex fixed top-0 left-0 bottom-0 z-40 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 transition-all duration-300 flex-col justify-between ${
@@ -296,8 +353,6 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
       </aside>
 
       {/* 1C. MOBILE OVERLAY */}
-
-      {/* MOBILE OVERLAY */}
       {mobileSidebarOpen && (
         <div
           onClick={() => setMobileSidebarOpen(false)}
@@ -320,23 +375,23 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
             </button>
 
             <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
-              {(preceptor?.colleges?.college_logo_url || preceptor?.colleges?.logoUrl) ? (
+              {(student?.colleges?.college_logo_url || student?.colleges?.logoUrl) ? (
                 <img
-                  src={preceptor?.colleges?.college_logo_url || preceptor?.colleges?.logoUrl}
-                  alt={preceptor?.colleges?.college_name || 'College Logo'}
+                  src={student?.colleges?.college_logo_url || student?.colleges?.logoUrl}
+                  alt={student?.colleges?.college_name || 'College Logo'}
                   className="w-8 h-8 object-contain rounded-lg border border-slate-200 dark:border-slate-700 bg-white p-0.5 shrink-0 shadow-xs"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-600 to-teal-700 text-white font-extrabold text-[10px] flex items-center justify-center shrink-0 shadow-xs border border-white/20">
-                  {(preceptor?.colleges?.college_name || 'CLG').substring(0, 3).toUpperCase()}
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-600 to-teal-700 text-white font-extrabold text-[10px] flex items-center justify-center shrink-0 shadow-xs border border-white/20">
+                  {(student?.colleges?.college_name || 'CLG').substring(0, 3).toUpperCase()}
                 </div>
               )}
               <div className="flex flex-col min-w-0 leading-tight justify-center">
                 <h1 className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white line-clamp-2 sm:line-clamp-1">
-                  {preceptor?.colleges?.college_name || 'Pharmacy College'}
+                  {student?.colleges?.college_name || 'Pharmacy College'}
                 </h1>
                 <span className="text-[10px] text-slate-400 font-normal hidden sm:inline">
-                  Preceptor Portal
+                  Student Portal
                 </span>
               </div>
             </div>
@@ -344,27 +399,27 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
 
           {/* Desktop Only: Vertical Divider + Full Super Admin Style Workspace Badge */}
           <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800 shrink-0">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
               <img
                 src={platformLogoUrl}
                 alt="Platform Logo"
                 className="w-4 h-4 object-contain shrink-0 bg-white rounded-xs p-0.5"
                 onError={(e) => { e.target.src = '/pharmdverse-logo.png'; }}
               />
-              <span>Preceptor Workspace</span>
+              <span>Student Workspace</span>
             </span>
           </div>
 
           {/* Mobile Only: Compact Badge without Vertical Divider */}
           <div className="sm:hidden flex items-center gap-2 shrink-0">
-            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800">
+            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
               <img
                 src={platformLogoUrl}
                 alt="Platform Logo"
                 className="w-3.5 h-3.5 object-contain shrink-0"
                 onError={(e) => { e.target.src = '/pharmdverse-logo.png'; }}
               />
-              <span className="hidden xs:inline">Preceptor</span>
+              <span className="hidden xs:inline">Student</span>
             </span>
           </div>
         </header>
@@ -377,48 +432,59 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
                 onClick={() => popTab ? popTab() : handleNavigate('dashboard')}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200/90 dark:border-slate-700/80 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer"
               >
-                <ChevronLeft className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                <ChevronLeft className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>Back</span>
               </button>
             </div>
           )}
 
           {activeTab === 'dashboard' && (
-            <PreceptorDashboardView preceptor={preceptor} onNavigate={handleNavigate} />
+            <BPharmStudentDashboardView student={student} onNavigate={handleNavigate} />
           )}
 
-          {activeTab === 'assigned-students' && (
-            <PreceptorAssignedStudentsView preceptor={preceptor} />
+          {activeTab === 'pharmacology-practicals' && (
+            <BPharmStudentPracticalsView student={student} />
           )}
 
-          {activeTab === 'case-review' && (
-            <PreceptorCaseReviewView
-              preceptor={preceptor}
-              initialFilter={preceptorCaseFilter}
-              targetCaseId={targetCaseId}
-              onClearTargetCase={() => setTargetCaseId(null)}
-            />
+          {activeTab === 'bpharm-records' && (
+            <BPharmStudentRecordsView student={student} />
+          )}
+
+          {activeTab === 'general-pharma' && (
+            <div className="p-8 text-center text-slate-500">General Pharmacology Practicals (Under Construction)</div>
+          )}
+
+          {activeTab === 'systemic-pharma-1' && (
+            <div className="p-8 text-center text-slate-500">Systemic Pharmacology-I Practicals (Under Construction)</div>
+          )}
+
+          {activeTab === 'systemic-pharma-2' && (
+            <div className="p-8 text-center text-slate-500">Systemic Pharmacology-II Practicals (Under Construction)</div>
+          )}
+
+          {activeTab === 'my-preceptor' && (
+            <StudentMyPreceptorView student={student} />
           )}
 
           {activeTab === 'notifications' && (
             <NotificationsView
-              userId={preceptor.id}
-              userRole="Preceptor"
+              userId={student.id}
+              userRole="Student"
               onNavigate={(route, caseId) => {
-                handleNavigate('case-review', 'All', caseId);
+                const targetTab = route || 'my-cases';
+                handleNavigate(targetTab, 'All', caseId);
               }}
               onBack={() => handleNavigate('dashboard')}
             />
           )}
 
           {activeTab === 'profile' && (
-            <PreceptorProfileView preceptor={preceptor} onLogout={onLogout} forcePasswordReset={forcePasswordReset} />
+            <StudentProfileView student={student} onLogout={onLogout} forcePasswordReset={forcePasswordReset} />
           )}
         </main>
-
         {/* FOOTER */}
         <footer className="py-4 px-6 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 text-center text-xs text-slate-500 dark:text-slate-400">
-          <p>© 2026 PharmDVerse Cloud. Preceptor Module for {preceptor?.full_name}. All rights reserved.</p>
+          <p>© 2026 PharmDVerse Cloud. Student Module for {student?.full_name}. All rights reserved.</p>
         </footer>
 
       </div>
@@ -434,7 +500,7 @@ export const PreceptorLayout = ({ preceptor, onLogout }) => {
         isOpen={showLogoutConfirm}
         onClose={() => setShowLogoutConfirm(false)}
         onConfirmLogout={onLogout}
-        userType="Preceptor"
+        userType="Student"
       />
 
       <LogoPreviewModal isOpen={showLogoModal} onClose={() => setShowLogoModal(false)} />

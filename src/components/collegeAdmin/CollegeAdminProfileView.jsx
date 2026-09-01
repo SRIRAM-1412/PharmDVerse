@@ -15,6 +15,8 @@ export const CollegeAdminProfileView = ({ college: initialCollege, onProfileUpda
     hospitalName: initialCollege?.hospitalName || initialCollege?.hospital_name || initialCollege?.primary_hospital_name || '',
     collegeLogoUrl: initialCollege?.logoUrl || initialCollege?.college_logo_url || '',
     hospitalLogoUrl: initialCollege?.hospitalLogoUrl || initialCollege?.hospital_logo_url || '',
+    affiliationName: initialCollege?.affiliationName || initialCollege?.affiliation_name || '',
+    affiliationLogoUrl: initialCollege?.affiliationLogoUrl || initialCollege?.affiliation_logo_url || '',
     principalName: initialCollege?.principalName || initialCollege?.principal_name || '',
     principalMobile: initialCollege?.principalMobile || initialCollege?.principal_mobile || '',
     principalEmail: initialCollege?.principalEmail || initialCollege?.principal_email || initialCollege?.adminUsername || '',
@@ -59,6 +61,7 @@ export const CollegeAdminProfileView = ({ college: initialCollege, onProfileUpda
 
   const [uploadingCollegeLogo, setUploadingCollegeLogo] = useState(false);
   const [uploadingHospitalLogo, setUploadingHospitalLogo] = useState(false);
+  const [uploadingAffiliationLogo, setUploadingAffiliationLogo] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -118,7 +121,28 @@ export const CollegeAdminProfileView = ({ college: initialCollege, onProfileUpda
     }
   };
 
-  const handleReset = () => {
+  
+  const handleAffiliationLogoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 500 * 1024) {
+      setErrorMsg('Affiliation Logo file size exceeds 500 KB limit.');
+      return;
+    }
+
+    setUploadingAffiliationLogo(true);
+    setErrorMsg('');
+    const res = await uploadCollegeLogoToSupabaseStorage(file, 'affiliation');
+    setUploadingAffiliationLogo(false);
+
+    if (res.success && res.url) {
+      setFormData(prev => ({ ...prev, affiliationLogoUrl: res.url }));
+    } else {
+      setErrorMsg(res.error || 'Failed to upload Affiliation Logo.');
+    }
+  };
+const handleReset = () => {
     if (window.confirm('Reset all changes back to currently saved profile data?')) {
       setFormData({
         collegeName: currentCollege?.name || currentCollege?.college_name || '',
@@ -390,6 +414,65 @@ export const CollegeAdminProfileView = ({ college: initialCollege, onProfileUpda
           </div>
 
         </div>
+
+                  {/* B.PHARM AFFILIATION DETAILS */}
+          <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <h4 className="text-xs font-extrabold uppercase tracking-wide text-indigo-900 dark:text-indigo-300 border-l-2 border-indigo-600 pl-2">
+              B.Pharm Affiliation Details
+            </h4>
+            <p className="text-[10px] text-slate-500 mb-2">Used exclusively for B.Pharm PDF records instead of Hospital Details.</p>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Affiliation Name (e.g. JNTUA University)
+              </label>
+              <input
+                type="text"
+                name="affiliationName"
+                value={formData.affiliationName || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, affiliationName: e.target.value }))}
+                placeholder="e.g. JNTUA University"
+                className="w-full h-[46px] px-3.5 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 focus:outline-none"
+              />
+            </div>
+
+            {/* AFFILIATION LOGO UPLOAD & PREVIEW */}
+            <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-3">
+              <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+                Affiliation Logo (JPG / JPEG / PNG, Max 500 KB)
+              </label>
+              <div className="flex items-center gap-4">
+                {formData.affiliationLogoUrl ? (
+                  <div className="flex items-center gap-4 w-full">
+                    <div className="w-14 h-14 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center p-1.5 shrink-0 overflow-hidden shadow-sm">
+                      <img src={formData.affiliationLogoUrl} alt="Affiliation Logo Preview" className="w-full h-full object-contain" />
+                    </div>
+                    <div className="flex flex-col gap-1 flex-1">
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded flex items-center gap-1 w-max">
+                        <CheckCircle2 className="w-3 h-3" /> Affiliation logo attached
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 cursor-pointer hover:underline">
+                          Replace Logo
+                          <input type="file" accept="image/jpeg,image/jpg,image/png" onChange={(e) => handleAffiliationLogoUpload(e)} className="hidden" />
+                        </label>
+                        <span className="text-slate-300 dark:text-slate-600">|</span>
+                        <button type="button" onClick={() => setFormData(prev => ({...prev, affiliationLogoUrl: ''}))} className="text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:underline">
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="px-4 py-2.5 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-500 bg-white dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2 cursor-pointer transition-colors">
+                    <Upload className="w-4 h-4 text-indigo-600" />
+                    <span>{uploadingAffiliationLogo ? 'Uploading...' : 'Upload Affiliation Logo'}</span>
+                    <input type="file" accept="image/jpeg,image/jpg,image/png" onChange={(e) => handleAffiliationLogoUpload(e)} className="hidden" />
+                  </label>
+                )}
+              </div>
+            </div>
+          </div>
 
         {/* SECTION 2: SUBSCRIPTION DETAILS (INFORMATIONAL & READ-ONLY FOR COLLEGE ADMIN) */}
         <div className="p-6 rounded-3xl bg-gradient-to-br from-emerald-50/50 via-white to-teal-50/50 dark:from-emerald-950/20 dark:via-slate-900 dark:to-teal-950/20 border border-emerald-300/60 dark:border-emerald-800/80 shadow-xs space-y-5">

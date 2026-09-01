@@ -253,14 +253,16 @@ export const EditPreceptorModal = ({ isOpen, onClose, preceptor, onSuccess }) =>
             <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
               Department *
             </label>
-            <input
-              type="text"
+            <select
               name="department"
               value={formData.department}
               onChange={handleChange}
-              placeholder="e.g. Pharmacy Practice / General Medicine"
-              className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-            />
+              className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none appearance-none"
+            >
+              <option value="" disabled>Select department</option>
+              <option value="Pharmacy Practice">Pharmacy Practice</option>
+              <option value="Pharmacology">Pharmacology</option>
+            </select>
           </div>
 
           <div>

@@ -14,6 +14,7 @@ export const EditStudentModal = ({ isOpen, onClose, student, onSuccess }) => {
     course: 'Pharm.D',
     academicYear: '2026–2027',
     year: '1st Year',
+    semester: '',
     profilePhotoUrl: '',
     status: 'Active'
   });
@@ -35,6 +36,7 @@ export const EditStudentModal = ({ isOpen, onClose, student, onSuccess }) => {
         course: student.course || 'Pharm.D',
         academicYear: student.academic_year || '2026–2027',
         year: student.year || '1st Year',
+        semester: student.semester || '',
         profilePhotoUrl: student.profile_photo_url || '',
         status: student.status || 'Active'
       });
@@ -260,13 +262,20 @@ export const EditStudentModal = ({ isOpen, onClose, student, onSuccess }) => {
             <select
               name="course"
               value={formData.course}
-              onChange={handleChange}
+              onChange={(e) => {
+                const newCourse = e.target.value;
+                setFormData(prev => ({
+                  ...prev,
+                  course: newCourse,
+                  year: '1st Year',
+                  semester: newCourse === 'B.Pharm' ? 'Sem 1' : ''
+                }));
+                setFormError('');
+              }}
               className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             >
-              <option value="Pharm.D">Pharm.D (6-Year Regular)</option>
-              <option value="Pharm.D (PB)">Pharm.D Post Baccalaureate (PB)</option>
-              <option value="M.Pharm">M.Pharm (Pharmacy Practice)</option>
-              <option value="B.Pharm">B.Pharm</option>
+              <option value="Pharm.D">Pharm.D (6-Year)</option>
+              <option value="B.Pharm">B.Pharm (4-Year)</option>
             </select>
           </div>
 
@@ -301,10 +310,34 @@ export const EditStudentModal = ({ isOpen, onClose, student, onSuccess }) => {
               <option value="2nd Year">2nd Year</option>
               <option value="3rd Year">3rd Year</option>
               <option value="4th Year">4th Year</option>
-              <option value="5th Year">5th Year</option>
-              <option value="Internship (6th Year)">Internship (6th Year)</option>
+              {formData.course === 'Pharm.D' && <option value="5th Year">5th Year</option>}
+              {formData.course === 'Pharm.D' && <option value="Internship (6th Year)">Internship (6th Year)</option>}
             </select>
           </div>
+
+          {/* Semester dropdown — only for B.Pharm */}
+          {formData.course === 'B.Pharm' && (
+            <div>
+              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Semester *
+              </label>
+              <select
+                name="semester"
+                value={formData.semester}
+                onChange={handleChange}
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              >
+                <option value="Sem 1">Sem 1</option>
+                <option value="Sem 2">Sem 2</option>
+                <option value="Sem 3">Sem 3</option>
+                <option value="Sem 4">Sem 4</option>
+                <option value="Sem 5">Sem 5</option>
+                <option value="Sem 6">Sem 6</option>
+                <option value="Sem 7">Sem 7</option>
+                <option value="Sem 8">Sem 8</option>
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
