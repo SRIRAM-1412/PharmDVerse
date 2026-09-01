@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
+import { GlobalToastRenderer } from './components/common/GlobalToastRenderer';
 import { CollegeProvider } from './context/CollegeContext';
 import { PlatformProvider } from './context/PlatformContext';
 import { Header } from './components/Header';
