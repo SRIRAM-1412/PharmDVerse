@@ -10,6 +10,9 @@ import { SessionConflictModal } from './SessionConflictModal';
 
 export const CollegeAdminLoginModal = ({ isOpen, onClose, initialCollege, onLoginSuccess }) => {
   const { loginCollegeAdmin } = useColleges();
+  const { platformSettings } = usePlatform();
+  const platformLogoUrl = platformSettings?.logo_url || '/pharmdverse-logo.png';
+  const platformName = platformSettings?.platform_name || 'PharmDVerse';
   const [username, setUsername] = useState(initialCollege?.adminUsername || initialCollege?.principalEmail || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
