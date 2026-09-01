@@ -116,7 +116,19 @@ export const generateClinicalCasePPTX = async ({
   const showPageNum = pptSettings?.show_page_number !== false;
   const showDateTime = pptSettings?.show_generated_datetime !== false;
 
-  const footerLeftText = pptSettings?.footer_left_text || college?.college_code || collegeName || 'PharmDVerse';
+  
+  let platformName = 'PharmDVerse';
+  try {
+    const cached = typeof window !== 'undefined' ? window.localStorage.getItem('pharmdverse_platform_settings_cache') : null;
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed.platform_name) platformName = parsed.platform_name.trim();
+    }
+  } catch (e) {}
+
+  let footerLeftText = pptSettings?.footer_left_text || college?.college_code || collegeName || platformName;
+  if (footerLeftText === 'PharmDVerse') footerLeftText = platformName;
+
   const footerCenterText = pptSettings?.footer_center_text || 'Confidential Clinical Documentation';
   const todayStr = new Date().toLocaleDateString('en-GB');
 

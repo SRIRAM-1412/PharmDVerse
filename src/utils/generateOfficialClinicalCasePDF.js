@@ -113,7 +113,19 @@ export const generateOfficialClinicalCasePDF = ({
   const watermarkOpacity = Math.min(Math.max(parseFloat(branding?.watermark_opacity ?? 10) / 100, 0.05), 0.30);
   const watermarkPosition = branding?.watermark_position || 'Center';
 
-  const footerLeftText = branding?.footer_left_text || norm.collegeName || 'PharmDVerse';
+  
+  let platformName = 'PharmDVerse';
+  try {
+    const cached = typeof window !== 'undefined' ? window.localStorage.getItem('pharmdverse_platform_settings_cache') : null;
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed.platform_name) platformName = parsed.platform_name.trim();
+    }
+  } catch (e) {}
+
+  let footerLeftText = branding?.footer_left_text || norm.collegeName || platformName;
+  if (footerLeftText === 'PharmDVerse') footerLeftText = platformName;
+
   const footerCenterText = branding?.footer_center_text || 'Confidential Clinical Documentation';
   const showPageNumber = branding?.show_page_number !== false;
   const showGeneratedDatetime = branding?.show_generated_datetime !== false;
