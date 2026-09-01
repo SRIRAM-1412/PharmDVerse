@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Building2, Stethoscope, UserCheck, ShieldCheck, ExternalLink, ArrowLeft, MapPin, CheckCircle2, Globe, LogIn, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { usePlatform } from '../../context/PlatformContext';
 import { LogoPreviewModal } from '../modals/LogoPreviewModal';
 
 export const CollegePortalView = ({ college: rawCollege, onBackToLanding, onOpenAdminLogin, onOpenPreceptorLogin, onOpenStudentLogin }) => {
