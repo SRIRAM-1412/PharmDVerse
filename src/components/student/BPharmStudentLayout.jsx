@@ -484,7 +484,7 @@ export const BPharmStudentLayout = ({ student, onLogout }) => {
         </main>
         {/* FOOTER */}
         <footer className="py-4 px-6 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 text-center text-xs text-slate-500 dark:text-slate-400">
-          <p>© 2026 PharmDVerse Cloud. Student Module for {student?.full_name}. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} {platformName} Cloud. Student Module for {student?.full_name}. All rights reserved.</p>
         </footer>
 
       </div>

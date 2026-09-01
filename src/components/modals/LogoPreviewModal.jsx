@@ -2,6 +2,10 @@ import React from 'react';
 import { ModalWrapper } from './ModalWrapper';
 
 export const LogoPreviewModal = ({ isOpen, onClose }) => {
+  const { platformSettings } = usePlatform();
+  const platformName = platformSettings?.platform_name || 'PharmDVerse';
+  const logoUrl = platformSettings?.logo_url || '/pharmdverse-logo.png';
+  const tagline = platformSettings?.platform_tagline || 'Clinical Documentation Platform';
   return (
     <ModalWrapper
       isOpen={isOpen}
@@ -23,8 +27,7 @@ export const LogoPreviewModal = ({ isOpen, onClose }) => {
 
         {/* ENLARGED HIGH QUALITY OFFICIAL LOGO */}
         <div className="w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center p-4 bg-white rounded-2xl shadow-sm my-2">
-          <img
-            src="/pharmdverse-logo.png"
+          <img src={logoUrl}
             alt="PharmDVerse Official Logo"
             className="max-w-full max-h-full object-contain filter drop-shadow-md transition-transform duration-300 hover:scale-105"
           />
