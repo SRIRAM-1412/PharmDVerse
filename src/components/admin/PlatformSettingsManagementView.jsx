@@ -3,6 +3,7 @@ import {
   Globe, Image, Mail, FileText, Upload, CheckCircle2, AlertCircle, Save, RotateCcw, Loader2, Info, ChevronLeft
 } from 'lucide-react';
 import { usePlatform } from '../../context/PlatformContext';
+import { useInlineNotification } from '../../hooks/useInlineNotification';
 import { DEFAULT_PLATFORM_SETTINGS, uploadPlatformAssetToSupabase } from '../../services/platformService';
 
 export const PlatformSettingsManagementView = ({ onBack }) => {
@@ -20,7 +21,8 @@ export const PlatformSettingsManagementView = ({ onBack }) => {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
-  const [notify, setNotify] = useState(null);
+  const { showNotification: setNotify } = useInlineNotification();
+const notify = null;
 
   useEffect(() => {
     if (platformSettings) {
@@ -141,16 +143,7 @@ export const PlatformSettingsManagementView = ({ onBack }) => {
       </div>
 
       {/* NOTIFICATION ALERT */}
-      {notify && (
-        <div className={`p-4 rounded-2xl border text-xs font-bold flex items-center gap-3 ${
-          notify.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300' :
-          notify.type === 'info' ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800 text-indigo-900 dark:text-indigo-300' :
-          'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-300'
-        }`}>
-          {notify.type === 'success' ? <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600" /> : <AlertCircle className="w-5 h-5 shrink-0 text-amber-500" />}
-          <span>{notify.message}</span>
-        </div>
-      )}
+      
 
       {/* MAIN FORM */}
       <form onSubmit={handleSubmit} className="space-y-6">
