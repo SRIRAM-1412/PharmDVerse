@@ -42,16 +42,35 @@ export const GlobalToastRenderer = () => {
     iconColor = 'text-amber-600 dark:text-amber-400';
   }
   
-  const top = Math.max(10, Math.min(window.innerHeight - 60, y - 60));
-  const left = Math.max(10, Math.min(window.innerWidth - 320, x + 15));
+  // Smart Positioning
+  const isRightSide = x > window.innerWidth / 2;
+  const isBottomSide = y > window.innerHeight / 2;
+
+  const style = {
+    position: 'fixed',
+    zIndex: 999999,
+    maxWidth: '350px',
+  };
+
+  if (isBottomSide) {
+    style.bottom = `${Math.max(10, window.innerHeight - y + 15)}px`;
+  } else {
+    style.top = `${Math.max(10, y + 15)}px`;
+  }
+
+  if (isRightSide) {
+    style.right = `${Math.max(10, window.innerWidth - x + 15)}px`;
+  } else {
+    style.left = `${Math.max(10, x + 15)}px`;
+  }
 
   return (
     <div 
-      style={{ top: `${top}px`, left: `${left}px`, zIndex: 999999, position: 'fixed', maxWidth: '300px' }}
-      className={`p-3 rounded-2xl border shadow-xl flex items-center gap-2.5 text-xs font-extrabold animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200 pointer-events-none ${bg}`}
+      style={style}
+      className={`p-3 rounded-2xl border shadow-xl flex items-start gap-2.5 text-xs font-extrabold animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200 pointer-events-none ${bg}`}
     >
-      <Icon className={`w-4 h-4 shrink-0 ${iconColor}`} />
-      <span className="whitespace-pre-wrap break-words">{message}</span>
+      <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${iconColor}`} />
+      <span className="whitespace-pre-wrap break-words leading-relaxed">{message}</span>
     </div>
   );
 };
