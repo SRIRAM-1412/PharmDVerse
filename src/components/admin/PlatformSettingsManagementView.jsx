@@ -21,7 +21,7 @@ export const PlatformSettingsManagementView = ({ onBack }) => {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
-  const { showNotification: setNotify } = useInlineNotification();
+  const { showNotification: setNotify, clearNotification } = useInlineNotification();
 const notify = null;
 
   useEffect(() => {
@@ -63,7 +63,7 @@ const notify = null;
   // Submit Handler
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setNotify(null);
+    clearNotification();
 
     const trimmedName = formState.platform_name.trim();
     if (!trimmedName) {
