@@ -191,6 +191,8 @@ const handleReset = () => {
       collegeLogoUrl: formData.collegeLogoUrl,
       hospitalName: formData.hospitalName,
       hospitalLogoUrl: formData.hospitalLogoUrl,
+      affiliationName: formData.affiliationName,
+      affiliationLogoUrl: formData.affiliationLogoUrl,
       isAutonomous: formData.isAutonomous,
       collegeDescription: currentCollege.description || currentCollege.college_description,
       city: currentCollege.city,
