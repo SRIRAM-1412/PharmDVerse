@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { usePlatform } from '../../context/PlatformContext';
 import { FileText, Save, RefreshCw, Eye, CheckCircle2, AlertTriangle, Loader2, Sparkles, Sliders, Layout, Building, Presentation, Info, ShieldCheck } from 'lucide-react';
 import { 
   fetchBPharmBrandingSettingsFromSupabase, 
