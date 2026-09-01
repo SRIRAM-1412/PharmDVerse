@@ -25,6 +25,7 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
   const { isDark, toggleTheme } = useTheme();
   const { platformSettings } = usePlatform();
   const platformLogoUrl = platformSettings?.logo_url || '/pharmdverse-logo.png';
+  const platformName = platformSettings?.platform_name || 'PharmDVerse';
   const { activeTab, setActiveTab, pushTab, popTab, showLeaveModal, setShowLeaveModal } = useWorkspaceHistory('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [collegeAdminCaseFilter, setCollegeAdminCaseFilter] = useState('All');
