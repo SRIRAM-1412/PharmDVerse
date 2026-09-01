@@ -272,6 +272,8 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
   const [successMsg, setSuccessMsg] = useState('');
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isPptPreviewModalOpen, setIsPptPreviewModalOpen] = useState(false);
+  const { platformSettings } = usePlatform();
+  const platformName = platformSettings?.platform_name || 'PharmDVerse';
   const [settings, setSettings] = useState(DEFAULT_SHARED_SETTINGS);
 
   const { notification: brandNotify, showNotification: showBrandNotify, clearNotification: clearBrandNotify } = useInlineNotification();
@@ -308,12 +310,14 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
       const saved = res.pdfSettings || res.settings || {};
       setSettings({
         ...DEFAULT_SHARED_SETTINGS,
+        watermark_text_line1: saved.watermark_text_line1 || platformName.toUpperCase(),
+        footer_left_text: saved.footer_left_text || platformName,
         ...saved,
         footer_enabled: saved.footer_enabled ?? saved.repeat_footer ?? true,
         watermark_enabled: saved.watermark_enabled ?? saved.show_watermark ?? true
       });
     } else {
-      setSettings(DEFAULT_SHARED_SETTINGS);
+      setSettings({ ...DEFAULT_SHARED_SETTINGS, watermark_text_line1: platformName.toUpperCase(), footer_left_text: platformName });
     }
     setLoading(false);
   };
@@ -339,8 +343,8 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
   };
 
   const handleRestoreDefault = () => {
-    setSettings(DEFAULT_SHARED_SETTINGS);
-    window.dispatchEvent(new CustomEvent('pharmdverse_branding_updated', { detail: DEFAULT_SHARED_SETTINGS }));
+    setSettings({ ...DEFAULT_SHARED_SETTINGS, watermark_text_line1: platformName.toUpperCase(), footer_left_text: platformName });
+    window.dispatchEvent(new CustomEvent('pharmdverse_branding_updated', { detail: { ...DEFAULT_SHARED_SETTINGS, watermark_text_line1: platformName.toUpperCase(), footer_left_text: platformName } }));
     showBrandNotify({
       type: 'success',
       message: '✓ Restored shared PDF & PPT format settings to default.'
