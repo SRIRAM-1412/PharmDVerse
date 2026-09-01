@@ -1,34 +1,32 @@
-import { useState, useCallback, useRef } from 'react';
+import { useCallback } from 'react';
+
+let lastMouseX = typeof window !== 'undefined' ? window.innerWidth / 2 : 0;
+let lastMouseY = 100;
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('click', (e) => {
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
+  }, true);
+}
 
 export const useInlineNotification = (defaultDuration = 4000) => {
-  const [notification, setNotification] = useState(null);
-  const timerRef = useRef(null);
-
   const showNotification = useCallback(({ type = 'info', message, duration = defaultDuration }) => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('pharmdverse_global_toast', {
+        detail: { type, message, duration, x: lastMouseX, y: lastMouseY }
+      }));
     }
-
-    setNotification({
-      type,
-      message,
-      id: Date.now()
-    });
-
-    timerRef.current = setTimeout(() => {
-      setNotification(null);
-    }, duration);
   }, [defaultDuration]);
 
   const clearNotification = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('pharmdverse_global_toast', { detail: null }));
     }
-    setNotification(null);
   }, []);
 
   return {
-    notification,
+    notification: null, 
     showNotification,
     clearNotification
   };

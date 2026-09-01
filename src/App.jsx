@@ -339,6 +339,7 @@ export default function App() {
 
   return (
     <ThemeProvider>
+      <GlobalToastRenderer />
       <PlatformProvider>
         <CollegeProvider>
         
