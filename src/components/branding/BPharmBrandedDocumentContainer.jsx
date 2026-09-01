@@ -45,7 +45,17 @@ export const BPharmBrandedDocumentContainer = ({
   const opacityPct = Math.max((branding?.watermark_opacity ?? 18) / 100, 0.16);
   const isDiagonal = branding?.watermark_position === 'Diagonal';
 
-  const footerLeft = branding?.footer_left_text || 'PharmDVerse';
+  let platformName = 'PharmDVerse';
+  try {
+    const cached = typeof window !== 'undefined' ? window.localStorage.getItem('pharmdverse_platform_settings_cache') : null;
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed.platform_name) platformName = parsed.platform_name.trim();
+    }
+  } catch (e) {}
+
+  let footerLeft = branding?.footer_left_text || 'PharmDVerse';
+  if (footerLeft === 'PharmDVerse') footerLeft = platformName;
   const footerCenter = branding?.footer_center_text || 'Confidential Clinical Documentation';
   const showPageNum = branding?.show_page_number ?? true;
   const showDateTime = branding?.show_generated_datetime ?? true;
@@ -342,7 +352,7 @@ export const BPharmBrandedDocumentContainer = ({
           {/* FOOTER */}
           {shouldShowDocumentFooter && (
             <div className="flex justify-between items-center pt-3 border-t text-[10px] font-mono" style={{ borderColor: borderCol, color: secondaryColor }}>
-              <span>{footerLeft} {showDateTime ? `• ${currentDateTimeStr}` : ''}</span>
+              <span>{footerLeft} {showDateTime ? ` | ${currentDateTimeStr}` : ''}</span>
               <span>{footerCenter}</span>
               <span>{showPageNum ? `Page ${pageNumber}` : ''}</span>
             </div>
