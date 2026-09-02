@@ -430,6 +430,10 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
                 {block.type === 'table' && (() => {
                   const cols = getTableColumns(block.content);
                   const rows = getTableDefaultRows(block);
+                  const graphPoints = rows.map(r => ({
+                    x: parseFloat(r[0]),
+                    y: parseFloat(r[1])
+                  })).filter(pt => !isNaN(pt.x) && !isNaN(pt.y)).sort((a, b) => a.x - b.x);
 
                   return (
                     <div className="space-y-4">
@@ -513,6 +517,29 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
                                   ))}
                                 </tbody>
                               </table>
+                            </div>
+                          )}
+
+                          {graphPoints.length > 0 && (
+                            <div className="mt-4 p-4 bg-white dark:bg-slate-950 rounded-xl border border-emerald-200 dark:border-emerald-900/50 shadow-xs">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <Activity className="w-4 h-4 text-emerald-600 animate-pulse" />
+                                  <span className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+                                    Live Graph Preview ({cols[0] || 'X'} vs {cols[1] || 'Y'})
+                                  </span>
+                                </div>
+                                <span className="text-[10px] font-bold text-slate-400">Updates live as you type numbers above</span>
+                              </div>
+                              <div className="h-44 w-full pt-2">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <LineChart data={graphPoints}>
+                                    <Line type="monotone" dataKey="y" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981' }} />
+                                    <CartesianGrid stroke="#ccc" strokeDasharray="5 5" opacity={0.2} />
+                                    <XAxis dataKey="x" tick={{ fontSize: 10 }} label={{ value: cols[0] || 'X', position: 'insideBottom', offset: -5, fontSize: 10 }} />
+                                  </LineChart>
+                                </ResponsiveContainer>
+                              </div>
                             </div>
                           )}
                         </div>
