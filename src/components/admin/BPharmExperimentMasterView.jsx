@@ -161,63 +161,100 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Lege
     return [{ id: 'track-1', title: 'Procedure Steps', steps: [] }];
   };
 
-const WYSIWYGTextEditor = ({ content, onChange }) => {
-  const editorRef = useRef(null);
+const PlainTextEditor = ({ content, onChange }) => {
+  const textareaRef = useRef(null);
 
-  const cleanRawTags = (textStr) => {
-    if (!textStr) return '';
-    return textStr.replace(/<[^>]+>/g, '').trim();
+  // Strip any leftover HTML code brackets from old saved text completely
+  const cleanText = (str) => {
+    if (!str) return '';
+    return str.replace(/<[^>]+>/g, '');
   };
 
-  useEffect(() => {
-    if (editorRef.current) {
-      const activeEl = document.activeElement;
-      if (activeEl !== editorRef.current) {
-        let raw = content || '';
-        // Strip raw HTML code tags if present
-        if (raw.includes('<b>') || raw.includes('<i>') || raw.includes('<sub>') || raw.includes('<sup>') || raw.includes('<h3>')) {
-          raw = cleanRawTags(raw);
+  const handleApplyFormat = (formatType) => {
+    const textarea = textareaRef.current;
+    let currentContent = cleanText(content || '');
+
+    if (textarea && textarea.selectionStart !== undefined && textarea.selectionEnd !== undefined) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selected = currentContent.substring(start, end);
+
+      if (selected.length > 0) {
+        let replacement = selected;
+        if (formatType === 'bold') {
+          replacement = selected.toUpperCase();
+        } else if (formatType === 'italic') {
+          replacement = `*${selected}*`;
+        } else if (formatType === 'heading') {
+          replacement = `\n\n${selected.toUpperCase()}:\n`;
+        } else if (formatType === 'bullet') {
+          replacement = selected.split('\n').map(l => l.startsWith('• ') ? l : `• ${l}`).join('\n');
+        } else if (formatType === 'number') {
+          replacement = selected.split('\n').map((l, i) => `${i + 1}. ${l.replace(/^\d+\.\s*/, '')}`).join('\n');
+        } else if (formatType === 'subscript') {
+          replacement = selected.replace(/2/g, '₂').replace(/3/g, '₃').replace(/4/g, '₄');
+        } else if (formatType === 'superscript') {
+          replacement = selected.replace(/2\+/g, '²⁺').replace(/2/g, '²').replace(/3\+/g, '³⁺');
         }
-        editorRef.current.innerHTML = raw;
+
+        const newText = currentContent.substring(0, start) + replacement + currentContent.substring(end);
+        onChange(newText);
+        setTimeout(() => {
+          if (textareaRef.current) {
+            textareaRef.current.focus();
+            textareaRef.current.setSelectionRange(start, start + replacement.length);
+          }
+        }, 50);
+        return;
       }
     }
-  }, [content]);
 
-  const handleInput = () => {
-    if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
+    // Default insertion if no text selected:
+    let newText = currentContent;
+    if (formatType === 'bold') {
+      newText += newText ? ' Bold Text' : 'Bold Text';
+    } else if (formatType === 'italic') {
+      newText += newText ? ' Italic Text' : 'Italic Text';
+    } else if (formatType === 'heading') {
+      newText += newText ? '\n\nSECTION HEADING:\n' : 'SECTION HEADING:\n';
+    } else if (formatType === 'bullet') {
+      newText += newText ? '\n• New Bullet Item' : '• New Bullet Item';
+    } else if (formatType === 'number') {
+      newText += newText ? '\n1. New List Item' : '1. New List Item';
+    } else if (formatType === 'subscript') {
+      newText += '₂';
+    } else if (formatType === 'superscript') {
+      newText += '²⁺';
     }
-  };
 
-  const handlePurgeTags = () => {
-    if (editorRef.current) {
-      const text = cleanRawTags(editorRef.current.innerText || editorRef.current.textContent);
-      editorRef.current.innerHTML = text;
-      onChange(text);
-    }
+    onChange(newText);
   };
 
   const handlePaste = (e) => {
     e.preventDefault();
-    const text = (e.clipboardData || window.clipboardData).getData('text/plain');
-    document.execCommand('insertText', false, text);
-    handleInput();
-  };
+    const pasted = (e.clipboardData || window.clipboardData).getData('text/plain') || '';
+    const cleaned = cleanText(pasted);
+    const textarea = textareaRef.current;
+    const current = cleanText(content || '');
 
-  const execCommand = (command, value = null) => {
-    document.execCommand(command, false, value);
-    if (editorRef.current) {
-      editorRef.current.focus();
-      onChange(editorRef.current.innerHTML);
+    if (textarea && textarea.selectionStart !== undefined) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const updated = current.substring(0, start) + cleaned + current.substring(end);
+      onChange(updated);
+    } else {
+      onChange(current ? `${current}\n\n${cleaned}` : cleaned);
     }
   };
+
+  const displayContent = cleanText(content || '');
 
   return (
     <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs bg-slate-50 dark:bg-slate-950">
       <div className="flex flex-wrap items-center gap-1.5 p-2.5 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-xs">
         <button
           type="button"
-          onMouseDown={(e) => { e.preventDefault(); execCommand('bold'); }}
+          onClick={() => handleApplyFormat('bold')}
           title="Bold"
           className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-black hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs cursor-pointer select-none"
         >
@@ -225,7 +262,7 @@ const WYSIWYGTextEditor = ({ content, onChange }) => {
         </button>
         <button
           type="button"
-          onMouseDown={(e) => { e.preventDefault(); execCommand('italic'); }}
+          onClick={() => handleApplyFormat('italic')}
           title="Italic"
           className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 italic font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs cursor-pointer select-none"
         >
@@ -233,7 +270,7 @@ const WYSIWYGTextEditor = ({ content, onChange }) => {
         </button>
         <button
           type="button"
-          onMouseDown={(e) => { e.preventDefault(); execCommand('formatBlock', '<h3>'); }}
+          onClick={() => handleApplyFormat('heading')}
           title="Heading"
           className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-black hover:bg-slate-50 text-indigo-600 dark:text-indigo-400 shadow-2xs cursor-pointer select-none"
         >
@@ -241,7 +278,7 @@ const WYSIWYGTextEditor = ({ content, onChange }) => {
         </button>
         <button
           type="button"
-          onMouseDown={(e) => { e.preventDefault(); execCommand('insertUnorderedList'); }}
+          onClick={() => handleApplyFormat('bullet')}
           title="Bullet List"
           className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs cursor-pointer select-none"
         >
@@ -249,7 +286,7 @@ const WYSIWYGTextEditor = ({ content, onChange }) => {
         </button>
         <button
           type="button"
-          onMouseDown={(e) => { e.preventDefault(); execCommand('insertOrderedList'); }}
+          onClick={() => handleApplyFormat('number')}
           title="Numbered List"
           className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs cursor-pointer select-none"
         >
@@ -257,7 +294,7 @@ const WYSIWYGTextEditor = ({ content, onChange }) => {
         </button>
         <button
           type="button"
-          onMouseDown={(e) => { e.preventDefault(); execCommand('subscript'); }}
+          onClick={() => handleApplyFormat('subscript')}
           title="Chemical Subscript"
           className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs cursor-pointer select-none"
         >
@@ -265,31 +302,22 @@ const WYSIWYGTextEditor = ({ content, onChange }) => {
         </button>
         <button
           type="button"
-          onMouseDown={(e) => { e.preventDefault(); execCommand('superscript'); }}
+          onClick={() => handleApplyFormat('superscript')}
           title="Chemical Superscript"
           className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs cursor-pointer select-none"
         >
           X²
         </button>
-
-        <button
-          type="button"
-          onClick={handlePurgeTags}
-          title="Clean & Purge All Raw HTML Tags"
-          className="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs ml-auto flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
-        >
-          🧹 Clean HTML Code Tags
-        </button>
       </div>
 
-      <div
-        ref={editorRef}
-        contentEditable={true}
-        onInput={handleInput}
-        onBlur={handleInput}
+      <textarea
+        ref={textareaRef}
+        value={displayContent}
+        onChange={(e) => onChange(cleanText(e.target.value))}
         onPaste={handlePaste}
-        className="w-full p-4 min-h-[140px] max-h-[400px] overflow-y-auto bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-medium text-sm focus:outline-none leading-relaxed"
-        style={{ outline: 'none' }}
+        placeholder="Enter text content here..."
+        rows={5}
+        className="w-full p-4 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-medium text-sm focus:outline-none leading-relaxed"
       />
     </div>
   );
@@ -864,7 +892,7 @@ ${cleaned}` : cleaned);
                 </div>
 
                 {block.type === 'text' && (
-                  <WYSIWYGTextEditor 
+                  <PlainTextEditor 
                     content={block.content}
                     onChange={(val) => updateBlock(block.id, 'content', val)}
                   />
