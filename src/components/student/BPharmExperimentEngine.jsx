@@ -88,8 +88,9 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
     return [{ id: 'track-1', title: 'Procedure Steps', steps: [] }];
   };
 
-export const BPharmExperimentEngine = ({ student, assignment, onBack }) => {
-  const { master, mode } = assignment;
+export const BPharmExperimentEngine = ({ student = {}, assignment = {}, onBack }) => {
+  const master = assignment?.master || {};
+  const mode = assignment?.mode || 'learning';
   const blocks = master?.experiment_content || [];
   
   const [tableData, setTableData] = useState({});
