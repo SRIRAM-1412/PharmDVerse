@@ -5,7 +5,7 @@ import { PreceptorReviewCaseView } from './PreceptorReviewCaseView';
 import { OfficialClinicalCasePDFModal } from '../modals/OfficialClinicalCasePDFModal';
 import { ModalWrapper } from '../modals/ModalWrapper';
 
-export const PharmacologyPracticalReviewView = ({ preceptor, initialFilter = 'All', targetCaseId = null, onClearTargetCase }) => {
+export const PharmacologyPracticalReviewView = ({ preceptor, initialFilter = 'All', targetCaseId = null, onClearTargetCase, isExpired }) => {
   const [cases, setCases] = useState([]);
   const [moduleStatuses, setModuleStatuses] = useState({});
   const [loading, setLoading] = useState(true);
@@ -84,6 +84,7 @@ export const PharmacologyPracticalReviewView = ({ preceptor, initialFilter = 'Al
           if (onClearTargetCase) onClearTargetCase();
           loadCases();
         }}
+        isExpired={isExpired}
       />
     );
   }

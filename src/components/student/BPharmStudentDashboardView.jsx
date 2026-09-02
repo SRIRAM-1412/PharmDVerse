@@ -3,7 +3,7 @@ import { UserCheck, Stethoscope, ArrowRight, ShieldCheck, FolderKanban, FileEdit
 import { fetchStudentAssignedPreceptorFromSupabase, fetchStudentCasesFromSupabase } from '../../services/supabaseService';
 import { WorkflowReferencePanel } from '../common/WorkflowReferencePanel';
 
-export const BPharmStudentDashboardView = ({ student, onNavigate }) => {
+export const BPharmStudentDashboardView = ({ student, onNavigate, isExpired }) => {
   const [assignedPreceptor, setAssignedPreceptor] = useState(null);
   const [loadingPreceptor, setLoadingPreceptor] = useState(true);
 
@@ -285,8 +285,8 @@ export const BPharmStudentDashboardView = ({ student, onNavigate }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {/* General Pharma */}
           <div
-            onClick={() => onNavigate('general-pharma')}
-            className="p-6 rounded-3xl bg-gradient-to-br from-indigo-50/50 to-white dark:from-indigo-950/20 dark:to-slate-900 border border-indigo-100 dark:border-indigo-900/50 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between group"
+            onClick={() => !isExpired && onNavigate('general-pharma')}
+            className={`p-6 rounded-3xl bg-gradient-to-br from-indigo-50/50 to-white dark:from-indigo-950/20 dark:to-slate-900 border border-indigo-100 dark:border-indigo-900/50 shadow-sm flex flex-col justify-between group ${isExpired ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:shadow-lg transition-all duration-300 cursor-pointer'}`}
           >
             <div>
               <div className="flex items-center justify-between">
@@ -305,8 +305,8 @@ export const BPharmStudentDashboardView = ({ student, onNavigate }) => {
 
           {/* Systemic Pharma 1 */}
           <div
-            onClick={() => onNavigate('systemic-pharma-1')}
-            className="p-6 rounded-3xl bg-gradient-to-br from-purple-50/50 to-white dark:from-purple-950/20 dark:to-slate-900 border border-purple-100 dark:border-purple-900/50 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between group"
+            onClick={() => !isExpired && onNavigate('systemic-pharma-1')}
+            className={`p-6 rounded-3xl bg-gradient-to-br from-purple-50/50 to-white dark:from-purple-950/20 dark:to-slate-900 border border-purple-100 dark:border-purple-900/50 shadow-sm flex flex-col justify-between group ${isExpired ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:shadow-lg transition-all duration-300 cursor-pointer'}`}
           >
             <div>
               <div className="flex items-center justify-between">
@@ -325,8 +325,8 @@ export const BPharmStudentDashboardView = ({ student, onNavigate }) => {
 
           {/* Systemic Pharma 2 */}
           <div
-            onClick={() => onNavigate('systemic-pharma-2')}
-            className="p-6 rounded-3xl bg-gradient-to-br from-blue-50/50 to-white dark:from-blue-950/20 dark:to-slate-900 border border-blue-100 dark:border-blue-900/50 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between group"
+            onClick={() => !isExpired && onNavigate('systemic-pharma-2')}
+            className={`p-6 rounded-3xl bg-gradient-to-br from-blue-50/50 to-white dark:from-blue-950/20 dark:to-slate-900 border border-blue-100 dark:border-blue-900/50 shadow-sm flex flex-col justify-between group ${isExpired ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:shadow-lg transition-all duration-300 cursor-pointer'}`}
           >
             <div>
               <div className="flex items-center justify-between">

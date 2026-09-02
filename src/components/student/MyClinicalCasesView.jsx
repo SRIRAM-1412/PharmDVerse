@@ -6,7 +6,7 @@ import { InlineActionNotification } from '../common/InlineActionNotification';
 import { useInlineNotification } from '../../hooks/useInlineNotification';
 import { OfficialClinicalCasePDFModal } from '../modals/OfficialClinicalCasePDFModal';
 
-export const MyClinicalCasesView = ({ student, initialFilter = 'All', targetCaseId = null, onClearTargetCase, onAddNew, onOpenPatientProfile, onOpenPatientCounselling, onOpenPharmacistIntervention, onOpenDrugInformationRequest, onOpenADRDocumentation }) => {
+export const MyClinicalCasesView = ({ student, initialFilter = 'All', targetCaseId = null, onClearTargetCase, onAddNew, onOpenPatientProfile, onOpenPatientCounselling, onOpenPharmacistIntervention, onOpenDrugInformationRequest, onOpenADRDocumentation, isExpired }) => {
   const [cases, setCases] = useState([]);
   const [moduleStatuses, setModuleStatuses] = useState({});
   const [loading, setLoading] = useState(true);
@@ -287,9 +287,10 @@ export const MyClinicalCasesView = ({ student, initialFilter = 'All', targetCase
 
         <button
           onClick={onAddNew}
-          className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all transform hover:-translate-y-0.5"
+          disabled={isExpired}
+          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold shadow-xs hover:shadow-md transition-all ${isExpired ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'}`}
         >
-          <Plus className="w-4 h-4 stroke-[3]" />
+          <FilePlus2 className="w-4 h-4" />
           <span>Add New Case</span>
         </button>
       </div>

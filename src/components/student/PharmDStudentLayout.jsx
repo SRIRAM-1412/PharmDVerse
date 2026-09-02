@@ -22,6 +22,8 @@ import { useWorkspaceHistory } from '../../hooks/useWorkspaceHistory';
 import { usePlatform } from '../../context/PlatformContext';
 
 import { fetchUnreadNotificationsCountFromSupabase } from '../../services/supabaseService';
+import { useCollegeSubscription } from '../../hooks/useCollegeSubscription';
+import { ExpiredSubscriptionBanner } from '../common/ExpiredSubscriptionBanner';
 
 export const PharmDStudentLayout = ({ student, onLogout }) => {
   const { isDark, toggleTheme } = useTheme();
@@ -37,6 +39,8 @@ export const PharmDStudentLayout = ({ student, onLogout }) => {
   const [forcePasswordReset, setForcePasswordReset] = useState(student?.force_password_reset || false);
   const [showLogoModal, setShowLogoModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  
+  const { isExpired } = useCollegeSubscription(student?.college_id);
 
   // Body scroll lock effect when mobile sidebar drawer is open
   useEffect(() => {
@@ -382,7 +386,9 @@ export const PharmDStudentLayout = ({ student, onLogout }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 font-sans flex transition-colors duration-300">
+    <div className="flex flex-col min-h-screen">
+      <ExpiredSubscriptionBanner forceShow={isExpired} customMessage="Your college subscription has expired. Please contact your college administration. (Read-Only Mode)" />
+      <div className="flex-1 bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 font-sans flex transition-colors duration-300">
       
       {/* 1A. DESKTOP SIDEBAR */}
       <aside className={`hidden lg:flex fixed top-0 left-0 bottom-0 z-40 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 transition-all duration-300 flex-col justify-between ${
@@ -485,7 +491,7 @@ export const PharmDStudentLayout = ({ student, onLogout }) => {
           )}
 
           {activeTab === 'dashboard' && (
-            <PharmDStudentDashboardView student={student} onNavigate={handleNavigate} />
+            <PharmDStudentDashboardView student={student} onNavigate={handleNavigate} isExpired={isExpired} />
           )}
 
           {activeTab === 'add-new-case' && (
@@ -493,6 +499,7 @@ export const PharmDStudentLayout = ({ student, onLogout }) => {
               student={student}
               onCancel={() => handleNavigate('my-cases')}
               onSuccess={() => handleNavigate('my-cases')}
+              isExpired={isExpired}
             />
           )}
 
@@ -508,6 +515,7 @@ export const PharmDStudentLayout = ({ student, onLogout }) => {
               onOpenPharmacistIntervention={handleOpenPharmacistIntervention}
               onOpenDrugInformationRequest={handleOpenDrugInformationRequest}
               onOpenADRDocumentation={handleOpenADRDocumentation}
+              isExpired={isExpired}
             />
           )}
 
@@ -615,6 +623,7 @@ export const PharmDStudentLayout = ({ student, onLogout }) => {
 
       <LogoPreviewModal isOpen={showLogoModal} onClose={() => setShowLogoModal(false)} />
 
+    </div>
     </div>
   );
 };

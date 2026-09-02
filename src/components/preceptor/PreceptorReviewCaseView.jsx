@@ -11,7 +11,7 @@ import { useInlineNotification } from '../../hooks/useInlineNotification';
 import { OfficialClinicalCasePDFModal } from '../modals/OfficialClinicalCasePDFModal';
 import { FileCheck2 } from 'lucide-react';
 
-export const PreceptorReviewCaseView = ({ clinicalCase, student, preceptor, onBack, onReviewComplete, readOnly = false }) => {
+export const PreceptorReviewCaseView = ({ clinicalCase, student, preceptor, onBack, onReviewComplete, readOnly = false, isExpired }) => {
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'counselling' | 'intervention' | 'dir' | 'adr'
   const [submitting, setSubmitting] = useState(false);
   const [modStatus, setModStatus] = useState({});
@@ -529,9 +529,11 @@ export const PreceptorReviewCaseView = ({ clinicalCase, student, preceptor, onBa
             <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4 border-t border-slate-800">
               <button
                 type="button"
-                disabled={submitting}
+                disabled={submitting || isExpired}
                 onClick={handleReturnCase}
-                className="w-full sm:w-auto h-[48px] px-6 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold flex items-center justify-center gap-2 shadow-md shadow-rose-600/20 transition-all disabled:opacity-50"
+                className={`w-full sm:w-auto h-[48px] px-6 rounded-2xl text-xs font-extrabold flex items-center justify-center gap-2 shadow-md transition-all ${
+                  isExpired || submitting ? 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-50' : 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20'
+                }`}
               >
                 <RotateCcw className="w-4 h-4" />
                 <span>Return Clinical Case</span>
@@ -539,9 +541,11 @@ export const PreceptorReviewCaseView = ({ clinicalCase, student, preceptor, onBa
 
               <button
                 type="button"
-                disabled={submitting}
+                disabled={submitting || isExpired}
                 onClick={handleApproveCase}
-                className="w-full sm:w-auto h-[48px] px-8 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition-all disabled:opacity-50"
+                className={`w-full sm:w-auto h-[48px] px-8 rounded-2xl text-xs font-extrabold flex items-center justify-center gap-2 shadow-md transition-all ${
+                  isExpired || submitting ? 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-50' : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
+                }`}
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Approve Clinical Case</span>
