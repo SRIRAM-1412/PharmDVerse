@@ -8,12 +8,19 @@ if (typeof window !== 'undefined') {
   window.addEventListener('error', (event) => {
     console.error('[Global Error Caught]:', event.error || event.message);
     const root = document.getElementById('root');
+    // If chunk failed to fetch or root is unmounted, auto-reload without stale params
+    if (event.message && (event.message.includes('dynamically imported module') || event.message.includes('Loading chunk'))) {
+      const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+      window.location.href = cleanUrl;
+      return;
+    }
     if (root && (!root.children || root.children.length === 0)) {
-      root.innerHTML = `<div style="padding:30px;background:#0f172a;color:#f87171;font-family:monospace;min-height:100vh;">
-        <h2 style="color:#ef4444;margin-top:0;">⚠️ Runtime Render Exception:</h2>
-        <p style="color:#fca5a5;">${event.message}</p>
-        <pre style="background:#1e293b;padding:15px;border-radius:8px;overflow:auto;color:#cbd5e1;">${event.error?.stack || event.filename + ':' + event.lineno}</pre>
-        <button onclick="localStorage.clear();sessionStorage.clear();window.location.reload();" style="background:#10b981;color:white;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;margin-top:15px;">Clear Cache & Reload App</button>
+      root.innerHTML = `<div style="padding:30px;background:#0f172a;color:#f87171;font-family:sans-serif;min-height:100vh;display:flex;flex-col;align-items:center;justify-content:center;text-align:center;">
+        <div style="max-width:500px;background:#1e293b;padding:30px;border-radius:16px;border:1px solid #334155;">
+          <h2 style="color:#ef4444;margin-top:0;font-size:20px;">⚠️ App Update Detected</h2>
+          <p style="color:#cbd5e1;font-size:14px;line-height:1.6;">A new platform update was deployed. Click below to refresh your session.</p>
+          <button onclick="localStorage.clear();sessionStorage.clear();window.location.href=window.location.protocol+'//'+window.location.host+window.location.pathname;" style="background:#10b981;color:white;border:none;padding:12px 24px;border-radius:10px;cursor:pointer;font-weight:bold;margin-top:15px;font-size:14px;">Reload Fresh App</button>
+        </div>
       </div>`;
     }
   });
