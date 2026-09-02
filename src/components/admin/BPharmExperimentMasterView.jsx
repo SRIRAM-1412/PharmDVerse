@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Eye, Power, Trash2, AlignLeft, Image as ImageIcon, Table, ChevronUp, ChevronDown, Save, X, FlaskConical, Activity, Code } from 'lucide-react';
+import { Plus, Edit, Eye, Power, Trash2, AlignLeft, Image as ImageIcon, Table, ChevronUp, ChevronDown, Save, X, FlaskConical, Activity, Code, GitCommit, ListOrdered, CheckCircle2, ArrowDown } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useInlineNotification } from '../../hooks/useInlineNotification';
 
@@ -10,6 +10,61 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
   const [previewExp, setPreviewExp] = useState(null); // State for Preview Mode
   
   const { notification, showNotification, clearNotification } = useInlineNotification();
+
+  
+  // Word Paste Sanitizer
+  const handleTextPaste = (e, blockId) => {
+    const clipboardData = e.clipboardData || window.clipboardData;
+    if (!clipboardData) return;
+
+    const html = clipboardData.getData('text/html');
+    const plainText = clipboardData.getData('text/plain');
+
+    let cleaned = '';
+
+    if (html) {
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        doc.querySelectorAll('script, style, meta, xml').forEach(el => el.remove());
+
+        const lines = [];
+        doc.body.childNodes.forEach(node => {
+          let text = node.textContent ? node.textContent.trim() : '';
+          if (!text) return;
+          lines.push(text);
+        });
+
+        cleaned = lines.join('\n\n').replace(/\n{3,}/g, '\n\n');
+      } catch (err) {
+        cleaned = plainText;
+      }
+    }
+
+    if (!cleaned && plainText) {
+      cleaned = plainText;
+    }
+
+    if (cleaned) {
+      e.preventDefault();
+      const currentText = blocks.find(b => b.id === blockId)?.content || '';
+      updateBlock(blockId, 'content', currentText ? `${currentText}\n\n${cleaned}` : cleaned);
+    }
+  };
+
+  // Convert Text block list to Flowchart steps
+  const convertTextToFlowchart = (textBlockContent) => {
+    if (!textBlockContent || typeof textBlockContent !== 'string') return [];
+    const lines = textBlockContent.split('\n').map(l => l.trim()).filter(Boolean);
+    return lines.map((line, idx) => {
+      const cleanStep = line.replace(/^[0-9]+[.\)]\s*/, '').replace(/^[-•*]\s*/, '');
+      return {
+        id: (Date.now() + idx).toString(),
+        step: `Step ${idx + 1}`,
+        detail: cleanStep
+      };
+    });
+  };
 
   // Builder State
   const [editingId, setEditingId] = useState(null);
@@ -45,6 +100,7 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
     let content = '';
     if (type === 'table') content = [];
     if (type === 'graph') content = { xAxis: '', yAxis: '' };
+    if (type === 'flowchart') content = [{ id: Date.now().toString(), step: 'Step 1', detail: 'Procedure detail...' }];
     
     const newBlock = {
       id: Date.now().toString(),
@@ -230,6 +286,27 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
                 </div>
               )}
 
+              
+              {block.type === 'flowchart' && (
+                <div className="flex flex-col items-center justify-center max-w-2xl mx-auto py-4 space-y-3">
+                  {Array.isArray(block.content) && block.content.map((stepItem, sIdx) => (
+                    <React.Fragment key={stepItem.id || sIdx}>
+                      <div className="w-full bg-slate-50 dark:bg-slate-900 border-2 border-indigo-200 dark:border-indigo-950 p-4 rounded-2xl shadow-xs text-center relative hover:border-indigo-400 transition-all">
+                        <span className="px-3 py-0.5 rounded-full bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider mb-1 inline-block">
+                          {stepItem.step || `Step ${sIdx + 1}`}
+                        </span>
+                        <p className="text-slate-800 dark:text-white font-bold text-sm leading-relaxed">
+                          {stepItem.detail || stepItem.title || 'Step description'}
+                        </p>
+                      </div>
+                      {sIdx < block.content.length - 1 && (
+                        <ArrowDown className="w-5 h-5 text-indigo-500 animate-bounce my-1" />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+              )}
+
               {block.type === 'code' && (
                 <div className="h-64 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-900 flex items-center justify-center text-slate-400 font-mono text-sm">
                    [ Interactive Simulation / Custom Code Rendered Here ]
@@ -307,6 +384,7 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
                       {block.type === 'table' && <><Table className="w-3 h-3"/> Table Block</>}
                       {block.type === 'graph' && <><Activity className="w-3 h-3"/> Graph Config</>}
                       {block.type === 'code' && <><Code className="w-3 h-3"/> Custom Embed</>}
+                      {block.type === 'flowchart' && <><GitCommit className="w-3 h-3"/> Procedure Flowchart</>}
                     </span>
                   </div>
                   <div className="flex items-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
@@ -320,7 +398,8 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
                   <textarea 
                     value={block.content}
                     onChange={(e) => updateBlock(block.id, 'content', e.target.value)}
-                    placeholder="Enter text content here..."
+                    onPaste={(e) => handleTextPaste(e, block.id)}
+                    placeholder="Enter text content here (Word paste auto-cleaned)..."
                     rows={4}
                     className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-medium"
                   />
@@ -398,6 +477,9 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
           </button>
           <button onClick={() => addBlock('graph')} className="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-md font-bold text-sm transition-all flex items-center gap-2">
             <Activity className="w-4 h-4" /> Graph Config
+          </button>
+          <button onClick={() => addBlock('flowchart')} className="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-indigo-400 hover:shadow-md font-bold text-sm transition-all flex items-center gap-2">
+            <GitCommit className="w-4 h-4 text-indigo-600" /> Procedure Flowchart
           </button>
           <button onClick={() => addBlock('code')} className="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-amber-400 hover:shadow-md font-bold text-sm transition-all flex items-center gap-2">
             <Code className="w-4 h-4" /> Code Embed
