@@ -213,6 +213,7 @@ graph TD
 
 ## 8. LIVING DEPLOYMENT LEDGER
 
+* **2026-09-02 (Build 2.1.1):** Upgraded `handleTextPaste` MS Word paste sanitizer (`sanitizeWordText`) to strip `StartFragment`, `EndFragment`, HTML comments, and Word conditional XML markers automatically upon paste.
 * **2026-09-02 (Build 2.1.0):** Added `experiment_number` column to `bpharm_master_experiments` and `bpharm_student_records` in Supabase DB via DDL, and added `Exp No.` input field in Master Builder UI and badge display across views.
 * **2026-09-02 (Build 2.0.9):** Fixed graph axis display labels (`X-Axis` and vertical `Y-Axis`), moved Legend to top to eliminate overlap with bottom ticks, and enabled multi-curve graph rendering across Saved Experiment Preview and Student Learning Mode views.
 * **2026-09-02 (Build 2.0.8):** Deployed Explicit Dropdown Axis Selectors & Custom Curve Mapping Options in B.Pharm Master Experiment Builder (allows Super Admin to map X & Y columns for each drug curve via dropdown menus).
@@ -224,6 +225,7 @@ graph TD
 * **2026-09-02 (Build 2.0.2):** Deployed MS Word Paste Auto-Cleaner (`handleTextPaste`) across all Text blocks in the Master Experiment Builder to preserve headings, bold labels (`Meaning:`, `Use:`), bullet lists, and paragraph line breaks.
 * **2026-09-02 (Build 2.0.1):** Configured full Row-Level Security (RLS) policies across all B.Pharm tables (`bpharm_master_experiments`, `bpharm_assignments`, `bpharm_student_records`, `bpharm_branding_settings`).
 * **2026-09-02 (Build 2.0.0):** Renamed global platform branding to **PHARM.D & B.PHARM NEXUS**. Deployed B.Pharm Student & Pharmacology Preceptor portals. Implemented zero-grace-period global Read-Only Soft-Lock mode.
+
 
 
 

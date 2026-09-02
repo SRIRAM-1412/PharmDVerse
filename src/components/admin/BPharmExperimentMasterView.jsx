@@ -115,7 +115,19 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
   const { notification, showNotification, clearNotification } = useInlineNotification();
 
   
-  // Word Paste Sanitizer
+  // Word Paste Sanitizer (Strips StartFragment, EndFragment, XML bloat, and Word Comments)
+  const sanitizeWordText = (textStr) => {
+    if (!textStr) return '';
+    return textStr
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/<!\[[\s\S]*?\]>/g, '')
+      .replace(/\[if[\s\S]*?endif\]/gi, '')
+      .replace(/StartFragment/gi, '')
+      .replace(/EndFragment/gi, '')
+      .replace(/^\s+|\s+$/g, '')
+      .replace(/\n{3,}/g, '\n\n');
+  };
+
   const handleTextPaste = (e, blockId) => {
     const clipboardData = e.clipboardData || window.clipboardData;
     if (!clipboardData) return;
@@ -138,9 +150,9 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
           lines.push(text);
         });
 
-        cleaned = lines.join('\n\n').replace(/\n{3,}/g, '\n\n');
+        cleaned = lines.join('\n\n');
       } catch (err) {
-        cleaned = plainText;
+        cleaned = plainText || '';
       }
     }
 
@@ -148,10 +160,14 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
       cleaned = plainText;
     }
 
+    cleaned = sanitizeWordText(cleaned);
+
     if (cleaned) {
       e.preventDefault();
       const currentText = blocks.find(b => b.id === blockId)?.content || '';
-      updateBlock(blockId, 'content', currentText ? `${currentText}\n\n${cleaned}` : cleaned);
+      updateBlock(blockId, 'content', currentText ? `${currentText}
+
+${cleaned}` : cleaned);
     }
   };
 
