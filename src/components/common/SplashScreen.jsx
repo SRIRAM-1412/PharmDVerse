@@ -3,7 +3,7 @@ import { usePlatform } from '../../context/PlatformContext';
 import { ShieldCheck } from 'lucide-react';
 
 export const SplashScreen = ({ onComplete }) => {
-  const { platformSettings } = usePlatform();
+  const { platformSettings = {} } = usePlatform() || {};
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [progress, setProgress] = useState(0);
 

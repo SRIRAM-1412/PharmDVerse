@@ -4,9 +4,9 @@ import { usePlatform } from '../context/PlatformContext';
 import { ShieldCheck, Check, CheckCircle2, MapPin, ExternalLink, Grid, Building2, ArrowRight } from 'lucide-react';
 
 export const Hero = ({ onOpenPortal, onOpenAllColleges, onOpenRegisterModal }) => {
-  const { activeColleges } = useColleges();
-  const { platformSettings } = usePlatform();
-  const featuredColleges = activeColleges.slice(0, 4);
+  const { activeColleges = [] } = useColleges() || {};
+  const { platformSettings = {} } = usePlatform() || {};
+  const featuredColleges = Array.isArray(activeColleges) ? activeColleges.slice(0, 4) : [];
 
   const platformName = platformSettings?.platform_name || 'PharmDVerse';
   const tagline = platformSettings?.tagline || 'Clinical Case & Practical Record Platform';

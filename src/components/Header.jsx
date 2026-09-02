@@ -5,8 +5,8 @@ import { Sun, Moon, Menu, X } from 'lucide-react';
 import { LogoPreviewModal } from './modals/LogoPreviewModal';
 
 export const Header = ({ onOpenPricing, onOpenContact }) => {
-  const { isDark, toggleTheme } = useTheme();
-  const { platformSettings } = usePlatform();
+  const { isDark, toggleTheme } = useTheme() || {};
+  const { platformSettings = {} } = usePlatform() || {};
   const [scrolled, setScrolled] = useState(false);
   const [showLogoModal, setShowLogoModal] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
