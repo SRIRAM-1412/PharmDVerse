@@ -161,6 +161,105 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Lege
     return [{ id: 'track-1', title: 'Procedure Steps', steps: [] }];
   };
 
+const WYSIWYGTextEditor = ({ content, onChange }) => {
+  const editorRef = useRef(null);
+
+  useEffect(() => {
+    if (editorRef.current) {
+      const activeEl = document.activeElement;
+      if (activeEl !== editorRef.current && editorRef.current.innerHTML !== (content || '')) {
+        editorRef.current.innerHTML = content || '';
+      }
+    }
+  }, [content]);
+
+  const handleInput = () => {
+    if (editorRef.current) {
+      onChange(editorRef.current.innerHTML);
+    }
+  };
+
+  const execCommand = (command, value = null) => {
+    document.execCommand(command, false, value);
+    if (editorRef.current) {
+      editorRef.current.focus();
+      onChange(editorRef.current.innerHTML);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs bg-slate-50 dark:bg-slate-950">
+      <div className="flex flex-wrap items-center gap-1.5 p-2.5 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-xs">
+        <button
+          type="button"
+          onMouseDown={(e) => { e.preventDefault(); execCommand('bold'); }}
+          title="Bold"
+          className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-black hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs cursor-pointer select-none"
+        >
+          B
+        </button>
+        <button
+          type="button"
+          onMouseDown={(e) => { e.preventDefault(); execCommand('italic'); }}
+          title="Italic"
+          className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 italic font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs cursor-pointer select-none"
+        >
+          I
+        </button>
+        <button
+          type="button"
+          onMouseDown={(e) => { e.preventDefault(); execCommand('formatBlock', '<h3>'); }}
+          title="Heading"
+          className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-black hover:bg-slate-50 text-indigo-600 dark:text-indigo-400 shadow-2xs cursor-pointer select-none"
+        >
+          H
+        </button>
+        <button
+          type="button"
+          onMouseDown={(e) => { e.preventDefault(); execCommand('insertUnorderedList'); }}
+          title="Bullet List"
+          className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs cursor-pointer select-none"
+        >
+          • List
+        </button>
+        <button
+          type="button"
+          onMouseDown={(e) => { e.preventDefault(); execCommand('insertOrderedList'); }}
+          title="Numbered List"
+          className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs cursor-pointer select-none"
+        >
+          1. List
+        </button>
+        <button
+          type="button"
+          onMouseDown={(e) => { e.preventDefault(); execCommand('subscript'); }}
+          title="Chemical Subscript"
+          className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs cursor-pointer select-none"
+        >
+          X₂
+        </button>
+        <button
+          type="button"
+          onMouseDown={(e) => { e.preventDefault(); execCommand('superscript'); }}
+          title="Chemical Superscript"
+          className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs cursor-pointer select-none"
+        >
+          X²
+        </button>
+      </div>
+
+      <div
+        ref={editorRef}
+        contentEditable={true}
+        onInput={handleInput}
+        onBlur={handleInput}
+        className="w-full p-4 min-h-[140px] max-h-[400px] overflow-y-auto bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-medium text-sm focus:outline-none leading-relaxed"
+        style={{ outline: 'none' }}
+      />
+    </div>
+  );
+};
+
 export const BPharmExperimentMasterView = ({ subjectName }) => {
   const [experiments, setExperiments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -730,27 +829,10 @@ ${cleaned}` : cleaned);
                 </div>
 
                 {block.type === 'text' && (
-                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
-                    <div className="flex flex-wrap items-center gap-1.5 p-2.5 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-xs">
-                      <button type="button" onClick={() => applyFormatting(block.id, 'bold')} title="Bold" className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-black hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs">B</button>
-                      <button type="button" onClick={() => applyFormatting(block.id, 'italic')} title="Italic" className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 italic font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs">I</button>
-                      <button type="button" onClick={() => applyFormatting(block.id, 'heading')} title="Heading" className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-black hover:bg-slate-50 text-indigo-600 dark:text-indigo-400 shadow-2xs">H</button>
-                      <button type="button" onClick={() => applyFormatting(block.id, 'bullet')} title="Bullet List" className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs">• List</button>
-                      <button type="button" onClick={() => applyFormatting(block.id, 'number')} title="Numbered List" className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs">1. List</button>
-                      <button type="button" onClick={() => applyFormatting(block.id, 'subscript')} title="Chemical Subscript" className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs">X₂</button>
-                      <button type="button" onClick={() => applyFormatting(block.id, 'superscript')} title="Chemical Superscript" className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs">X²</button>
-                    </div>
-
-                    <textarea 
-                      ref={(el) => (editorRefs.current[block.id] = el)}
-                      value={block.content}
-                      onChange={(e) => updateBlock(block.id, 'content', e.target.value)}
-                      onPaste={(e) => handleTextPaste(e, block.id)}
-                      placeholder="Select any text & tap B, I, H, X₂, X² to format highlighted text (just like MS Word)..."
-                      rows={5}
-                      className="w-full p-4 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-medium text-sm focus:outline-none"
-                    />
-                  </div>
+                  <WYSIWYGTextEditor 
+                    content={block.content}
+                    onChange={(val) => updateBlock(block.id, 'content', val)}
+                  />
                 )}
                 
                 {block.type === 'media' && (
