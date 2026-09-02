@@ -6,7 +6,7 @@ export const LogoPreviewModal = ({ isOpen, onClose }) => {
   const { platformSettings } = usePlatform();
   const platformName = platformSettings?.platform_name || 'PharmDVerse';
   const logoUrl = platformSettings?.logo_url || '/pharmdverse-logo.png';
-  const tagline = platformSettings?.platform_tagline || 'Clinical Documentation Platform';
+  const tagline = platformSettings?.tagline || 'Clinical Documentation Platform';
   return (
     <ModalWrapper
       isOpen={isOpen}
@@ -42,11 +42,7 @@ export const LogoPreviewModal = ({ isOpen, onClose }) => {
           <p className="text-xs font-bold text-slate-600">
             {tagline}
           </p>
-          <div className="pt-2">
-            <span className="inline-block px-3.5 py-1 rounded-full bg-slate-100 text-slate-600 text-[11px] font-mono font-bold border border-slate-200">
-              Version: Current Production Release
-            </span>
-          </div>
+          
         </div>
       </div>
     </ModalWrapper>
