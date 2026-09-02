@@ -496,13 +496,13 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
                           </div>
                         </div>
 
-                        <label className="block text-xs font-bold text-slate-500 mb-1">Table Columns (Comma Separated)</label>
+<label className="block text-xs font-bold text-slate-500 mb-1">Table Columns (Comma Separated)</label>
                         <input 
                           type="text" 
                           value={Array.isArray(block.content) ? block.content.join(', ') : (block.content || '')}
-                          onChange={(e) => updateBlock(block.id, 'content', e.target.value.split(',').map(s => s.trim()))}
-                          placeholder="Enter column names (e.g., DOSE, RESPONSE)"
-                          className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold"
+                          onChange={(e) => updateBlock(block.id, 'content', e.target.value)}
+                          placeholder="Enter column names (e.g., DOSE, RESPONSE, INFERENCE)"
+                          className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold focus:ring-2 focus:ring-emerald-500 outline-none"
                         />
                       </div>
 
@@ -510,18 +510,30 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
                         <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                              Pre-Load Learning Mode Data (Reference Rows)
+                              Pre-Load Learning Mode Data (Reference Rows & Column Edit)
                             </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const newRows = [...rows, Array(cols.length).fill('')];
-                                updateBlock(block.id, 'defaultRows', newRows);
-                              }}
-                              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 transition-all"
-                            >
-                              <Plus className="w-3.5 h-3.5" /> Add Reference Row
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updatedCols = [...cols, `Col ${cols.length + 1}`].join(', ');
+                                  updateBlock(block.id, 'content', updatedCols);
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 text-xs font-bold hover:bg-indigo-100 flex items-center gap-1 transition-all"
+                              >
+                                <Plus className="w-3.5 h-3.5" /> Add Column
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newRows = [...rows, Array(cols.length).fill('')];
+                                  updateBlock(block.id, 'defaultRows', newRows);
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 transition-all shadow-xs"
+                              >
+                                <Plus className="w-3.5 h-3.5" /> Add Reference Row
+                              </button>
+                            </div>
                           </div>
 
                           {rows.length === 0 ? (
@@ -532,7 +544,34 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
                                 <thead className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
                                   <tr>
                                     {cols.map((col, cIdx) => (
-                                      <th key={cIdx} className="px-3 py-2 text-xs font-black text-slate-700 dark:text-slate-300">{col || `Col ${cIdx+1}`}</th>
+                                      <th key={cIdx} className="p-2">
+                                        <div className="flex items-center gap-1">
+                                          <input
+                                            type="text"
+                                            value={col}
+                                            onChange={(e) => {
+                                              const updatedCols = [...cols];
+                                              updatedCols[cIdx] = e.target.value;
+                                              updateBlock(block.id, 'content', updatedCols.join(', '));
+                                            }}
+                                            className="w-full p-1.5 text-xs font-black bg-white dark:bg-slate-950 rounded border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white"
+                                            placeholder={`Col ${cIdx + 1}`}
+                                          />
+                                          {cols.length > 1 && (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const updatedCols = cols.filter((_, idx) => idx !== cIdx);
+                                                updateBlock(block.id, 'content', updatedCols.join(', '));
+                                              }}
+                                              title="Delete Column"
+                                              className="text-rose-400 hover:text-rose-600 p-1"
+                                            >
+                                              ✕
+                                            </button>
+                                          )}
+                                        </div>
+                                      </th>
                                     ))}
                                     <th className="px-3 py-2 w-10"></th>
                                   </tr>
