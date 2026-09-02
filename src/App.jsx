@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { GlobalToastRenderer } from './components/common/GlobalToastRenderer';
+import { SplashScreen } from './components/common/SplashScreen';
 import { CollegeProvider } from './context/CollegeContext';
 import { PlatformProvider } from './context/PlatformContext';
 import { Header } from './components/Header';
@@ -39,6 +40,7 @@ import { StudentLoginModal } from './components/modals/StudentLoginModal';
 import { InfoModal } from './components/modals/InfoModal';
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
   const [viewMode, setViewMode] = useState('landing'); // 'landing' | 'admin' | 'college_portal' | 'college_admin' | 'preceptor_portal' | 'student_portal'
   
   const [pricingOpen, setPricingOpen] = useState(false);
@@ -342,6 +344,8 @@ export default function App() {
     <ThemeProvider>
       <GlobalToastRenderer />
       <PlatformProvider>
+          {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+
         <CollegeProvider>
         
         {/* 1. FULL PAGE SUPER ADMIN DASHBOARD VIEW */}
