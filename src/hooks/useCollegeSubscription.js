@@ -20,7 +20,7 @@ export const useCollegeSubscription = (collegeId) => {
           const sub = res.subscription;
           const col = res.college;
           
-          const rawExpiry = sub?.subscription_end_date || col?.subscription_end_date || sub?.subscription_expiry_date || '2027-08-04';
+          const rawExpiry = sub?.subscription_end_date || sub?.subscription_expiry_date || col?.subscription_expiry_date || col?.subscriptionExpiryDate || col?.subscription_end_date || '2027-08-04';
           const rawStatus = sub?.status || col?.status || 'Active';
           
           const statusMeta = getSubscriptionStatusDetails(rawExpiry, rawStatus);

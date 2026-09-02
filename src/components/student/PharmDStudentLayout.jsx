@@ -40,7 +40,8 @@ export const PharmDStudentLayout = ({ student, onLogout }) => {
   const [showLogoModal, setShowLogoModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   
-  const { isExpired } = useCollegeSubscription(student?.college_id);
+  const { isExpired, collegeData, loading } = useCollegeSubscription(student?.college_id);
+  console.log("DEBUG STUDENT SUBSCRIPTION:", { student, isExpired, collegeData, loading, collegeId: student?.college_id });
 
   // Body scroll lock effect when mobile sidebar drawer is open
   useEffect(() => {
@@ -227,10 +228,10 @@ export const PharmDStudentLayout = ({ student, onLogout }) => {
             )}
             <nav className="space-y-1">
               <button
-                onClick={() => handleNavigate('add-new-case')}
+                onClick={() => !isExpired && handleNavigate('add-new-case')}
                 title="Add New Case"
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'add-new-case'
+                  isExpired ? 'opacity-50 cursor-not-allowed grayscale' : activeTab === 'add-new-case'
                     ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                 } ${forcePasswordReset ? 'pointer-events-none opacity-40' : ''}`}
