@@ -3,12 +3,12 @@ import { setSupabaseAdminHeader } from './supabaseService.js';
 
 export const DEFAULT_PLATFORM_SETTINGS = {
   id: 1,
-  platform_name: "PHARM.D & B.PHARM NEXUS",
-  tagline: "Clinical Case & Practical Record Platform",
+  platform_name: "PharmDVerse ERP",
+  tagline: "From Case Collection to Clinical Excellence",
   logo_url: "/pharmdverse-logo.png",
   favicon_url: "/pharmdverse-logo.png",
   support_email: "support@pharmdverse.org",
-  footer_text: "© 2026 PHARM.D & B.PHARM NEXUS. All Rights Reserved."
+  footer_text: "© 2026 PharmDVerse All Rights Reserved"
 };
 
 const LOCAL_CACHE_KEY = 'pharmdverse_platform_settings_cache';

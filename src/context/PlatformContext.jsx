@@ -13,11 +13,7 @@ export const PlatformProvider = ({ children }) => {
       if (typeof window !== 'undefined' && window.localStorage) {
         const cached = window.localStorage.getItem('pharmdverse_platform_settings_cache');
         if (cached) {
-          const parsed = JSON.parse(cached);
-          if (!parsed.platform_name || parsed.platform_name === 'PharmDVerse ERP') {
-            parsed.platform_name = 'PHARM.D & B.PHARM NEXUS';
-          }
-          return { ...DEFAULT_PLATFORM_SETTINGS, ...parsed };
+          return { ...DEFAULT_PLATFORM_SETTINGS, ...JSON.parse(cached) };
         }
       }
     } catch (e) {
