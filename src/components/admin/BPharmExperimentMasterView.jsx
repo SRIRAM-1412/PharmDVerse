@@ -360,35 +360,63 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
               {block.type === 'table' && (() => {
                 const cols = getTableColumns(block.content);
                 const rows = getTableDefaultRows(block);
+                const { data: parsedData, lines: parsedLines } = parseMultiCurveGraphData(cols, rows, block.customCurves);
 
                 return (
-                  <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
-                    <table className="w-full text-left">
-                      <thead className="bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-                        <tr>
-                          {cols.map((col, i) => (
-                            <th key={i} className="px-4 py-3 text-sm font-black text-slate-700 dark:text-slate-300">{col || `Column ${i+1}`}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {rows.length === 0 ? (
+                  <div className="space-y-4">
+                    <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
+                      <table className="w-full text-left">
+                        <thead className="bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                           <tr>
-                            {cols.map((_, i) => (
-                              <td key={i} className="p-3"><input type="text" disabled placeholder="Student types here..." className="w-full p-2 text-sm bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-50" /></td>
+                            {cols.map((col, i) => (
+                              <th key={i} className="px-4 py-3 text-sm font-black text-slate-700 dark:text-slate-300">{col || `Column ${i+1}`}</th>
                             ))}
                           </tr>
-                        ) : (
-                          rows.map((r, rIdx) => (
-                            <tr key={rIdx} className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
-                              {cols.map((_, cIdx) => (
-                                <td key={cIdx} className="p-3 font-mono font-bold text-sm text-slate-800 dark:text-slate-200">{r[cIdx] || '-'}</td>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                          {rows.length === 0 ? (
+                            <tr>
+                              {cols.map((_, i) => (
+                                <td key={i} className="p-3"><input type="text" disabled placeholder="Student types here..." className="w-full p-2 text-sm bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-50" /></td>
                               ))}
                             </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+                          ) : (
+                            rows.map((r, rIdx) => (
+                              <tr key={rIdx} className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                                {cols.map((_, cIdx) => (
+                                  <td key={cIdx} className="p-3 font-mono font-bold text-sm text-slate-800 dark:text-slate-200">{r[cIdx] || '-'}</td>
+                                ))}
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {parsedData.length > 0 && parsedLines.length > 0 && (
+                      <div className="p-4 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Activity className="w-4 h-4 text-emerald-600 animate-pulse" />
+                          <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">
+                            Observation Graph Curve
+                          </span>
+                        </div>
+                        <div className="h-64 w-full pt-2">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={parsedData} margin={{ top: 25, right: 30, bottom: 25, left: 25 }}>
+                              <CartesianGrid stroke="#ccc" strokeDasharray="5 5" opacity={0.2} />
+                              <XAxis dataKey="x" tick={{ fontSize: 10 }} label={{ value: block.xAxis || cols[0] || 'Dose', position: 'insideBottom', offset: -15, fontSize: 11, fontWeight: 'black', fill: '#475569' }} />
+                              <YAxis tick={{ fontSize: 10 }} label={{ value: block.yAxis || cols[1] || 'Response', angle: -90, position: 'insideLeft', offset: -10, fontSize: 11, fontWeight: 'black', fill: '#475569' }} />
+                              <Tooltip />
+                              <Legend verticalAlign="top" align="center" wrapperStyle={{ fontSize: 11, fontWeight: 'bold', paddingBottom: 15 }} />
+                              {parsedLines.map(line => (
+                                <Line key={line.key} type="monotone" dataKey={line.key} name={line.name} stroke={line.color} strokeWidth={3} dot={{ r: 5, fill: line.color }} />
+                              ))}
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })()}
@@ -825,14 +853,14 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
                                   </div>
                                   <span className="text-[10px] font-bold text-slate-400">Updates live as you type numbers above</span>
                                 </div>
-                                <div className="h-52 w-full pt-2">
+                                <div className="h-60 w-full pt-2">
                                   <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={parsedData} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
+                                    <LineChart data={parsedData} margin={{ top: 25, right: 30, bottom: 25, left: 25 }}>
                                       <CartesianGrid stroke="#ccc" strokeDasharray="5 5" opacity={0.2} />
-                                      <XAxis dataKey="x" tick={{ fontSize: 10 }} label={{ value: cols[0] || 'Dose', position: 'insideBottom', offset: -10, fontSize: 10 }} />
-                                      <YAxis tick={{ fontSize: 10 }} />
+                                      <XAxis dataKey="x" tick={{ fontSize: 10 }} label={{ value: block.xAxis || cols[0] || 'Dose', position: 'insideBottom', offset: -15, fontSize: 11, fontWeight: 'black', fill: '#475569' }} />
+                                      <YAxis tick={{ fontSize: 10 }} label={{ value: block.yAxis || cols[1] || 'Response', angle: -90, position: 'insideLeft', offset: -10, fontSize: 11, fontWeight: 'black', fill: '#475569' }} />
                                       <Tooltip />
-                                      <Legend wrapperStyle={{ fontSize: 11, fontWeight: 'bold', paddingTop: 5 }} />
+                                      <Legend verticalAlign="top" align="center" wrapperStyle={{ fontSize: 11, fontWeight: 'bold', paddingBottom: 15 }} />
                                       {parsedLines.map(line => (
                                         <Line key={line.key} type="monotone" dataKey={line.key} name={line.name} stroke={line.color} strokeWidth={3} dot={{ r: 4, fill: line.color }} />
                                       ))}

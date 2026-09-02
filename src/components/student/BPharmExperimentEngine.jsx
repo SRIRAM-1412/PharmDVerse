@@ -325,53 +325,85 @@ export const BPharmExperimentEngine = ({ student, assignment, onBack }) => {
                   </div>
                 )}
 
-                {block.type === 'table' && (
-                  <div>
-                    <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
-                      <table className="w-full text-left">
-                        <thead className="bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-                          <tr>
-                            {Array.isArray(block.content) && block.content.map((col, i) => (
-                              <th key={i} className="px-4 py-3 text-sm font-black text-slate-700 dark:text-slate-300 whitespace-nowrap">{col}</th>
-                            ))}
-                            {!isReadOnly && <th className="px-4 py-3 w-10"></th>}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                          {(tableData[block.id] || []).map((row, rowIndex) => (
-                            <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
-                              {Array.isArray(block.content) && block.content.map((_, colIndex) => (
-                                <td key={colIndex} className="p-2 sm:p-3">
-                                  <input 
-                                    type="text" 
-                                    disabled={isReadOnly}
-                                    value={row.values[colIndex] || ''}
-                                    onChange={(e) => handleCellChange(block.id, rowIndex, colIndex, e.target.value)}
-                                    placeholder={isReadOnly ? '-' : 'Type...'}
-                                    className="w-full p-2 text-sm bg-white dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none disabled:opacity-70 disabled:bg-slate-50 dark:disabled:bg-slate-900 transition-all font-mono" 
-                                  />
-                                </td>
+                {block.type === 'table' && (() => {
+                  const cols = Array.isArray(block.content) ? block.content : typeof block.content === 'string' ? block.content.split(',').map(s=>s.trim()) : [];
+                  const currentRows = (tableData[block.id] || []).map(r => r.values || []);
+                  const { data: parsedData, lines: parsedLines } = parseMultiCurveGraphData(cols, currentRows, block.customCurves);
+
+                  return (
+                    <div className="space-y-4">
+                      <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
+                        <table className="w-full text-left">
+                          <thead className="bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                            <tr>
+                              {cols.map((col, i) => (
+                                <th key={i} className="px-4 py-3 text-sm font-black text-slate-700 dark:text-slate-300 whitespace-nowrap">{col}</th>
                               ))}
-                              {!isReadOnly && (
-                                <td className="p-2 sm:p-3 text-center">
-                                  <button onClick={() => removeRow(block.id, rowIndex)} className="text-rose-400 hover:text-rose-600 font-bold p-1">✕</button>
-                                </td>
-                              )}
+                              {!isReadOnly && <th className="px-4 py-3 w-10"></th>}
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {(tableData[block.id] || []).map((row, rowIndex) => (
+                              <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                                {cols.map((_, colIndex) => (
+                                  <td key={colIndex} className="p-2 sm:p-3">
+                                    <input 
+                                      type="text" 
+                                      disabled={isReadOnly}
+                                      value={row.values[colIndex] || ''}
+                                      onChange={(e) => handleCellChange(block.id, rowIndex, colIndex, e.target.value)}
+                                      placeholder={isReadOnly ? '-' : 'Type...'}
+                                      className="w-full p-2 text-sm bg-white dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none disabled:opacity-70 disabled:bg-slate-50 dark:disabled:bg-slate-900 transition-all font-mono" 
+                                    />
+                                  </td>
+                                ))}
+                                {!isReadOnly && (
+                                  <td className="p-2 sm:p-3 text-center">
+                                    <button onClick={() => removeRow(block.id, rowIndex)} className="text-rose-400 hover:text-rose-600 font-bold p-1">✕</button>
+                                  </td>
+                                )}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {!isReadOnly && (
+                        <button 
+                          onClick={() => addRow(block.id, cols.length)}
+                          className="mt-3 px-4 py-2 rounded-lg border border-emerald-200 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400 text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors flex items-center gap-1.5"
+                        >
+                          <TableIcon className="w-3.5 h-3.5" /> Add Row
+                        </button>
+                      )}
+
+                      {parsedData.length > 0 && parsedLines.length > 0 && (
+                        <div className="p-4 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs mt-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Activity className="w-4 h-4 text-emerald-600 animate-pulse" />
+                            <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">
+                              Plotted Observation Graph Curve
+                            </span>
+                          </div>
+                          <div className="h-64 w-full pt-2">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart data={parsedData} margin={{ top: 25, right: 30, bottom: 25, left: 25 }}>
+                                <CartesianGrid stroke="#ccc" strokeDasharray="5 5" opacity={0.2} />
+                                <XAxis dataKey="x" tick={{ fontSize: 10 }} label={{ value: block.xAxis || cols[0] || 'Dose', position: 'insideBottom', offset: -15, fontSize: 11, fontWeight: 'black', fill: '#475569' }} />
+                                <YAxis tick={{ fontSize: 10 }} label={{ value: block.yAxis || cols[1] || 'Response', angle: -90, position: 'insideLeft', offset: -10, fontSize: 11, fontWeight: 'black', fill: '#475569' }} />
+                                <Tooltip />
+                                <Legend verticalAlign="top" align="center" wrapperStyle={{ fontSize: 11, fontWeight: 'bold', paddingBottom: 15 }} />
+                                {parsedLines.map(line => (
+                                  <Line key={line.key} type="monotone" dataKey={line.key} name={line.name} stroke={line.color} strokeWidth={3} dot={{ r: 5, fill: line.color }} />
+                                ))}
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    {!isReadOnly && (
-                      <button 
-                        onClick={() => addRow(block.id, block.content.length)}
-                        className="mt-3 px-4 py-2 rounded-lg border border-emerald-200 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400 text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors flex items-center gap-1.5"
-                      >
-                        <TableIcon className="w-3.5 h-3.5" /> Add Row
-                      </button>
-                    )}
-                  </div>
-                )}
+                  );
+                })()}
 
                 
                 {block.type === 'procedure' && (
