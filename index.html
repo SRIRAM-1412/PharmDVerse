@@ -15,6 +15,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
       try {
+        // Auto-redirect stale preview domain URLs to main production domain
+        if (window.location.hostname && window.location.hostname.includes('pharm-d-verse') && !window.location.hostname.includes('pharm-d-b-pharm-nexus')) {
+          window.location.href = 'https://pharm-d-b-pharm-nexus.vercel.app' + window.location.pathname + window.location.search;
+        }
         if ('serviceWorker' in navigator && typeof navigator.serviceWorker.getRegistrations === 'function') {
           navigator.serviceWorker.getRegistrations().then(function(registrations) {
             if (registrations && registrations.length) {
