@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Edit, Eye, Power, Trash2, AlignLeft, Image as ImageIcon, Table, ChevronUp, ChevronDown, Save, X, FlaskConical, Activity, Code, GitCommit, ListOrdered, CheckCircle2, ArrowDown } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useInlineNotification } from '../../hooks/useInlineNotification';
@@ -227,6 +227,7 @@ ${cleaned}` : cleaned);
   };
 
   // Builder State
+  const editorRefs = useRef({});
   const [editingId, setEditingId] = useState(null);
   const [experimentNumber, setExperimentNumber] = useState('');
   const [experimentTitle, setExperimentTitle] = useState('');
@@ -256,28 +257,67 @@ ${cleaned}` : cleaned);
     fetchExperiments();
   }, [subjectName]);
 
-  // Block Management
-  
+  // Selection-Aware Rich Formatting Engine (Works like MS Word on highlighted text)
   const applyFormatting = (blockId, formatType) => {
+    const textarea = editorRefs.current[blockId];
     const block = blocks.find(b => b.id === blockId);
     if (!block) return;
 
-    let text = block.content || '';
+    let content = block.content || '';
 
+    // If user has highlighted text inside the textarea:
+    if (textarea && textarea.selectionStart !== undefined && textarea.selectionEnd !== undefined) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = content.substring(start, end);
+
+      if (selectedText.length > 0) {
+        let formattedText = selectedText;
+        if (formatType === 'bold') {
+          formattedText = `<b>${selectedText}</b>`;
+        } else if (formatType === 'italic') {
+          formattedText = `<i>${selectedText}</i>`;
+        } else if (formatType === 'heading') {
+          formattedText = `\n<h3>${selectedText}</h3>\n`;
+        } else if (formatType === 'bullet') {
+          formattedText = selectedText.split('\n').map(l => l.startsWith('• ') ? l : `• ${l}`).join('\n');
+        } else if (formatType === 'number') {
+          formattedText = selectedText.split('\n').map((l, i) => `${i + 1}. ${l.replace(/^\d+\.\s*/, '')}`).join('\n');
+        } else if (formatType === 'subscript') {
+          formattedText = `<sub>${selectedText}</sub>`;
+        } else if (formatType === 'superscript') {
+          formattedText = `<sup>${selectedText}</sup>`;
+        }
+
+        const newContent = content.substring(0, start) + formattedText + content.substring(end);
+        updateBlock(blockId, 'content', newContent);
+
+        setTimeout(() => {
+          if (textarea) {
+            textarea.focus();
+            textarea.setSelectionRange(start, start + formattedText.length);
+          }
+        }, 50);
+        return;
+      }
+    }
+
+    // Default fallback when no text is selected:
+    let text = content;
     if (formatType === 'bold') {
-      text += text ? ' Bold Text' : 'Bold Text';
+      text += text ? ' <b>Bold Text</b>' : '<b>Bold Text</b>';
     } else if (formatType === 'italic') {
-      text += text ? ' Italic Text' : 'Italic Text';
+      text += text ? ' <i>Italic Text</i>' : '<i>Italic Text</i>';
     } else if (formatType === 'heading') {
-      text += text ? '\n\nSECTION HEADING:\n' : 'SECTION HEADING:\n';
+      text += text ? '\n\n<h3>SECTION HEADING:</h3> ' : '<h3>SECTION HEADING:</h3> ';
     } else if (formatType === 'bullet') {
       text += text ? '\n• New Bullet Item' : '• New Bullet Item';
     } else if (formatType === 'number') {
       text += text ? '\n1. New List Item' : '1. New List Item';
     } else if (formatType === 'subscript') {
-      text += '₂';
+      text += '<sub>₂</sub>';
     } else if (formatType === 'superscript') {
-      text += '²⁺';
+      text += '<sup>²⁺</sup>';
     }
 
     updateBlock(blockId, 'content', text);
@@ -702,10 +742,11 @@ ${cleaned}` : cleaned);
                     </div>
 
                     <textarea 
+                      ref={(el) => (editorRefs.current[block.id] = el)}
                       value={block.content}
                       onChange={(e) => updateBlock(block.id, 'content', e.target.value)}
                       onPaste={(e) => handleTextPaste(e, block.id)}
-                      placeholder="Enter text content here (Supports bullet lists •, 1. List, chemical formulas X₂, X², and direct MS Word copy-paste)..."
+                      placeholder="Select any text & tap B, I, H, X₂, X² to format highlighted text (just like MS Word)..."
                       rows={5}
                       className="w-full p-4 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-medium text-sm focus:outline-none"
                     />
