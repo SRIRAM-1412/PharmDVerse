@@ -161,167 +161,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Lege
     return [{ id: 'track-1', title: 'Procedure Steps', steps: [] }];
   };
 
-const PlainTextEditor = ({ content, onChange }) => {
-  const textareaRef = useRef(null);
 
-  // Strip any leftover HTML code brackets from old saved text completely
-  const cleanText = (str) => {
-    if (!str) return '';
-    return str.replace(/<[^>]+>/g, '');
-  };
-
-  const handleApplyFormat = (formatType) => {
-    const textarea = textareaRef.current;
-    let currentContent = cleanText(content || '');
-
-    if (textarea && textarea.selectionStart !== undefined && textarea.selectionEnd !== undefined) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const selected = currentContent.substring(start, end);
-
-      if (selected.length > 0) {
-        let replacement = selected;
-        if (formatType === 'bold') {
-          replacement = selected.toUpperCase();
-        } else if (formatType === 'italic') {
-          replacement = `*${selected}*`;
-        } else if (formatType === 'heading') {
-          replacement = `\n\n${selected.toUpperCase()}:\n`;
-        } else if (formatType === 'bullet') {
-          replacement = selected.split('\n').map(l => l.startsWith('• ') ? l : `• ${l}`).join('\n');
-        } else if (formatType === 'number') {
-          replacement = selected.split('\n').map((l, i) => `${i + 1}. ${l.replace(/^\d+\.\s*/, '')}`).join('\n');
-        } else if (formatType === 'subscript') {
-          replacement = selected.replace(/2/g, '₂').replace(/3/g, '₃').replace(/4/g, '₄');
-        } else if (formatType === 'superscript') {
-          replacement = selected.replace(/2\+/g, '²⁺').replace(/2/g, '²').replace(/3\+/g, '³⁺');
-        }
-
-        const newText = currentContent.substring(0, start) + replacement + currentContent.substring(end);
-        onChange(newText);
-        setTimeout(() => {
-          if (textareaRef.current) {
-            textareaRef.current.focus();
-            textareaRef.current.setSelectionRange(start, start + replacement.length);
-          }
-        }, 50);
-        return;
-      }
-    }
-
-    // Default insertion if no text selected:
-    let newText = currentContent;
-    if (formatType === 'bold') {
-      newText += newText ? ' Bold Text' : 'Bold Text';
-    } else if (formatType === 'italic') {
-      newText += newText ? ' Italic Text' : 'Italic Text';
-    } else if (formatType === 'heading') {
-      newText += newText ? '\n\nSECTION HEADING:\n' : 'SECTION HEADING:\n';
-    } else if (formatType === 'bullet') {
-      newText += newText ? '\n• New Bullet Item' : '• New Bullet Item';
-    } else if (formatType === 'number') {
-      newText += newText ? '\n1. New List Item' : '1. New List Item';
-    } else if (formatType === 'subscript') {
-      newText += '₂';
-    } else if (formatType === 'superscript') {
-      newText += '²⁺';
-    }
-
-    onChange(newText);
-  };
-
-  const handlePaste = (e) => {
-    e.preventDefault();
-    const pasted = (e.clipboardData || window.clipboardData).getData('text/plain') || '';
-    const cleaned = cleanText(pasted);
-    const textarea = textareaRef.current;
-    const current = cleanText(content || '');
-
-    if (textarea && textarea.selectionStart !== undefined) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const updated = current.substring(0, start) + cleaned + current.substring(end);
-      onChange(updated);
-    } else {
-      onChange(current ? `${current}\n\n${cleaned}` : cleaned);
-    }
-  };
-
-  const displayContent = cleanText(content || '');
-
-  return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs bg-slate-50 dark:bg-slate-950">
-      <div className="flex flex-wrap items-center gap-1.5 p-2.5 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-xs">
-        <button
-          type="button"
-          onClick={() => handleApplyFormat('bold')}
-          title="Bold"
-          className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-black hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs cursor-pointer select-none"
-        >
-          B
-        </button>
-        <button
-          type="button"
-          onClick={() => handleApplyFormat('italic')}
-          title="Italic"
-          className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 italic font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs cursor-pointer select-none"
-        >
-          I
-        </button>
-        <button
-          type="button"
-          onClick={() => handleApplyFormat('heading')}
-          title="Heading"
-          className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-black hover:bg-slate-50 text-indigo-600 dark:text-indigo-400 shadow-2xs cursor-pointer select-none"
-        >
-          H
-        </button>
-        <button
-          type="button"
-          onClick={() => handleApplyFormat('bullet')}
-          title="Bullet List"
-          className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs cursor-pointer select-none"
-        >
-          • List
-        </button>
-        <button
-          type="button"
-          onClick={() => handleApplyFormat('number')}
-          title="Numbered List"
-          className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs cursor-pointer select-none"
-        >
-          1. List
-        </button>
-        <button
-          type="button"
-          onClick={() => handleApplyFormat('subscript')}
-          title="Chemical Subscript"
-          className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs cursor-pointer select-none"
-        >
-          X₂
-        </button>
-        <button
-          type="button"
-          onClick={() => handleApplyFormat('superscript')}
-          title="Chemical Superscript"
-          className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs cursor-pointer select-none"
-        >
-          X²
-        </button>
-      </div>
-
-      <textarea
-        ref={textareaRef}
-        value={displayContent}
-        onChange={(e) => onChange(cleanText(e.target.value))}
-        onPaste={handlePaste}
-        placeholder="Enter text content here..."
-        rows={5}
-        className="w-full p-4 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-medium text-sm focus:outline-none leading-relaxed"
-      />
-    </div>
-  );
-};
 
 export const BPharmExperimentMasterView = ({ subjectName }) => {
   const [experiments, setExperiments] = useState([]);
@@ -893,9 +733,12 @@ ${cleaned}` : cleaned);
                 </div>
 
                 {block.type === 'text' && (
-                  <PlainTextEditor 
-                    content={block.content}
-                    onChange={(val) => updateBlock(block.id, 'content', val)}
+                  <textarea 
+                    value={typeof block.content === 'string' ? block.content.replace(/<[^>]+>/g, '') : ''}
+                    onChange={(e) => updateBlock(block.id, 'content', e.target.value)}
+                    placeholder="Enter text content here..."
+                    rows={5}
+                    className="w-full p-4 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-medium text-sm rounded-2xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all leading-relaxed"
                   />
                 )}
                 
