@@ -130,67 +130,73 @@ export default function App() {
   // RESTORE ACTIVE SESSION ON BROWSER REFRESH (F5 / RELOAD) & DYNAMIC URL RESOLUTION
   useEffect(() => {
     const restoreSession = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const targetParam = urlParams.get('college') || urlParams.get('college_id') || urlParams.get('collegeCode');
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetParam = urlParams.get('college') || urlParams.get('college_id') || urlParams.get('collegeCode');
 
-      const session = getActiveSession();
-      if (session) {
-        // Verify session_token in public.active_sessions if available
-        if (session.sessionToken) {
-          const isValid = await verifyActiveSessionTokenInSupabase(session.sessionToken);
-          if (!isValid) {
-            handleSessionInvalidatedByOtherDevice();
-            return;
+        const session = getActiveSession();
+        if (session) {
+          // Verify session_token in public.active_sessions if available
+          if (session.sessionToken) {
+            const isValid = await verifyActiveSessionTokenInSupabase(session.sessionToken);
+            if (!isValid) {
+              handleSessionInvalidatedByOtherDevice();
+              return;
+            }
           }
-        }
 
-        if (session.viewMode === 'admin') {
-          const adminSession = getActiveAdminSession();
-          if (adminSession && session.sessionToken) {
-            const isStillActive = await verifyActiveSessionTokenInSupabase(session.sessionToken);
-            if (isStillActive) {
+          if (session.viewMode === 'admin') {
+            const adminSession = getActiveAdminSession();
+            if (adminSession && session.sessionToken) {
+              const isStillActive = await verifyActiveSessionTokenInSupabase(session.sessionToken);
+              if (isStillActive) {
+                setViewMode('admin');
+              } else {
+                logoutSuperAdmin(session.sessionToken);
+                setSessionEndedBanner(true);
+              }
+            } else if (adminSession) {
               setViewMode('admin');
             } else {
-              logoutSuperAdmin(session.sessionToken);
-              setSessionEndedBanner(true);
+              clearActiveSession();
             }
-          } else if (adminSession) {
-            setViewMode('admin');
-          } else {
-            clearActiveSession();
-          }
-        } else if (session.viewMode === 'college_admin' && (session.user || session.college)) {
-          const collegeObj = normalizeCollege(session.college || session.user);
-          if (collegeObj && session.user && (session.user.id === collegeObj.id || session.user.college_id === collegeObj.id)) {
-            setLoggedCollegeAdmin(session.user || session.college);
+          } else if (session.viewMode === 'college_admin' && (session.user || session.college)) {
+            const collegeObj = normalizeCollege(session.college || session.user);
+            if (collegeObj && session.user && (session.user.id === collegeObj.id || session.user.college_id === collegeObj.id)) {
+              setLoggedCollegeAdmin(session.user || session.college);
+              setActivePortalCollege(collegeObj);
+              setViewMode('college_admin');
+            } else {
+              clearActiveSession();
+            }
+          } else if (session.viewMode === 'preceptor_portal' && session.user) {
+            const collegeObj = normalizeCollege(session.user.colleges || session.college);
+            if (collegeObj && session.user.college_id === collegeObj.id) {
+              setLoggedPreceptor(session.user);
+              setActivePortalCollege(collegeObj);
+              setViewMode('preceptor_portal');
+            } else {
+              clearActiveSession();
+            }
+          } else if (session.viewMode === 'student_portal' && session.user) {
+            const collegeObj = normalizeCollege(session.user.colleges || session.college);
+            if (collegeObj && session.user.college_id === collegeObj.id) {
+              setLoggedStudent(session.user);
+              setActivePortalCollege(collegeObj);
+              setViewMode('student_portal');
+            } else {
+              clearActiveSession();
+            }
+          } else if (session.viewMode === 'college_portal' && session.college) {
+            const collegeObj = normalizeCollege(session.college);
             setActivePortalCollege(collegeObj);
-            setViewMode('college_admin');
-          } else {
-            clearActiveSession();
+            setViewMode('college_portal');
           }
-        } else if (session.viewMode === 'preceptor_portal' && session.user) {
-          const collegeObj = normalizeCollege(session.user.colleges || session.college);
-          if (collegeObj && session.user.college_id === collegeObj.id) {
-            setLoggedPreceptor(session.user);
-            setActivePortalCollege(collegeObj);
-            setViewMode('preceptor_portal');
-          } else {
-            clearActiveSession();
-          }
-        } else if (session.viewMode === 'student_portal' && session.user) {
-          const collegeObj = normalizeCollege(session.user.colleges || session.college);
-          if (collegeObj && session.user.college_id === collegeObj.id) {
-            setLoggedStudent(session.user);
-            setActivePortalCollege(collegeObj);
-            setViewMode('student_portal');
-          } else {
-            clearActiveSession();
-          }
-        } else if (session.viewMode === 'college_portal' && session.college) {
-          const collegeObj = normalizeCollege(session.college);
-          setActivePortalCollege(collegeObj);
-          setViewMode('college_portal');
         }
+      } catch (err) {
+        console.warn('Session restoration exception caught, resetting to landing:', err);
+        clearActiveSession();
+        setViewMode('landing');
       }
     };
 
