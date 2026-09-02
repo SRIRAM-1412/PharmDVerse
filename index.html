@@ -14,27 +14,30 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
-      (function() {
-        // Unregister stale Service Workers to prevent Chrome stale cache locks
-        if ('serviceWorker' in navigator) {
+      try {
+        if ('serviceWorker' in navigator && typeof navigator.serviceWorker.getRegistrations === 'function') {
           navigator.serviceWorker.getRegistrations().then(function(registrations) {
-            for (var registration of registrations) {
-              registration.unregister();
+            if (registrations && registrations.length) {
+              for (var registration of registrations) {
+                registration.unregister();
+              }
             }
-          });
+          }).catch(function(){});
         }
-        // Auto-strip stale cache query params like ?v=...
         if (window.location.search && window.location.search.includes('v=')) {
           var cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
           window.history.replaceState({path: cleanUrl}, '', cleanUrl);
         }
         var theme = localStorage.getItem('pharmdverse_theme');
-        if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        var prefersDark = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (theme === 'dark' || (!theme && prefersDark)) {
           document.documentElement.classList.add('dark');
         } else {
           document.documentElement.classList.remove('dark');
         }
-      })();
+      } catch (e) {
+        console.warn('Head script notice:', e);
+      }
     </script>
   </head>
   <body class="bg-slate-50 dark:bg-[#080d1a] antialiased">

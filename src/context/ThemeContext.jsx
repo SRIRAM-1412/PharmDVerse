@@ -4,11 +4,20 @@ const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
-    const savedTheme = localStorage.getItem('pharmdverse_theme');
-    if (savedTheme) {
-      return savedTheme;
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const savedTheme = window.localStorage.getItem('pharmdverse_theme');
+        if (savedTheme) {
+          return savedTheme;
+        }
+      }
+      if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+    } catch (e) {
+      console.warn('Theme init notice:', e);
     }
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    return 'light';
   });
 
   useEffect(() => {
