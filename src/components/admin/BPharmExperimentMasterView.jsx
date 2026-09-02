@@ -97,14 +97,27 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
   // Block Management
   const addBlock = (type) => {
     let content = '';
-    if (type === 'table') content = [];
-    if (type === 'graph') content = { xAxis: '', yAxis: '' };
+    let defaultRows = [];
+    let xAxis = '';
+    let yAxis = '';
+
+    if (type === 'procedure') {
+      content = [{ id: Date.now().toString(), step_no: 1, instruction: '' }];
+    } else if (type === 'table') {
+      content = ['DOSE', 'RESPONSE'];
+      defaultRows = [];
+      xAxis = 'DOSE';
+      yAxis = 'RESPONSE';
+    }
     
     const newBlock = {
       id: Date.now().toString(),
       type,
-      heading: '',
-      content
+      heading: type === 'procedure' ? 'Procedure Flowchart' : type === 'table' ? 'Observation Table & Graph' : 'Section Heading',
+      content,
+      defaultRows,
+      xAxis,
+      yAxis
     };
     setBlocks([...blocks, newBlock]);
   };
@@ -319,6 +332,26 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
                 );
               })()}
 
+              {block.type === 'procedure' && (
+                <div className="flex flex-col items-center justify-center max-w-xl mx-auto py-4 space-y-3">
+                  {Array.isArray(block.content) && block.content.map((stepItem, sIdx) => (
+                    <React.Fragment key={stepItem.id || sIdx}>
+                      <div className="w-full bg-slate-50 dark:bg-slate-900 border-2 border-indigo-200 dark:border-indigo-900 p-4 rounded-2xl shadow-xs text-center">
+                        <span className="px-2.5 py-0.5 rounded-full bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider mb-1 inline-block">
+                          Step {sIdx + 1}
+                        </span>
+                        <p className="text-slate-800 dark:text-white font-extrabold text-sm leading-relaxed">
+                          {stepItem.instruction || stepItem.detail || stepItem.title || 'Step instruction...'}
+                        </p>
+                      </div>
+                      {sIdx < block.content.length - 1 && (
+                        <ArrowDown className="w-5 h-5 text-indigo-500 animate-bounce my-1" />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+              )}
+
               {block.type === 'code' && (
                 <div className="h-64 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-900 flex items-center justify-center text-slate-400 font-mono text-sm">
                    [ Interactive Simulation / Custom Code Rendered Here ]
@@ -393,7 +426,8 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
                     <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-900 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
                       {block.type === 'text' && <><AlignLeft className="w-3 h-3"/> Text Block</>}
                       {block.type === 'media' && <><ImageIcon className="w-3 h-3"/> Media Block</>}
-                      {block.type === 'table' && <><Table className="w-3 h-3"/> Table Block</>}
+                      {block.type === 'table' && <><Table className="w-3 h-3"/> Observation Table & Graph</>}
+                      {block.type === 'procedure' && <><ArrowDown className="w-3 h-3"/> Procedure Flowchart</>}
                       {block.type === 'graph' && <><Activity className="w-3 h-3"/> Graph Config</>}
                       {block.type === 'code' && <><Code className="w-3 h-3"/> Custom Embed</>}
                     </span>
@@ -439,6 +473,29 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
                   return (
                     <div className="space-y-4">
                       <div>
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-500 mb-1">X-Axis Graph Label</label>
+                            <input 
+                              type="text" 
+                              value={block.xAxis || cols[0] || ''} 
+                              onChange={(e) => updateBlock(block.id, 'xAxis', e.target.value)}
+                              placeholder="e.g., DOSE" 
+                              className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 font-bold" 
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-500 mb-1">Y-Axis Graph Label</label>
+                            <input 
+                              type="text" 
+                              value={block.yAxis || cols[1] || ''} 
+                              onChange={(e) => updateBlock(block.id, 'yAxis', e.target.value)}
+                              placeholder="e.g., RESPONSE" 
+                              className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 font-bold" 
+                            />
+                          </div>
+                        </div>
+
                         <label className="block text-xs font-bold text-slate-500 mb-1">Table Columns (Comma Separated)</label>
                         <input 
                           type="text" 
@@ -570,6 +627,67 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
                   </div>
                 )}
 
+                {block.type === 'procedure' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-bold text-slate-500">Step-by-Step Procedure Box Flowchart (Connected by Down Arrows ⬇)</p>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const currentSteps = Array.isArray(block.content) ? block.content : [];
+                          const nextNo = currentSteps.length + 1;
+                          const newSteps = [...currentSteps, { id: Date.now().toString(), step_no: nextNo, instruction: '' }];
+                          updateBlock(block.id, 'content', newSteps);
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1 transition-all shadow-xs"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Add Step Box
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col items-center space-y-3 max-w-xl mx-auto py-2">
+                      {Array.isArray(block.content) && block.content.map((sItem, sIdx) => (
+                        <React.Fragment key={sItem.id || sIdx}>
+                          <div className="w-full p-4 bg-slate-50 dark:bg-slate-900/80 rounded-2xl border-2 border-indigo-200 dark:border-indigo-900 shadow-xs space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="px-2.5 py-0.5 rounded-full bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider">
+                                Step {sIdx + 1}
+                              </span>
+                              <button 
+                                type="button" 
+                                onClick={() => {
+                                  const updatedSteps = block.content.filter((_, idx) => idx !== sIdx);
+                                  updateBlock(block.id, 'content', updatedSteps);
+                                }}
+                                className="text-rose-500 hover:bg-rose-50 p-1 rounded-lg"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                            <textarea
+                              value={sItem.instruction || sItem.detail || ''} 
+                              onChange={(e) => {
+                                const updatedSteps = [...block.content];
+                                updatedSteps[sIdx] = { ...updatedSteps[sIdx], instruction: e.target.value, step_no: sIdx + 1 };
+                                updateBlock(block.id, 'content', updatedSteps);
+                              }}
+                              placeholder="Enter procedure instruction for this step..."
+                              rows={2}
+                              className="w-full p-2 text-sm bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 font-bold focus:outline-none focus:border-indigo-500"
+                            />
+                          </div>
+
+                          {sIdx < block.content.length - 1 && (
+                            <div className="flex flex-col items-center my-1 text-indigo-500">
+                              <ArrowDown className="w-5 h-5 animate-bounce" />
+                            </div>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {block.type === 'code' && (
                   <textarea 
                     value={block.content}
@@ -586,20 +704,14 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
 
         {/* Add Block Buttons */}
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <button onClick={() => addBlock('text')} className="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-indigo-400 hover:shadow-md font-bold text-sm transition-all flex items-center gap-2">
-            <AlignLeft className="w-4 h-4" /> Text
+          <button onClick={() => addBlock('text')} className="px-5 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-indigo-400 hover:shadow-md font-extrabold text-sm transition-all flex items-center gap-2 shadow-xs">
+            <AlignLeft className="w-4 h-4 text-indigo-600" /> 1. Text Block
           </button>
-          <button onClick={() => addBlock('media')} className="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-indigo-400 hover:shadow-md font-bold text-sm transition-all flex items-center gap-2">
-            <ImageIcon className="w-4 h-4" /> Media
+          <button onClick={() => addBlock('procedure')} className="px-5 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-indigo-400 hover:shadow-md font-extrabold text-sm transition-all flex items-center gap-2 shadow-xs">
+            <ArrowDown className="w-4 h-4 text-indigo-600 animate-bounce" /> 2. Procedure Flowchart
           </button>
-          <button onClick={() => addBlock('table')} className="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-indigo-400 hover:shadow-md font-bold text-sm transition-all flex items-center gap-2">
-            <Table className="w-4 h-4" /> Table
-          </button>
-          <button onClick={() => addBlock('graph')} className="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-md font-bold text-sm transition-all flex items-center gap-2">
-            <Activity className="w-4 h-4" /> Graph Config
-          </button>
-          <button onClick={() => addBlock('code')} className="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-amber-400 hover:shadow-md font-bold text-sm transition-all flex items-center gap-2">
-            <Code className="w-4 h-4" /> Code Embed
+          <button onClick={() => addBlock('table')} className="px-5 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-md font-extrabold text-sm transition-all flex items-center gap-2 shadow-xs">
+            <Table className="w-4 h-4 text-emerald-600" /> 3. Observation Table & Graph
           </button>
         </div>
       </div>

@@ -213,11 +213,13 @@ graph TD
 
 ## 8. LIVING DEPLOYMENT LEDGER
 
+* **2026-09-02 (Build 2.0.5):** Streamlined B.Pharm Master Experiment Builder action bar into 3 core unified Learning Mode blocks: 1. Text Block (Word paste auto-cleaner), 2. Procedure Flowchart (`[ + Add Step Box ]` with connecting down arrows `⬇`), 3. Observation Table & Graph (unified table + axis config + real-time live graph plotter).
 * **2026-09-02 (Build 2.0.4):** Injected Live Real-Time Plotted Line Graph Preview directly inside Table Block Builder in Super Admin view (renders live as numbers are typed in pre-filled reference rows).
 * **2026-09-02 (Build 2.0.3):** Implemented Pre-Loaded Observation Table Data Editor in B.Pharm Master Experiment Builder and Auto-Plotted Line Graph curve rendering for Learning Mode.
 * **2026-09-02 (Build 2.0.2):** Deployed MS Word Paste Auto-Cleaner (`handleTextPaste`) across all Text blocks in the Master Experiment Builder to preserve headings, bold labels (`Meaning:`, `Use:`), bullet lists, and paragraph line breaks.
 * **2026-09-02 (Build 2.0.1):** Configured full Row-Level Security (RLS) policies across all B.Pharm tables (`bpharm_master_experiments`, `bpharm_assignments`, `bpharm_student_records`, `bpharm_branding_settings`).
 * **2026-09-02 (Build 2.0.0):** Renamed global platform branding to **PHARM.D & B.PHARM NEXUS**. Deployed B.Pharm Student & Pharmacology Preceptor portals. Implemented zero-grace-period global Read-Only Soft-Lock mode.
+
 
 
 
