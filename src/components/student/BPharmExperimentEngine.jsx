@@ -75,6 +75,19 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
     return `<p class="mb-3">${formatted}</p>`;
   };
 
+
+  const normalizeProcedureTracks = (content) => {
+    if (!content) return [{ id: 'track-1', title: 'Procedure Steps', steps: [] }];
+    if (Array.isArray(content)) {
+      if (content.length === 0) return [{ id: 'track-1', title: 'Procedure Steps', steps: [] }];
+      if (content[0]?.steps !== undefined) return content;
+      if (content[0]?.instruction !== undefined || content[0]?.detail !== undefined || content[0]?.title !== undefined) {
+        return [{ id: 'track-1', title: 'Procedure Steps', steps: content }];
+      }
+    }
+    return [{ id: 'track-1', title: 'Procedure Steps', steps: [] }];
+  };
+
 export const BPharmExperimentEngine = ({ student, assignment, onBack }) => {
   const { master, mode } = assignment;
   const blocks = master?.experiment_content || [];
@@ -421,55 +434,71 @@ export const BPharmExperimentEngine = ({ student, assignment, onBack }) => {
                 })()}
 
                 
-                {block.type === 'procedure' && (
-                  <div className="flex flex-col items-center justify-center max-w-xl mx-auto py-4 space-y-3">
-                    {Array.isArray(block.content) && block.content.map((stepItem, sIdx) => {
-                      const stepId = stepItem.id || `step-${sIdx}`;
-                      const isDone = (completedSteps[block.id] || []).includes(stepId);
-                      
-                      return (
-                        <React.Fragment key={stepId}>
-                          <div className={`w-full p-5 rounded-2xl border-2 transition-all duration-300 text-center relative shadow-xs ${
-                            isDone 
-                              ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-900 dark:text-emerald-300' 
-                              : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white hover:border-indigo-400'
-                          }`}>
-                            <div className="flex items-center justify-between mb-2">
-                              <span className={`px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                                isDone ? 'bg-emerald-600 text-white' : 'bg-indigo-600 text-white'
-                              }`}>
-                                Step {sIdx + 1}
-                              </span>
+                {block.type === 'procedure' && (() => {
+                  const tracks = normalizeProcedureTracks(block.content);
 
-                              <button
-                                type="button"
-                                onClick={() => toggleStepCompletion(block.id, stepId)}
-                                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                                  isDone 
-                                    ? 'bg-emerald-600 text-white shadow-xs' 
-                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
-                                }`}
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                {isDone ? 'Done ✓' : 'Mark as Completed'}
-                              </button>
-                            </div>
-
-                            <p className="font-extrabold text-base leading-relaxed text-center">
-                              {stepItem.instruction || stepItem.detail || stepItem.title || 'Step instruction...'}
-                            </p>
+                  return (
+                    <div className={`grid grid-cols-1 ${tracks.length > 1 ? 'md:grid-cols-2 lg:grid-cols-3' : 'max-w-xl mx-auto'} gap-6 py-4`}>
+                      {tracks.map((track, trkIdx) => (
+                        <div key={track.id || trkIdx} className="bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+                          <div className="text-center border-b border-slate-200 dark:border-slate-800 pb-2">
+                            <span className="px-3 py-1 rounded-full bg-indigo-600 text-white font-extrabold text-xs uppercase tracking-wider shadow-xs">
+                              {track.title || `Track ${trkIdx + 1}`}
+                            </span>
                           </div>
 
-                          {sIdx < block.content.length - 1 && (
-                            <ArrowDown className={`w-5 h-5 transition-colors my-1 ${
-                              isDone ? 'text-emerald-500' : 'text-indigo-400 animate-bounce'
-                            }`} />
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
-                )}
+                          <div className="flex flex-col items-center space-y-3 pt-2">
+                            {(track.steps || []).map((stepItem, sIdx) => {
+                              const stepId = stepItem.id || `step-${trkIdx}-${sIdx}`;
+                              const isDone = (completedSteps[block.id] || []).includes(stepId);
+
+                              return (
+                                <React.Fragment key={stepId}>
+                                  <div className={`w-full p-4 rounded-2xl border-2 transition-all duration-300 text-center relative shadow-xs ${
+                                    isDone 
+                                      ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-900 dark:text-emerald-300' 
+                                      : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white hover:border-indigo-400'
+                                  }`}>
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                        isDone ? 'bg-emerald-600 text-white' : 'bg-indigo-600 text-white'
+                                      }`}>
+                                        Step {sIdx + 1}
+                                      </span>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleStepCompletion(block.id, stepId)}
+                                        className={`px-2.5 py-0.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${
+                                          isDone 
+                                            ? 'bg-emerald-600 text-white shadow-xs' 
+                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                                        }`}
+                                      >
+                                        <CheckCircle2 className="w-3.5 h-3.5" />
+                                        {isDone ? 'Done ✓' : 'Mark Done'}
+                                      </button>
+                                    </div>
+
+                                    <p className="font-extrabold text-sm leading-relaxed text-center">
+                                      {stepItem.instruction || stepItem.detail || stepItem.title || 'Step instruction...'}
+                                    </p>
+                                  </div>
+
+                                  {sIdx < (track.steps || []).length - 1 && (
+                                    <ArrowDown className={`w-5 h-5 transition-colors my-0.5 ${
+                                      isDone ? 'text-emerald-500' : 'text-indigo-400 animate-bounce'
+                                    }`} />
+                                  )}
+                                </React.Fragment>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
 
                 {block.type === 'graph' && (
                   <div className="h-[350px] w-full pt-4">

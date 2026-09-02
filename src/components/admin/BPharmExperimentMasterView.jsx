@@ -170,6 +170,19 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Lege
     return `<p class="mb-3">${formatted}</p>`;
   };
 
+
+  const normalizeProcedureTracks = (content) => {
+    if (!content) return [{ id: 'track-1', title: 'Procedure Steps', steps: [] }];
+    if (Array.isArray(content)) {
+      if (content.length === 0) return [{ id: 'track-1', title: 'Procedure Steps', steps: [] }];
+      if (content[0]?.steps !== undefined) return content;
+      if (content[0]?.instruction !== undefined || content[0]?.detail !== undefined || content[0]?.title !== undefined) {
+        return [{ id: 'track-1', title: 'Procedure Steps', steps: content }];
+      }
+    }
+    return [{ id: 'track-1', title: 'Procedure Steps', steps: [] }];
+  };
+
 export const BPharmExperimentMasterView = ({ subjectName }) => {
   const [experiments, setExperiments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -301,7 +314,7 @@ ${cleaned}` : cleaned);
     let yAxis = '';
 
     if (type === 'procedure') {
-      content = [{ id: Date.now().toString(), step_no: 1, instruction: '' }];
+      content = [{ id: Date.now().toString(), title: 'Procedure Steps', steps: [{ id: Date.now().toString(), step_no: 1, instruction: '' }] }];
     } else if (type === 'table') {
       content = ['DOSE', 'RESPONSE'];
       defaultRows = [];
@@ -563,25 +576,41 @@ ${cleaned}` : cleaned);
                 );
               })()}
 
-              {block.type === 'procedure' && (
-                <div className="flex flex-col items-center justify-center max-w-xl mx-auto py-4 space-y-3">
-                  {Array.isArray(block.content) && block.content.map((stepItem, sIdx) => (
-                    <React.Fragment key={stepItem.id || sIdx}>
-                      <div className="w-full bg-slate-50 dark:bg-slate-900 border-2 border-indigo-200 dark:border-indigo-900 p-4 rounded-2xl shadow-xs text-center">
-                        <span className="px-2.5 py-0.5 rounded-full bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider mb-1 inline-block">
-                          Step {sIdx + 1}
-                        </span>
-                        <p className="text-slate-800 dark:text-white font-extrabold text-sm leading-relaxed">
-                          {stepItem.instruction || stepItem.detail || stepItem.title || 'Step instruction...'}
-                        </p>
+              {block.type === 'procedure' && (() => {
+                const tracks = normalizeProcedureTracks(block.content);
+
+                return (
+                  <div className={`grid grid-cols-1 ${tracks.length > 1 ? 'md:grid-cols-2 lg:grid-cols-3' : 'max-w-xl mx-auto'} gap-6 py-4`}>
+                    {tracks.map((track, trkIdx) => (
+                      <div key={track.id || trkIdx} className="bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+                        <div className="text-center border-b border-slate-200 dark:border-slate-800 pb-2">
+                          <span className="px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-extrabold text-xs uppercase tracking-wider">
+                            {track.title || `Track ${trkIdx + 1}`}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col items-center space-y-3 pt-2">
+                          {(track.steps || []).map((stepItem, sIdx) => (
+                            <React.Fragment key={stepItem.id || sIdx}>
+                              <div className="w-full bg-white dark:bg-slate-950 border-2 border-indigo-200 dark:border-indigo-900/60 p-4 rounded-2xl shadow-xs text-center">
+                                <span className="px-2.5 py-0.5 rounded-full bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider mb-1 inline-block">
+                                  Step {sIdx + 1}
+                                </span>
+                                <p className="text-slate-800 dark:text-white font-extrabold text-sm leading-relaxed">
+                                  {stepItem.instruction || stepItem.detail || stepItem.title || 'Step instruction...'}
+                                </p>
+                              </div>
+                              {sIdx < (track.steps || []).length - 1 && (
+                                <ArrowDown className="w-5 h-5 text-indigo-500 animate-bounce my-1" />
+                              )}
+                            </React.Fragment>
+                          ))}
+                        </div>
                       </div>
-                      {sIdx < block.content.length - 1 && (
-                        <ArrowDown className="w-5 h-5 text-indigo-500 animate-bounce my-1" />
-                      )}
-                    </React.Fragment>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                );
+              })()}
 
               {block.type === 'code' && (
                 <div className="h-64 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-900 flex items-center justify-center text-slate-400 font-mono text-sm">
@@ -1045,66 +1074,125 @@ ${cleaned}` : cleaned);
                   </div>
                 )}
 
-                {block.type === 'procedure' && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold text-slate-500">Step-by-Step Procedure Box Flowchart (Connected by Down Arrows ⬇)</p>
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          const currentSteps = Array.isArray(block.content) ? block.content : [];
-                          const nextNo = currentSteps.length + 1;
-                          const newSteps = [...currentSteps, { id: Date.now().toString(), step_no: nextNo, instruction: '' }];
-                          updateBlock(block.id, 'content', newSteps);
-                        }}
-                        className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1 transition-all shadow-xs"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Add Step Box
-                      </button>
-                    </div>
+                {block.type === 'procedure' && (() => {
+                  const tracks = normalizeProcedureTracks(block.content);
 
-                    <div className="flex flex-col items-center space-y-3 max-w-xl mx-auto py-2">
-                      {Array.isArray(block.content) && block.content.map((sItem, sIdx) => (
-                        <React.Fragment key={sItem.id || sIdx}>
-                          <div className="w-full p-4 bg-slate-50 dark:bg-slate-900/80 rounded-2xl border-2 border-indigo-200 dark:border-indigo-900 shadow-xs space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="px-2.5 py-0.5 rounded-full bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider">
-                                Step {sIdx + 1}
-                              </span>
-                              <button 
-                                type="button" 
-                                onClick={() => {
-                                  const updatedSteps = block.content.filter((_, idx) => idx !== sIdx);
-                                  updateBlock(block.id, 'content', updatedSteps);
+                  return (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold text-slate-500">
+                          Parallel Procedure Tracks (Standard vs Test / Side-by-Side Flowcharts)
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newTrack = {
+                              id: Date.now().toString(),
+                              title: `Track ${tracks.length + 1}`,
+                              steps: [{ id: Date.now().toString(), step_no: 1, instruction: '' }]
+                            };
+                            updateBlock(block.id, 'content', [...tracks, newTrack]);
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1 transition-all shadow-xs"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Add Procedure Track Column
+                        </button>
+                      </div>
+
+                      <div className={`grid grid-cols-1 ${tracks.length > 1 ? 'md:grid-cols-2 lg:grid-cols-3' : 'max-w-xl mx-auto'} gap-6 py-2`}>
+                        {tracks.map((track, trkIdx) => (
+                          <div key={track.id || trkIdx} className="bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+                            <div className="flex items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+                              <input
+                                type="text"
+                                value={track.title}
+                                onChange={(e) => {
+                                  const updated = [...tracks];
+                                  updated[trkIdx] = { ...updated[trkIdx], title: e.target.value };
+                                  updateBlock(block.id, 'content', updated);
                                 }}
-                                className="text-rose-500 hover:bg-rose-50 p-1 rounded-lg"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                            <textarea
-                              value={sItem.instruction || sItem.detail || ''} 
-                              onChange={(e) => {
-                                const updatedSteps = [...block.content];
-                                updatedSteps[sIdx] = { ...updatedSteps[sIdx], instruction: e.target.value, step_no: sIdx + 1 };
-                                updateBlock(block.id, 'content', updatedSteps);
-                              }}
-                              placeholder="Enter procedure instruction for this step..."
-                              rows={2}
-                              className="w-full p-2 text-sm bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 font-bold focus:outline-none focus:border-indigo-500"
-                            />
-                          </div>
+                                placeholder="Track Name (e.g. Standard Drug / Test Drug)"
+                                className="font-extrabold text-xs text-indigo-700 dark:text-indigo-300 uppercase tracking-wider bg-transparent border-b border-dashed border-indigo-300 focus:outline-none w-full"
+                              />
 
-                          {sIdx < block.content.length - 1 && (
-                            <div className="flex flex-col items-center my-1 text-indigo-500">
-                              <ArrowDown className="w-5 h-5 animate-bounce" />
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = [...tracks];
+                                    const nextNo = (updated[trkIdx].steps || []).length + 1;
+                                    updated[trkIdx].steps = [
+                                      ...(updated[trkIdx].steps || []),
+                                      { id: Date.now().toString(), step_no: nextNo, instruction: '' }
+                                    ];
+                                    updateBlock(block.id, 'content', updated);
+                                  }}
+                                  title="Add Step to this Track"
+                                  className="px-2 py-1 bg-indigo-600 text-white rounded-md text-[11px] font-bold flex items-center gap-0.5"
+                                >
+                                  <Plus className="w-3 h-3" /> Step
+                                </button>
+                                {tracks.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = tracks.filter((_, idx) => idx !== trkIdx);
+                                      updateBlock(block.id, 'content', updated);
+                                    }}
+                                    title="Delete Track Column"
+                                    className="text-rose-500 hover:bg-rose-50 p-1 rounded"
+                                  >
+                                    ✕
+                                  </button>
+                                )}
+                              </div>
                             </div>
-                          )}
-                        </React.Fragment>
-                      ))}
+
+                            <div className="flex flex-col items-center space-y-3 py-1">
+                              {(track.steps || []).map((sItem, sIdx) => (
+                                <React.Fragment key={sItem.id || sIdx}>
+                                  <div className="w-full p-3.5 bg-white dark:bg-slate-950 rounded-xl border-2 border-indigo-200 dark:border-indigo-900/60 shadow-2xs space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="px-2 py-0.5 rounded-full bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider">
+                                        Step {sIdx + 1}
+                                      </span>
+                                      <button 
+                                        type="button" 
+                                        onClick={() => {
+                                          const updated = [...tracks];
+                                          updated[trkIdx].steps = updated[trkIdx].steps.filter((_, idx) => idx !== sIdx);
+                                          updateBlock(block.id, 'content', updated);
+                                        }}
+                                        className="text-rose-500 hover:bg-rose-50 p-1 rounded"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                    <textarea
+                                      value={sItem.instruction || sItem.detail || ''} 
+                                      onChange={(e) => {
+                                        const updated = [...tracks];
+                                        updated[trkIdx].steps[sIdx] = { ...updated[trkIdx].steps[sIdx], instruction: e.target.value, step_no: sIdx + 1 };
+                                        updateBlock(block.id, 'content', updated);
+                                      }}
+                                      placeholder="Enter step instruction..."
+                                      rows={2}
+                                      className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 font-bold focus:outline-none focus:border-indigo-500"
+                                    />
+                                  </div>
+
+                                  {sIdx < (track.steps || []).length - 1 && (
+                                    <ArrowDown className="w-4 h-4 text-indigo-500 animate-bounce my-0.5" />
+                                  )}
+                                </React.Fragment>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {block.type === 'code' && (
                   <textarea 
