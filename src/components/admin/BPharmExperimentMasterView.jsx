@@ -157,6 +157,7 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
 
   // Builder State
   const [editingId, setEditingId] = useState(null);
+  const [experimentNumber, setExperimentNumber] = useState('');
   const [experimentTitle, setExperimentTitle] = useState('');
   const [blocks, setBlocks] = useState([]);
 
@@ -240,6 +241,7 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
     try {
       const payload = {
         subject_name: subjectName,
+        experiment_number: experimentNumber,
         experiment_title: experimentTitle,
         experiment_content: blocks
       };
@@ -295,10 +297,12 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
     clearNotification();
     if (exp) {
       setEditingId(exp.id);
-      setExperimentTitle(exp.experiment_title);
+      setExperimentNumber(exp.experiment_number || '');
+      setExperimentTitle(exp.experiment_title || '');
       setBlocks(exp.experiment_content || []);
     } else {
       setEditingId(null);
+      setExperimentNumber('');
       setExperimentTitle('');
       setBlocks([]);
     }
@@ -1041,7 +1045,14 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
               {experiments.map(exp => (
                 <tr key={exp.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
                   <td className="p-4">
-                    <div className="font-bold text-slate-900 dark:text-white">{exp.experiment_title}</div>
+                    <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        {exp.experiment_number && (
+                          <span className="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-black">
+                            Exp {exp.experiment_number}
+                          </span>
+                        )}
+                        {exp.experiment_title}
+                      </div>
                     <div className="text-xs text-slate-500 mt-0.5">Created: {new Date(exp.created_at).toLocaleDateString()}</div>
                   </td>
                   <td className="p-4">

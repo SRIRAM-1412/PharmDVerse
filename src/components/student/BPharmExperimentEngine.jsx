@@ -238,7 +238,12 @@ export const BPharmExperimentEngine = ({ student, assignment, onBack }) => {
                 </span>
               )}
             </div>
-            <h2 className="text-xl font-black text-slate-800 dark:text-white leading-tight">
+            <h2 className="text-xl font-black text-slate-800 dark:text-white leading-tight flex items-center gap-2">
+              {master?.experiment_number && (
+                <span className="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-black">
+                  Exp {master.experiment_number}
+                </span>
+              )}
               {master?.experiment_title}
             </h2>
           </div>
