@@ -418,10 +418,9 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
           </button>
         </div>
 
-            </div>
-    </div>
-  );
-};
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -619,8 +618,7 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
       />
 
       <LogoPreviewModal isOpen={showLogoModal} onClose={() => setShowLogoModal(false)} />
-
-          </div>
+      </div>
     </div>
   );
 };
