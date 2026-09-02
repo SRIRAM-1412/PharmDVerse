@@ -8,7 +8,19 @@ import {
 const PlatformContext = createContext(null);
 
 export const PlatformProvider = ({ children }) => {
-  const [platformSettings, setPlatformSettings] = useState(DEFAULT_PLATFORM_SETTINGS);
+  const [platformSettings, setPlatformSettings] = useState(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const cached = window.localStorage.getItem('pharmdverse_platform_settings_cache');
+        if (cached) {
+          return { ...DEFAULT_PLATFORM_SETTINGS, ...JSON.parse(cached) };
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load cached settings:', e);
+    }
+    return DEFAULT_PLATFORM_SETTINGS;
+  });
   const [loadingSettings, setLoadingSettings] = useState(true);
 
   // Load platform settings on mount
