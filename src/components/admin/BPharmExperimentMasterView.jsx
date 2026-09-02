@@ -19,9 +19,37 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Lege
 
   const PALETTE = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899'];
 
-  const parseMultiCurveGraphData = (cols = [], rows = []) => {
+  const parseMultiCurveGraphData = (cols = [], rows = [], customCurves = null) => {
     if (!cols.length || !rows.length) return { data: [], lines: [] };
 
+    // If customCurves are defined by Super Admin via dropdown options
+    if (Array.isArray(customCurves) && customCurves.length > 0) {
+      const lines = customCurves.map((c, idx) => ({
+        key: `y${idx}`,
+        name: c.name || `Curve ${idx + 1}`,
+        color: c.color || PALETTE[idx % PALETTE.length],
+        xCol: typeof c.xCol === 'number' ? c.xCol : parseInt(c.xCol) || 0,
+        yCol: typeof c.yCol === 'number' ? c.yCol : parseInt(c.yCol) || 1
+      }));
+
+      const formattedData = rows.map((r, rIdx) => {
+        const firstX = parseFloat(r[lines[0]?.xCol || 0]) || rIdx;
+        const point = { rowIdx: rIdx, x: firstX };
+        lines.forEach(line => {
+          const xVal = parseFloat(r[line.xCol]);
+          const yVal = parseFloat(r[line.yCol]);
+          if (!isNaN(yVal)) {
+            point[line.key] = yVal;
+            if (!isNaN(xVal)) point[`x_${line.key}`] = xVal;
+          }
+        });
+        return point;
+      }).sort((a, b) => a.x - b.x);
+
+      return { data: formattedData, lines, mode: 'custom' };
+    }
+
+    // Fallback: Auto-Detect
     const isPaired = cols.length >= 4 && cols.length % 2 === 0;
 
     if (isPaired) {
@@ -537,26 +565,129 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
                       <div>
                         <div className="grid grid-cols-2 gap-3 mb-3">
                           <div>
-                            <label className="block text-[11px] font-bold text-slate-500 mb-1">X-Axis Graph Label</label>
+                            <label className="block text-[11px] font-bold text-slate-500 mb-1">X-Axis Graph Display Label</label>
                             <input 
                               type="text" 
                               value={block.xAxis || cols[0] || ''} 
                               onChange={(e) => updateBlock(block.id, 'xAxis', e.target.value)}
-                              placeholder="e.g., DOSE" 
+                              placeholder="e.g., DOSE (mg/mL)" 
                               className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 font-bold" 
                             />
                           </div>
                           <div>
-                            <label className="block text-[11px] font-bold text-slate-500 mb-1">Y-Axis Graph Label</label>
+                            <label className="block text-[11px] font-bold text-slate-500 mb-1">Y-Axis Graph Display Label</label>
                             <input 
                               type="text" 
                               value={block.yAxis || cols[1] || ''} 
                               onChange={(e) => updateBlock(block.id, 'yAxis', e.target.value)}
-                              placeholder="e.g., RESPONSE" 
+                              placeholder="e.g., % RESPONSE" 
                               className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 font-bold" 
                             />
                           </div>
                         </div>
+
+                        {cols.length >= 2 && (
+                          <div className="p-3 bg-indigo-50/70 dark:bg-indigo-950/40 rounded-xl border border-indigo-200 dark:border-indigo-900 mb-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-black text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
+                                Custom Dropdown Axis & Curve Mapping Options
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const currentCurves = Array.isArray(block.customCurves) ? block.customCurves : [];
+                                  const nextIdx = currentCurves.length;
+                                  const defaultX = nextIdx * 2 < cols.length ? nextIdx * 2 : 0;
+                                  const defaultY = nextIdx * 2 + 1 < cols.length ? nextIdx * 2 + 1 : 1;
+                                  const newCurves = [
+                                    ...currentCurves,
+                                    {
+                                      id: Date.now().toString(),
+                                      name: `Drug ${String.fromCharCode(65 + nextIdx)}`,
+                                      xCol: defaultX,
+                                      yCol: defaultY,
+                                      color: PALETTE[nextIdx % PALETTE.length]
+                                    }
+                                  ];
+                                  updateBlock(block.id, 'customCurves', newCurves);
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs"
+                              >
+                                <Plus className="w-3 h-3" /> Add Custom Curve Mapping
+                              </button>
+                            </div>
+
+                            {(!block.customCurves || block.customCurves.length === 0) ? (
+                              <p className="text-[11px] text-indigo-600/70 dark:text-indigo-400/70 font-medium italic">
+                                Currently using Auto-Detect mode. Click "Add Custom Curve Mapping" to explicitly select X & Y columns for each drug via dropdown options.
+                              </p>
+                            ) : (
+                              <div className="space-y-2">
+                                {block.customCurves.map((curve, crvIdx) => (
+                                  <div key={curve.id || crvIdx} className="p-2.5 bg-white dark:bg-slate-900 rounded-lg border border-indigo-200 dark:border-indigo-800 flex items-center gap-2 text-xs">
+                                    <span className="w-3 h-3 rounded-full shrink-0 inline-block" style={{ backgroundColor: curve.color || PALETTE[crvIdx % PALETTE.length] }}></span>
+                                    <input
+                                      type="text"
+                                      value={curve.name}
+                                      onChange={(e) => {
+                                        const updated = [...block.customCurves];
+                                        updated[crvIdx] = { ...updated[crvIdx], name: e.target.value };
+                                        updateBlock(block.id, 'customCurves', updated);
+                                      }}
+                                      placeholder="Curve Label (e.g. Drug A)"
+                                      className="w-28 p-1 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded font-bold"
+                                    />
+
+                                    <div className="flex items-center gap-1 flex-1">
+                                      <span className="text-[10px] font-bold text-slate-500">X-Axis:</span>
+                                      <select
+                                        value={curve.xCol}
+                                        onChange={(e) => {
+                                          const updated = [...block.customCurves];
+                                          updated[crvIdx] = { ...updated[crvIdx], xCol: parseInt(e.target.value) };
+                                          updateBlock(block.id, 'customCurves', updated);
+                                        }}
+                                        className="p-1 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded font-bold"
+                                      >
+                                        {cols.map((colName, cIdx) => (
+                                          <option key={cIdx} value={cIdx}>Col {cIdx + 1}: {colName || `Col ${cIdx + 1}`}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+
+                                    <div className="flex items-center gap-1 flex-1">
+                                      <span className="text-[10px] font-bold text-slate-500">Y-Axis:</span>
+                                      <select
+                                        value={curve.yCol}
+                                        onChange={(e) => {
+                                          const updated = [...block.customCurves];
+                                          updated[crvIdx] = { ...updated[crvIdx], yCol: parseInt(e.target.value) };
+                                          updateBlock(block.id, 'customCurves', updated);
+                                        }}
+                                        className="p-1 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded font-bold"
+                                      >
+                                        {cols.map((colName, cIdx) => (
+                                          <option key={cIdx} value={cIdx}>Col {cIdx + 1}: {colName || `Col ${cIdx + 1}`}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const updated = block.customCurves.filter((_, idx) => idx !== crvIdx);
+                                        updateBlock(block.id, 'customCurves', updated);
+                                      }}
+                                      className="text-rose-500 hover:bg-rose-50 p-1 rounded"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
 
 <label className="block text-xs font-bold text-slate-500 mb-1">Table Columns (Comma Separated)</label>
                         <input 
@@ -680,7 +811,7 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
                           )}
 
                           {(() => {
-                            const { data: parsedData, lines: parsedLines } = parseMultiCurveGraphData(cols, rows);
+                            const { data: parsedData, lines: parsedLines } = parseMultiCurveGraphData(cols, rows, block.customCurves);
                             if (parsedData.length === 0 || parsedLines.length === 0) return null;
 
                             return (

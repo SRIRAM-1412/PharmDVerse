@@ -213,6 +213,7 @@ graph TD
 
 ## 8. LIVING DEPLOYMENT LEDGER
 
+* **2026-09-02 (Build 2.0.8):** Deployed Explicit Dropdown Axis Selectors & Custom Curve Mapping Options in B.Pharm Master Experiment Builder (allows Super Admin to map X & Y columns for each drug curve via dropdown menus).
 * **2026-09-02 (Build 2.0.7):** Deployed Multi-Drug Multi-Line Graph Plotting Engine supporting both Shared Dose (`DOSE, DRUG A, DRUG B`) and Paired Column (`DRUG-A, RESP A, DRUG-B, RESP B`) modes with distinct line colors and graph legends.
 * **2026-09-02 (Build 2.0.6):** Added direct visual Column and Row editing controls in B.Pharm Master Experiment Builder (allows editing column header names directly, adding/deleting columns via `[ + Add Column ]`, and smooth typing in `Table Columns`).
 * **2026-09-02 (Build 2.0.5):** Streamlined B.Pharm Master Experiment Builder action bar into 3 core unified Learning Mode blocks: 1. Text Block (Word paste auto-cleaner), 2. Procedure Flowchart (`[ + Add Step Box ]` with connecting down arrows `⬇`), 3. Observation Table & Graph (unified table + axis config + real-time live graph plotter).
@@ -221,6 +222,7 @@ graph TD
 * **2026-09-02 (Build 2.0.2):** Deployed MS Word Paste Auto-Cleaner (`handleTextPaste`) across all Text blocks in the Master Experiment Builder to preserve headings, bold labels (`Meaning:`, `Use:`), bullet lists, and paragraph line breaks.
 * **2026-09-02 (Build 2.0.1):** Configured full Row-Level Security (RLS) policies across all B.Pharm tables (`bpharm_master_experiments`, `bpharm_assignments`, `bpharm_student_records`, `bpharm_branding_settings`).
 * **2026-09-02 (Build 2.0.0):** Renamed global platform branding to **PHARM.D & B.PHARM NEXUS**. Deployed B.Pharm Student & Pharmacology Preceptor portals. Implemented zero-grace-period global Read-Only Soft-Lock mode.
+
 
 
 
