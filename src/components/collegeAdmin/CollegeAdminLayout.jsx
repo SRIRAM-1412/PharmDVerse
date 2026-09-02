@@ -74,9 +74,15 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
   useEffect(() => {
     const loadFreshCollege = async () => {
       if (initialCollege?.id) {
-        const res = await fetchCollegeByIdFromSupabase(initialCollege.id);
+        const res = await fetchCollegeSubscriptionByIdFromSupabase(initialCollege.id);
         if (res.success && res.college) {
-          setCollege(res.college);
+          const merged = { 
+            ...res.college, 
+            subscription_start_date: res.subscription?.subscription_start_date || res.college.subscription_start_date,
+            subscription_expiry_date: res.subscription?.subscription_expiry_date || res.college.subscription_expiry_date,
+            status: res.subscription?.status || res.college.status
+          };
+          setCollege(merged);
         }
       }
     };
