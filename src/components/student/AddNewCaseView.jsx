@@ -6,7 +6,7 @@ import { SearchableSelect } from '../common/SearchableSelect';
 import { CLINICAL_DEPARTMENTS, CLINICAL_WARDS_UNITS } from '../../constants/clinicalMasterData';
 import { resolveCollegeHospitalOptions } from '../../utils/resolveCollegeHospitalOptions';
 
-export const AddNewCaseView = ({ student, onCancel, onSuccess }) => {
+export const AddNewCaseView = ({ student, onCancel, onSuccess, isExpired }) => {
   const [caseId, setCaseId] = useState('');
   const [assignedPreceptor, setAssignedPreceptor] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -337,7 +337,7 @@ export const AddNewCaseView = ({ student, onCancel, onSuccess }) => {
 
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || isExpired}
               className="h-[48px] px-8 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-extrabold flex items-center gap-2 shadow-md shadow-emerald-600/20 transition-all transform hover:-translate-y-0.5 disabled:opacity-50"
             >
               {saving ? (
