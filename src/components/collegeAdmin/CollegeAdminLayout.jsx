@@ -21,6 +21,7 @@ import { LogoPreviewModal } from '../modals/LogoPreviewModal';
 import { ExpiredSubscriptionBanner } from '../common/ExpiredSubscriptionBanner';
 import { useWorkspaceHistory } from '../../hooks/useWorkspaceHistory';
 import { usePlatform } from '../../context/PlatformContext';
+import { getSubscriptionStatusDetails } from '../../utils/subscriptionUtils';
 
 export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
   const { isDark, toggleTheme } = useTheme();
@@ -36,7 +37,9 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
   const [college, setCollege] = useState(initialCollege);
   const [showLogoModal, setShowLogoModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const isExpired = college?.status === 'Expired';
+  const rawExpiry = college?.subscription_expiry_date || college?.subscriptionExpiryDate || '2027-08-04';
+  const statusMeta = getSubscriptionStatusDetails(rawExpiry, college?.status);
+  const isExpired = statusMeta.status === 'Expired';
 
   // Body scroll lock effect when mobile sidebar drawer is open
   useEffect(() => {
