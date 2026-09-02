@@ -1,7 +1,7 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useInlineNotification } from '../../hooks/useInlineNotification';
-import { ChevronLeft, Save, Loader2, Send, Activity, Table as TableIcon, Lock, ArrowDown, CheckCircle2, GitCommit } from 'lucide-react';
+import { ChevronLeft, Save, Loader2, Send, Activity, Table as TableIcon, Lock } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export const BPharmExperimentEngine = ({ student, assignment, onBack }) => {
@@ -13,7 +13,6 @@ export const BPharmExperimentEngine = ({ student, assignment, onBack }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { notification, showNotification } = useInlineNotification();
   const [existingRecord, setExistingRecord] = useState(null);
-  const [completedSteps, setCompletedSteps] = useState({});
 
   // Initialize table data structures based on the master blocks
   useEffect(() => {
@@ -93,17 +92,6 @@ export const BPharmExperimentEngine = ({ student, assignment, onBack }) => {
       const yVal = parseFloat(row.values[1]) || 0; // Assume col 1 is Y
       return { x: xVal, y: yVal };
     }).sort((a, b) => a.x - b.x); // Sort by X for proper line graphing
-  };
-
-  
-  const toggleStepCompletion = (blockId, stepId) => {
-    setCompletedSteps(prev => {
-      const current = prev[blockId] || [];
-      const updated = current.includes(stepId)
-        ? current.filter(id => id !== stepId)
-        : [...current, stepId];
-      return { ...prev, [blockId]: updated };
-    });
   };
 
   const handleSave = async (submit = false) => {
@@ -284,7 +272,7 @@ export const BPharmExperimentEngine = ({ student, assignment, onBack }) => {
                               ))}
                               {!isReadOnly && (
                                 <td className="p-2 sm:p-3 text-center">
-                                  <button onClick={() => removeRow(block.id, rowIndex)} className="text-rose-400 hover:text-rose-600 font-bold p-1">âœ•</button>
+                                  <button onClick={() => removeRow(block.id, rowIndex)} className="text-rose-400 hover:text-rose-600 font-bold p-1">✕</button>
                                 </td>
                               )}
                             </tr>
@@ -300,57 +288,6 @@ export const BPharmExperimentEngine = ({ student, assignment, onBack }) => {
                         <TableIcon className="w-3.5 h-3.5" /> Add Row
                       </button>
                     )}
-                  </div>
-                )}
-
-                
-                {block.type === 'flowchart' && (
-                  <div className="flex flex-col items-center justify-center max-w-2xl mx-auto py-4 space-y-3">
-                    {Array.isArray(block.content) && block.content.map((stepItem, sIdx) => {
-                      const stepId = stepItem.id || `step-${sIdx}`;
-                      const isDone = (completedSteps[block.id] || []).includes(stepId);
-                      
-                      return (
-                        <React.Fragment key={stepId}>
-                          <div className={`w-full p-5 rounded-2xl border-2 transition-all duration-300 text-center relative shadow-xs ${
-                            isDone 
-                              ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-900 dark:text-emerald-300' 
-                              : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white hover:border-indigo-400'
-                          }`}>
-                            <div className="flex items-center justify-between mb-2">
-                              <span className={`px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                                isDone ? 'bg-emerald-600 text-white' : 'bg-indigo-600 text-white'
-                              }`}>
-                                {stepItem.step || `Step ${sIdx + 1}`}
-                              </span>
-
-                              <button
-                                type="button"
-                                onClick={() => toggleStepCompletion(block.id, stepId)}
-                                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                                  isDone 
-                                    ? 'bg-emerald-600 text-white shadow-xs' 
-                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
-                                }`}
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                {isDone ? 'Done ✓' : 'Mark as Done'}
-                              </button>
-                            </div>
-
-                            <p className="font-extrabold text-base leading-relaxed text-center">
-                              {stepItem.detail || stepItem.title || 'Step instruction...'}
-                            </p>
-                          </div>
-
-                          {sIdx < block.content.length - 1 && (
-                            <ArrowDown className={`w-5 h-5 transition-colors my-1 ${
-                              isDone ? 'text-emerald-500' : 'text-indigo-400 animate-bounce'
-                            }`} />
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
                   </div>
                 )}
 

@@ -213,7 +213,8 @@ graph TD
 
 ## 8. LIVING DEPLOYMENT LEDGER
 
-* **2026-09-02 (Build 2.0.2):** Deployed MS Word Paste Auto-Cleaner, Centered Procedure Flowchart Block Builder (`flowchart` block type), and Interactive Student Step Checklist (`[ Mark as Done ]` toggle).
+* **2026-09-02 (Build 2.0.2):** Deployed MS Word Paste Auto-Cleaner (`handleTextPaste`) across all Text blocks in the Master Experiment Builder to preserve headings, bold labels (`Meaning:`, `Use:`), bullet lists, and paragraph line breaks.
 * **2026-09-02 (Build 2.0.1):** Configured full Row-Level Security (RLS) policies across all B.Pharm tables (`bpharm_master_experiments`, `bpharm_assignments`, `bpharm_student_records`, `bpharm_branding_settings`).
 * **2026-09-02 (Build 2.0.0):** Renamed global platform branding to **PHARM.D & B.PHARM NEXUS**. Deployed B.Pharm Student & Pharmacology Preceptor portals. Implemented zero-grace-period global Read-Only Soft-Lock mode.
+
 
