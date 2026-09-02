@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ClipboardList, Search, Filter, Plus, Edit3, Trash2, Eye, Send, ChevronLeft, ChevronRight, Loader2, Save, X, AlertTriangle, Stethoscope, HeartHandshake, ShieldAlert, FileSearch, Download, RotateCcw } from 'lucide-react';
+import { ClipboardList, Search, Filter, Plus, FilePlus2, Edit3, Trash2, Eye, Send, ChevronLeft, ChevronRight, Loader2, Save, X, AlertTriangle, Stethoscope, HeartHandshake, ShieldAlert, FileSearch, Download, RotateCcw } from 'lucide-react';
 import { fetchStudentCasesFromSupabase, updateClinicalCaseInSupabase, deleteClinicalCaseFromSupabase, fetchCaseModuleStatusesMapFromSupabase, submitCompleteClinicalCaseInSupabase } from '../../services/supabaseService';
 import { ModalWrapper } from '../modals/ModalWrapper';
 import { InlineActionNotification } from '../common/InlineActionNotification';
