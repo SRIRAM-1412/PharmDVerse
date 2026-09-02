@@ -101,7 +101,7 @@ export const getSubscriptionStatusDetails = (expiryDateStr, explicitStatus = 'Ac
 
   const daysRemaining = calculateDaysRemaining(expiryDateStr);
 
-  if (daysRemaining < 0) {
+  if (daysRemaining <= 0) {
     return {
       status: 'Expired',
       label: 'Expired',
