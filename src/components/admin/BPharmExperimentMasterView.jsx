@@ -120,40 +120,43 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Lege
       .replace(/<style[\s\S]*?<\/style>/gi, '')
       .replace(/<script[\s\S]*?<\/script>/gi, '');
 
-    // Convert common HTML tags to clean markup/tags
-    text = text
-      .replace(/<b>(.*?)<\/b>/gi, '<b>$1</b>')
-      .replace(/<strong>(.*?)<\/strong>/gi, '<b>$1</b>')
-      .replace(/<i>(.*?)<\/i>/gi, '<i>$1</i>')
-      .replace(/<em>(.*?)<\/em>/gi, '<i>$1</i>')
-      .replace(/<sub>(.*?)<\/sub>/gi, '<sub>$1</sub>')
-      .replace(/<sup>(.*?)<\/sup>/gi, '<sup>$1</sup>');
-
-    // Remove remaining HTML tags except formatting tags
+    // Strip HTML tags except b, i, sub, sup
     text = text.replace(/<(?!\/?(b|i|sub|sup)\b)[^>]+>/gi, '');
 
-    // Normalize newlines
+    // Normalize line breaks
     text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-    // Split into paragraphs by double newlines
-    const paragraphs = text.split(/\n\s*\n/);
+    // Split into individual lines
+    const rawLines = text.split('\n');
+    const processedLines = [];
 
-    const smoothedParagraphs = paragraphs.map(p => {
-      let trimmed = p.trim();
-      if (!trimmed) return '';
-
-      // If line is a bullet item or list item, keep it intact
-      if (/^[•\-\*\d+\.]/.test(trimmed)) {
-        return trimmed.replace(/^[\-\*]\s*/, '• ');
+    rawLines.forEach(line => {
+      let trimmed = line.trim();
+      if (!trimmed) {
+        if (processedLines.length > 0 && processedLines[processedLines.length - 1] !== '') {
+          processedLines.push('');
+        }
+        return;
       }
 
-      // Smooth single newlines inside a paragraph into a single space
-      return trimmed.replace(/\n+/g, ' ');
-    }).filter(Boolean);
+      // If line is a bullet item or numbered list item
+      if (/^[•-*d+.]/.test(trimmed)) {
+        let bulletText = trimmed.replace(/^[-*]s*/, '• ');
+        processedLines.push(bulletText);
+      } else {
+        // Normal paragraph line: if previous line was also a normal paragraph line, append with space
+        const lastIdx = processedLines.length - 1;
+        if (lastIdx >= 0 && processedLines[lastIdx] !== '' && !/^[•-*d+.]/.test(processedLines[lastIdx])) {
+          processedLines[lastIdx] += ' ' + trimmed;
+        } else {
+          processedLines.push(trimmed);
+        }
+      }
+    });
 
-    let result = smoothedParagraphs.join('\n\n');
+    let result = processedLines.join('\n');
 
-    // Auto-bold key labels (e.g., Aim:, Principle:, Materials:, Procedure:, Note:)
+    // Auto-bold key section headers (e.g. Aim:, Principle:, Materials:, Procedure:, Note:)
     result = result.replace(/^(Aim|Principle|Theory|Materials|Reagents|Equipment|Procedure|Observation|Result|Discussion|Note):\s*/gmi, '<b>$1:</b> ');
 
     return result;
@@ -287,9 +290,9 @@ ${cleaned}` : cleaned);
     let text = block.content || '';
 
     if (formatType === 'bold') {
-      text += ' <b>Bold Text</b>';
+      text += text ? ' <b>Bold Text</b>' : '<b>Bold Text</b>';
     } else if (formatType === 'italic') {
-      text += ' <i>Italic Text</i>';
+      text += text ? ' <i>Italic Text</i>' : '<i>Italic Text</i>';
     } else if (formatType === 'heading') {
       text += text ? '\n\n<b>SECTION HEADING:</b> ' : '<b>SECTION HEADING:</b> ';
     } else if (formatType === 'bullet') {
@@ -297,9 +300,9 @@ ${cleaned}` : cleaned);
     } else if (formatType === 'number') {
       text += text ? '\n1. New List Item' : '1. New List Item';
     } else if (formatType === 'subscript') {
-      text += ' <sub>2</sub>';
+      text += '<sub>2</sub>';
     } else if (formatType === 'superscript') {
-      text += ' <sup>2+</sup>';
+      text += '<sup>2+</sup>';
     } else if (formatType === 'autoformat') {
       text = sanitizeAndSmoothWordText(text);
     }
