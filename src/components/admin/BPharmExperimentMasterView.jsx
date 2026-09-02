@@ -514,14 +514,28 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
         )}
 
         <div className="bg-white dark:bg-slate-950 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
-          <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Experiment Title</label>
-          <input 
-            type="text" 
-            value={experimentTitle}
-            onChange={(e) => setExperimentTitle(e.target.value)}
-            placeholder="e.g., Effect of drugs on rabbit eye" 
-            className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold"
-          />
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Exp No.</label>
+              <input 
+                type="text" 
+                value={experimentNumber}
+                onChange={(e) => setExperimentNumber(e.target.value)}
+                placeholder="e.g., 01" 
+                className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div className="md:col-span-4">
+              <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Experiment Title</label>
+              <input 
+                type="text" 
+                value={experimentTitle}
+                onChange={(e) => setExperimentTitle(e.target.value)}
+                placeholder="e.g., Effect of drugs on rabbit eye" 
+                className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
         </div>
 
         <div className="space-y-4 mb-8">
