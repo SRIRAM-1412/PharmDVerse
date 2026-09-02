@@ -40,7 +40,7 @@ import { StudentLoginModal } from './components/modals/StudentLoginModal';
 import { InfoModal } from './components/modals/InfoModal';
 
 export default function App() {
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(false);
   const [viewMode, setViewMode] = useState('landing'); // 'landing' | 'admin' | 'college_portal' | 'college_admin' | 'preceptor_portal' | 'student_portal'
   
   const [pricingOpen, setPricingOpen] = useState(false);
