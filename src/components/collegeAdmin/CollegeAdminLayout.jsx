@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LayoutDashboard, User, GraduationCap, Building2, LogOut, Sun, Moon, Menu, X, ShieldCheck, UserCheck, ClipboardList, FileText, FileCheck2, TrendingUp, ChevronDown, ChevronLeft, ChevronRight, Palette } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
-import { fetchCollegeByIdFromSupabase, fetchStudentsFromSupabase } from '../../services/supabaseService';
+import { fetchCollegeByIdFromSupabase, fetchCollegeSubscriptionByIdFromSupabase, fetchStudentsFromSupabase } from '../../services/supabaseService';
 
 import { CollegeAdminDashboardView } from './CollegeAdminDashboardView';
 import { AddPreceptorView } from './AddPreceptorView';
