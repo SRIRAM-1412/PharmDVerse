@@ -18,14 +18,14 @@ export const SplashScreen = ({ onComplete }) => {
 
     // Completely unmount splash screen at 2.2s (after 400ms fade duration)
     const removeTimer = setTimeout(() => {
-      onComplete();
+      if (typeof onComplete === 'function') onComplete();
     }, 2200);
 
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(removeTimer);
     };
-  }, [onComplete]);
+  }, []); // Run ONCE on mount to prevent infinite re-render loop
 
   const platformName = platformSettings?.platform_name || 'PharmDVerse';
   const logoUrl = platformSettings?.logo_url || '/pharmdverse-logo.png';
