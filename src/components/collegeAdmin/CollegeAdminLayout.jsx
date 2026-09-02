@@ -40,6 +40,7 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
   const rawExpiry = college?.subscription_expiry_date || college?.subscriptionExpiryDate || '2027-08-04';
   const statusMeta = getSubscriptionStatusDetails(rawExpiry, college?.status);
   const isExpired = statusMeta.status === 'Expired';
+  console.log("DEBUG EXPIRATION:", { rawExpiry, dbStatus: college?.status, statusMeta, isExpired, college });
 
   // Body scroll lock effect when mobile sidebar drawer is open
   useEffect(() => {
@@ -79,7 +80,7 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
           const merged = { 
             ...res.college, 
             subscription_start_date: res.subscription?.subscription_start_date || res.college.subscription_start_date,
-            subscription_expiry_date: res.subscription?.subscription_expiry_date || res.college.subscription_expiry_date,
+            subscription_expiry_date: res.subscription?.subscription_end_date || res.college.subscription_end_date || res.subscription?.subscription_expiry_date,
             status: res.subscription?.status || res.college.status
           };
           setCollege(merged);
