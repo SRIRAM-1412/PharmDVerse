@@ -164,23 +164,21 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Lege
 const WYSIWYGTextEditor = ({ content, onChange }) => {
   const editorRef = useRef(null);
 
+  const cleanRawTags = (textStr) => {
+    if (!textStr) return '';
+    return textStr.replace(/<[^>]+>/g, '').trim();
+  };
+
   useEffect(() => {
     if (editorRef.current) {
       const activeEl = document.activeElement;
       if (activeEl !== editorRef.current) {
         let raw = content || '';
-        try {
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(raw, 'text/html');
-          let parsedHTML = doc.body.innerHTML;
-          if (parsedHTML.includes('&lt;') && parsedHTML.includes('&gt;')) {
-            const doc2 = parser.parseFromString(doc.body.textContent, 'text/html');
-            parsedHTML = doc2.body.innerHTML;
-          }
-          editorRef.current.innerHTML = parsedHTML;
-        } catch (err) {
-          editorRef.current.innerHTML = raw;
+        // Strip raw HTML code tags if present
+        if (raw.includes('<b>') || raw.includes('<i>') || raw.includes('<sub>') || raw.includes('<sup>') || raw.includes('<h3>')) {
+          raw = cleanRawTags(raw);
         }
+        editorRef.current.innerHTML = raw;
       }
     }
   }, [content]);
@@ -188,6 +186,14 @@ const WYSIWYGTextEditor = ({ content, onChange }) => {
   const handleInput = () => {
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
+    }
+  };
+
+  const handlePurgeTags = () => {
+    if (editorRef.current) {
+      const text = cleanRawTags(editorRef.current.innerText || editorRef.current.textContent);
+      editorRef.current.innerHTML = text;
+      onChange(text);
     }
   };
 
@@ -264,6 +270,15 @@ const WYSIWYGTextEditor = ({ content, onChange }) => {
           className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs cursor-pointer select-none"
         >
           X²
+        </button>
+
+        <button
+          type="button"
+          onClick={handlePurgeTags}
+          title="Clean & Purge All Raw HTML Tags"
+          className="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs ml-auto flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
+        >
+          🧹 Clean HTML Code Tags
         </button>
       </div>
 
