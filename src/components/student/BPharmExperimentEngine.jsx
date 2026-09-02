@@ -66,6 +66,15 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
     }
   };
 
+
+  const renderRichTextHTML = (contentStr) => {
+    if (!contentStr) return '';
+    let formatted = contentStr
+      .replace(/\n\n/g, '</p><p class="mb-3">')
+      .replace(/\n/g, '<br/>');
+    return `<p class="mb-3">${formatted}</p>`;
+  };
+
 export const BPharmExperimentEngine = ({ student, assignment, onBack }) => {
   const { master, mode } = assignment;
   const blocks = master?.experiment_content || [];
@@ -309,9 +318,10 @@ export const BPharmExperimentEngine = ({ student, assignment, onBack }) => {
                 )}
                 
                 {block.type === 'text' && (
-                  <div className="text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed font-medium">
-                    {block.content}
-                  </div>
+                  <div 
+                    className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium text-base text-editor-content"
+                    dangerouslySetInnerHTML={{ __html: renderRichTextHTML(block.content) }}
+                  />
                 )}
 
                 {block.type === 'media' && (

@@ -106,6 +106,70 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Lege
     }
   };
 
+
+  // Advanced Word Sanitizer & Paragraph Smoother
+  const sanitizeAndSmoothWordText = (rawStr) => {
+    if (!rawStr) return '';
+
+    let text = rawStr
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/<!\[[\s\S]*?\]>/g, '')
+      .replace(/\[if[\s\S]*?endif\]/gi, '')
+      .replace(/StartFragment/gi, '')
+      .replace(/EndFragment/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<script[\s\S]*?<\/script>/gi, '');
+
+    // Convert common HTML tags to clean markup/tags
+    text = text
+      .replace(/<b>(.*?)<\/b>/gi, '<b>$1</b>')
+      .replace(/<strong>(.*?)<\/strong>/gi, '<b>$1</b>')
+      .replace(/<i>(.*?)<\/i>/gi, '<i>$1</i>')
+      .replace(/<em>(.*?)<\/em>/gi, '<i>$1</i>')
+      .replace(/<sub>(.*?)<\/sub>/gi, '<sub>$1</sub>')
+      .replace(/<sup>(.*?)<\/sup>/gi, '<sup>$1</sup>');
+
+    // Remove remaining HTML tags except formatting tags
+    text = text.replace(/<(?!\/?(b|i|sub|sup)\b)[^>]+>/gi, '');
+
+    // Normalize newlines
+    text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    // Split into paragraphs by double newlines
+    const paragraphs = text.split(/\n\s*\n/);
+
+    const smoothedParagraphs = paragraphs.map(p => {
+      let trimmed = p.trim();
+      if (!trimmed) return '';
+
+      // If line is a bullet item or list item, keep it intact
+      if (/^[•\-\*\d+\.]/.test(trimmed)) {
+        return trimmed.replace(/^[\-\*]\s*/, '• ');
+      }
+
+      // Smooth single newlines inside a paragraph into a single space
+      return trimmed.replace(/\n+/g, ' ');
+    }).filter(Boolean);
+
+    let result = smoothedParagraphs.join('\n\n');
+
+    // Auto-bold key labels (e.g., Aim:, Principle:, Materials:, Procedure:, Note:)
+    result = result.replace(/^(Aim|Principle|Theory|Materials|Reagents|Equipment|Procedure|Observation|Result|Discussion|Note):\s*/gmi, '<b>$1:</b> ');
+
+    return result;
+  };
+
+  const renderRichTextHTML = (contentStr) => {
+    if (!contentStr) return '';
+    
+    // Replace newline breaks with <br/> while preserving <b>, <i>, <sub>, <sup>
+    let formatted = contentStr
+      .replace(/\n\n/g, '</p><p class="mb-3">')
+      .replace(/\n/g, '<br/>');
+
+    return `<p class="mb-3">${formatted}</p>`;
+  };
+
 export const BPharmExperimentMasterView = ({ subjectName }) => {
   const [experiments, setExperiments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -160,7 +224,7 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
       cleaned = plainText;
     }
 
-    cleaned = sanitizeWordText(cleaned);
+    cleaned = sanitizeAndSmoothWordText(cleaned);
 
     if (cleaned) {
       e.preventDefault();
@@ -202,6 +266,34 @@ ${cleaned}` : cleaned);
   }, [subjectName]);
 
   // Block Management
+  
+  const applyFormatting = (blockId, formatType) => {
+    const block = blocks.find(b => b.id === blockId);
+    if (!block) return;
+
+    let text = block.content || '';
+
+    if (formatType === 'bold') {
+      text += ' <b>Bold Text</b>';
+    } else if (formatType === 'italic') {
+      text += ' <i>Italic Text</i>';
+    } else if (formatType === 'heading') {
+      text += text ? '\n\n<b>SECTION HEADING:</b> ' : '<b>SECTION HEADING:</b> ';
+    } else if (formatType === 'bullet') {
+      text += text ? '\n• New Bullet Item' : '• New Bullet Item';
+    } else if (formatType === 'number') {
+      text += text ? '\n1. New List Item' : '1. New List Item';
+    } else if (formatType === 'subscript') {
+      text += ' <sub>2</sub>';
+    } else if (formatType === 'superscript') {
+      text += ' <sup>2+</sup>';
+    } else if (formatType === 'autoformat') {
+      text = sanitizeAndSmoothWordText(text);
+    }
+
+    updateBlock(blockId, 'content', text);
+  };
+
   const addBlock = (type) => {
     let content = '';
     let defaultRows = [];
@@ -360,9 +452,10 @@ ${cleaned}` : cleaned);
               )}
               
               {block.type === 'text' && (
-                <div className="text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed font-medium">
-                  {block.content || <span className="italic opacity-50">Empty text block</span>}
-                </div>
+                <div 
+                  className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium text-base text-editor-content"
+                  dangerouslySetInnerHTML={{ __html: renderRichTextHTML(block.content || '<i>Empty text block</i>') }}
+                />
               )}
 
               {block.type === 'media' && (
@@ -592,14 +685,35 @@ ${cleaned}` : cleaned);
                 </div>
 
                 {block.type === 'text' && (
-                  <textarea 
-                    value={block.content}
-                    onChange={(e) => updateBlock(block.id, 'content', e.target.value)}
-                    onPaste={(e) => handleTextPaste(e, block.id)}
-                    placeholder="Enter text content here (Word paste auto-cleaned)..."
-                    rows={4}
-                    className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-medium"
-                  />
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+                    <div className="flex flex-wrap items-center gap-1.5 p-2.5 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-xs">
+                      <button type="button" onClick={() => applyFormatting(block.id, 'bold')} title="Bold" className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-black hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs">B</button>
+                      <button type="button" onClick={() => applyFormatting(block.id, 'italic')} title="Italic" className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 italic font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs">I</button>
+                      <button type="button" onClick={() => applyFormatting(block.id, 'heading')} title="Heading" className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-black hover:bg-slate-50 text-indigo-600 dark:text-indigo-400 shadow-2xs">H</button>
+                      <button type="button" onClick={() => applyFormatting(block.id, 'bullet')} title="Bullet List" className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs">• List</button>
+                      <button type="button" onClick={() => applyFormatting(block.id, 'number')} title="Numbered List" className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs">1. List</button>
+                      <button type="button" onClick={() => applyFormatting(block.id, 'subscript')} title="Chemical Subscript" className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs">X₂</button>
+                      <button type="button" onClick={() => applyFormatting(block.id, 'superscript')} title="Chemical Superscript" className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs">X²</button>
+                      
+                      <button 
+                        type="button" 
+                        onClick={() => applyFormatting(block.id, 'autoformat')} 
+                        title="Auto-Clean MS Word Paste & Join Line Wraps"
+                        className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs ml-auto flex items-center gap-1 shadow-xs transition-all"
+                      >
+                        ⚡ Smooth Word Paste
+                      </button>
+                    </div>
+
+                    <textarea 
+                      value={block.content}
+                      onChange={(e) => updateBlock(block.id, 'content', e.target.value)}
+                      onPaste={(e) => handleTextPaste(e, block.id)}
+                      placeholder="Enter text content here (Supports <b>bold</b>, <i>italics</i>, <sub>X₂</sub>, <sup>X²</sup>, bullets •, and MS Word paste)..."
+                      rows={5}
+                      className="w-full p-4 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-medium text-sm focus:outline-none"
+                    />
+                  </div>
                 )}
                 
                 {block.type === 'media' && (
