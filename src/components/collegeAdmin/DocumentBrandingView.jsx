@@ -359,6 +359,7 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
   };
 
   const handleSave = async () => {
+    if (isExpired) return;
     if (!college?.id) return;
     setSaving(true);
 
@@ -436,7 +437,7 @@ export const DocumentBrandingView = ({ college: initialCollege }) => {
             <button
               type="button"
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || isExpired}
               className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-md shadow-indigo-600/20 disabled:opacity-50"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}

@@ -18,6 +18,7 @@ import { ClinicalCaseManagementView } from './ClinicalCaseManagementView';
 import { LeaveWorkspaceModal } from '../modals/LeaveWorkspaceModal';
 import { LogoutConfirmModal } from '../modals/LogoutConfirmModal';
 import { LogoPreviewModal } from '../modals/LogoPreviewModal';
+import { ExpiredSubscriptionBanner } from '../common/ExpiredSubscriptionBanner';
 import { useWorkspaceHistory } from '../../hooks/useWorkspaceHistory';
 import { usePlatform } from '../../context/PlatformContext';
 
@@ -35,6 +36,7 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
   const [college, setCollege] = useState(initialCollege);
   const [showLogoModal, setShowLogoModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const isExpired = college?.status === 'Expired';
 
   // Body scroll lock effect when mobile sidebar drawer is open
   useEffect(() => {
@@ -416,22 +418,25 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
           </button>
         </div>
 
-      </div>
-    );
-  };
+            </div>
+    </div>
+  );
+};
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 font-sans flex transition-colors duration-300">
+    <div className="flex flex-col min-h-screen">
+      <ExpiredSubscriptionBanner college={college} />
+      <div className="flex-1 bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 font-sans flex transition-colors duration-300 relative">
       
       {/* 1A. DESKTOP SIDEBAR */}
-      <aside className={`hidden lg:flex fixed top-0 left-0 bottom-0 z-40 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 transition-all duration-300 flex-col justify-between ${
+      <aside className={`hidden lg:flex fixed ${isExpired ? "top-10" : "top-0"} left-0 bottom-0 z-40 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 transition-all duration-300 flex-col justify-between ${
         sidebarCollapsed ? 'w-20' : 'w-64'
       }`}>
         {renderSidebarContent(false)}
       </aside>
 
       {/* 1B. MOBILE OFF-CANVAS SIDEBAR DRAWER */}
-      <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 transition-transform duration-300 transform lg:hidden flex flex-col justify-between ${
+      <aside className={`fixed ${isExpired ? "top-10" : "top-0"} bottom-0 left-0 z-40 w-64 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 transition-transform duration-300 transform lg:hidden flex flex-col justify-between ${
         mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         {renderSidebarContent(true)}
@@ -528,31 +533,27 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
           )}
 
           {activeTab === 'add-preceptor' && (
-            <AddPreceptorView
-              college={college}
+            <AddPreceptorView isExpired={isExpired} college={college}
               onCancel={() => handleNavigate('preceptors-list')}
               onSuccess={() => handleNavigate('preceptors-list')}
             />
           )}
 
           {activeTab === 'preceptors-list' && (
-            <PreceptorListView
-              college={college}
+            <PreceptorListView isExpired={isExpired} college={college}
               onAddNew={() => handleNavigate('add-preceptor')}
             />
           )}
 
           {activeTab === 'add-student' && (
-            <AddStudentView
-              college={college}
+            <AddStudentView isExpired={isExpired} college={college}
               onCancel={() => handleNavigate('students-list')}
               onSuccess={() => handleNavigate('students-list')}
             />
           )}
 
           {activeTab === 'students-list' && (
-            <StudentListView
-              college={college}
+            <StudentListView isExpired={isExpired} college={college}
               onAddNew={() => handleNavigate('add-student')}
             />
           )}
@@ -581,11 +582,11 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
           )}
 
           {(activeTab === 'pdf-format' || activeTab === 'document-branding') && (
-            <DocumentBrandingView college={college} />
+            <DocumentBrandingView isExpired={isExpired} college={college} />
           )}
 
           {activeTab === 'bpharm-branding' && (
-            <BPharmDocumentBrandingView college={college} />
+            <BPharmDocumentBrandingView isExpired={isExpired} college={college} />
           )}
 
           {activeTab === 'profile' && (
@@ -619,6 +620,7 @@ export const CollegeAdminLayout = ({ college: initialCollege, onLogout }) => {
 
       <LogoPreviewModal isOpen={showLogoModal} onClose={() => setShowLogoModal(false)} />
 
+          </div>
     </div>
   );
 };

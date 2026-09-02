@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { UserCheck, Phone, Mail, GraduationCap, Calendar, BookOpen, KeyRound, Eye, EyeOff, Upload, Trash2, Save, RotateCcw, X, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { insertStudentToSupabase, uploadProfilePhotoToSupabaseStorage } from '../../services/supabaseService';
 
-export const AddStudentView = ({ college, onCancel, onSuccess }) => {
+export const AddStudentView = ({ college, onCancel, onSuccess, isExpired }) => {
   const [formData, setFormData] = useState({
     rollNumber: '',
     fullName: '',
@@ -91,6 +91,7 @@ export const AddStudentView = ({ college, onCancel, onSuccess }) => {
   };
 
   const handleSubmit = async (e) => {
+    if (isExpired) return;
     e.preventDefault();
     setFormError('');
 
@@ -552,20 +553,10 @@ export const AddStudentView = ({ college, onCancel, onSuccess }) => {
 
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || isExpired}
               className="h-[48px] px-8 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-extrabold flex items-center gap-2 shadow-md shadow-emerald-600/20 transition-all transform hover:-translate-y-0.5 disabled:opacity-50"
             >
-              {saving ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Saving Student...</span>
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  <span>Save Student</span>
-                </>
-              )}
+              {isExpired ? "Locked (Expired)" : (saving ? "Saving..." : "Save")}
             </button>
           </div>
         </div>
