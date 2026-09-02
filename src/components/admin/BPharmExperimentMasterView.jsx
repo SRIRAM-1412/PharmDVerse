@@ -167,8 +167,20 @@ const WYSIWYGTextEditor = ({ content, onChange }) => {
   useEffect(() => {
     if (editorRef.current) {
       const activeEl = document.activeElement;
-      if (activeEl !== editorRef.current && editorRef.current.innerHTML !== (content || '')) {
-        editorRef.current.innerHTML = content || '';
+      if (activeEl !== editorRef.current) {
+        let raw = content || '';
+        try {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(raw, 'text/html');
+          let parsedHTML = doc.body.innerHTML;
+          if (parsedHTML.includes('&lt;') && parsedHTML.includes('&gt;')) {
+            const doc2 = parser.parseFromString(doc.body.textContent, 'text/html');
+            parsedHTML = doc2.body.innerHTML;
+          }
+          editorRef.current.innerHTML = parsedHTML;
+        } catch (err) {
+          editorRef.current.innerHTML = raw;
+        }
       }
     }
   }, [content]);
@@ -177,6 +189,13 @@ const WYSIWYGTextEditor = ({ content, onChange }) => {
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
     }
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+    document.execCommand('insertText', false, text);
+    handleInput();
   };
 
   const execCommand = (command, value = null) => {
@@ -253,6 +272,7 @@ const WYSIWYGTextEditor = ({ content, onChange }) => {
         contentEditable={true}
         onInput={handleInput}
         onBlur={handleInput}
+        onPaste={handlePaste}
         className="w-full p-4 min-h-[140px] max-h-[400px] overflow-y-auto bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-medium text-sm focus:outline-none leading-relaxed"
         style={{ outline: 'none' }}
       />
