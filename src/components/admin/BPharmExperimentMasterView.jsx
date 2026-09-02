@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Eye, Power, Trash2, AlignLeft, Image as ImageIcon, Table, ChevronUp, ChevronDown, Save, X, FlaskConical, Activity, Code, GitCommit, ListOrdered, CheckCircle2, ArrowDown } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useInlineNotification } from '../../hooks/useInlineNotification';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
 
   // Helpers for table defaultRows
@@ -14,6 +14,68 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } fro
 
   const getTableDefaultRows = (block) => {
     return Array.isArray(block.defaultRows) ? block.defaultRows : [];
+  };
+
+
+  const PALETTE = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899'];
+
+  const parseMultiCurveGraphData = (cols = [], rows = []) => {
+    if (!cols.length || !rows.length) return { data: [], lines: [] };
+
+    const isPaired = cols.length >= 4 && cols.length % 2 === 0;
+
+    if (isPaired) {
+      const lines = [];
+      const numPairs = cols.length / 2;
+      for (let p = 0; p < numPairs; p++) {
+        const xName = cols[p * 2] || `X${p+1}`;
+        const yName = cols[p * 2 + 1] || `Y${p+1}`;
+        lines.push({
+          key: `y${p}`,
+          name: `${xName} / ${yName}`,
+          color: PALETTE[p % PALETTE.length],
+          xCol: p * 2,
+          yCol: p * 2 + 1
+        });
+      }
+
+      const formattedData = rows.map((r, rIdx) => {
+        const point = { rowIdx: rIdx, x: parseFloat(r[0]) || 0 };
+        lines.forEach(line => {
+          const xVal = parseFloat(r[line.xCol]);
+          const yVal = parseFloat(r[line.yCol]);
+          if (!isNaN(xVal) && !isNaN(yVal)) {
+            point[line.key] = yVal;
+          }
+        });
+        return point;
+      }).sort((a, b) => a.x - b.x);
+
+      return { data: formattedData, lines, mode: 'paired' };
+    } else {
+      const lines = [];
+      for (let c = 1; c < cols.length; c++) {
+        lines.push({
+          key: `y${c-1}`,
+          name: cols[c] || `Response ${c}`,
+          color: PALETTE[(c - 1) % PALETTE.length]
+        });
+      }
+
+      const formattedData = rows.map((r) => {
+        const xVal = parseFloat(r[0]);
+        const point = { x: isNaN(xVal) ? 0 : xVal };
+        lines.forEach((line, idx) => {
+          const yVal = parseFloat(r[idx + 1]);
+          if (!isNaN(yVal)) {
+            point[line.key] = yVal;
+          }
+        });
+        return point;
+      }).sort((a, b) => a.x - b.x);
+
+      return { data: formattedData, lines, mode: 'shared' };
+    }
   };
 
 export const BPharmExperimentMasterView = ({ subjectName }) => {
@@ -617,28 +679,38 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
                             </div>
                           )}
 
-                          {graphPoints.length > 0 && (
-                            <div className="mt-4 p-4 bg-white dark:bg-slate-950 rounded-xl border border-emerald-200 dark:border-emerald-900/50 shadow-xs">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  <Activity className="w-4 h-4 text-emerald-600 animate-pulse" />
-                                  <span className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
-                                    Live Graph Preview ({cols[0] || 'X'} vs {cols[1] || 'Y'})
-                                  </span>
+                          {(() => {
+                            const { data: parsedData, lines: parsedLines } = parseMultiCurveGraphData(cols, rows);
+                            if (parsedData.length === 0 || parsedLines.length === 0) return null;
+
+                            return (
+                              <div className="mt-4 p-4 bg-white dark:bg-slate-950 rounded-xl border border-emerald-200 dark:border-emerald-900/50 shadow-xs">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <Activity className="w-4 h-4 text-emerald-600 animate-pulse" />
+                                    <span className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+                                      Multi-Drug Live Graph Preview ({parsedLines.length} Curve{parsedLines.length > 1 ? 's' : ''})
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] font-bold text-slate-400">Updates live as you type numbers above</span>
                                 </div>
-                                <span className="text-[10px] font-bold text-slate-400">Updates live as you type numbers above</span>
+                                <div className="h-52 w-full pt-2">
+                                  <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={parsedData} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
+                                      <CartesianGrid stroke="#ccc" strokeDasharray="5 5" opacity={0.2} />
+                                      <XAxis dataKey="x" tick={{ fontSize: 10 }} label={{ value: cols[0] || 'Dose', position: 'insideBottom', offset: -10, fontSize: 10 }} />
+                                      <YAxis tick={{ fontSize: 10 }} />
+                                      <Tooltip />
+                                      <Legend wrapperStyle={{ fontSize: 11, fontWeight: 'bold', paddingTop: 5 }} />
+                                      {parsedLines.map(line => (
+                                        <Line key={line.key} type="monotone" dataKey={line.key} name={line.name} stroke={line.color} strokeWidth={3} dot={{ r: 4, fill: line.color }} />
+                                      ))}
+                                    </LineChart>
+                                  </ResponsiveContainer>
+                                </div>
                               </div>
-                              <div className="h-44 w-full pt-2">
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <LineChart data={graphPoints}>
-                                    <Line type="monotone" dataKey="y" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981' }} />
-                                    <CartesianGrid stroke="#ccc" strokeDasharray="5 5" opacity={0.2} />
-                                    <XAxis dataKey="x" tick={{ fontSize: 10 }} label={{ value: cols[0] || 'X', position: 'insideBottom', offset: -5, fontSize: 10 }} />
-                                  </LineChart>
-                                </ResponsiveContainer>
-                              </div>
-                            </div>
-                          )}
+                            );
+                          })()}
                         </div>
                       )}
                     </div>

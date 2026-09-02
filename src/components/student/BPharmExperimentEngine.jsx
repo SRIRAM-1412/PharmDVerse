@@ -4,6 +4,68 @@ import { useInlineNotification } from '../../hooks/useInlineNotification';
 import { ChevronLeft, Save, Loader2, Send, Activity, Table as TableIcon, Lock, ArrowDown, CheckCircle2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
+
+  const PALETTE = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899'];
+
+  const parseMultiCurveGraphData = (cols = [], rows = []) => {
+    if (!cols.length || !rows.length) return { data: [], lines: [] };
+
+    const isPaired = cols.length >= 4 && cols.length % 2 === 0;
+
+    if (isPaired) {
+      const lines = [];
+      const numPairs = cols.length / 2;
+      for (let p = 0; p < numPairs; p++) {
+        const xName = cols[p * 2] || `X${p+1}`;
+        const yName = cols[p * 2 + 1] || `Y${p+1}`;
+        lines.push({
+          key: `y${p}`,
+          name: `${xName} / ${yName}`,
+          color: PALETTE[p % PALETTE.length],
+          xCol: p * 2,
+          yCol: p * 2 + 1
+        });
+      }
+
+      const formattedData = rows.map((r, rIdx) => {
+        const point = { rowIdx: rIdx, x: parseFloat(r[0]) || 0 };
+        lines.forEach(line => {
+          const xVal = parseFloat(r[line.xCol]);
+          const yVal = parseFloat(r[line.yCol]);
+          if (!isNaN(xVal) && !isNaN(yVal)) {
+            point[line.key] = yVal;
+          }
+        });
+        return point;
+      }).sort((a, b) => a.x - b.x);
+
+      return { data: formattedData, lines, mode: 'paired' };
+    } else {
+      const lines = [];
+      for (let c = 1; c < cols.length; c++) {
+        lines.push({
+          key: `y${c-1}`,
+          name: cols[c] || `Response ${c}`,
+          color: PALETTE[(c - 1) % PALETTE.length]
+        });
+      }
+
+      const formattedData = rows.map((r) => {
+        const xVal = parseFloat(r[0]);
+        const point = { x: isNaN(xVal) ? 0 : xVal };
+        lines.forEach((line, idx) => {
+          const yVal = parseFloat(r[idx + 1]);
+          if (!isNaN(yVal)) {
+            point[line.key] = yVal;
+          }
+        });
+        return point;
+      }).sort((a, b) => a.x - b.x);
+
+      return { data: formattedData, lines, mode: 'shared' };
+    }
+  };
+
 export const BPharmExperimentEngine = ({ student, assignment, onBack }) => {
   const { master, mode } = assignment;
   const blocks = master?.experiment_content || [];
