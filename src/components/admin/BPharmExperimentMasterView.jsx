@@ -426,8 +426,9 @@ ${cleaned}` : cleaned);
     if (!block) return;
 
     let content = block.content || '';
+    // Strip any raw HTML tags completely
+    content = content.replace(/<[^>]+>/g, '');
 
-    // If user has highlighted text inside the textarea:
     if (textarea && textarea.selectionStart !== undefined && textarea.selectionEnd !== undefined) {
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
@@ -436,19 +437,19 @@ ${cleaned}` : cleaned);
       if (selectedText.length > 0) {
         let formattedText = selectedText;
         if (formatType === 'bold') {
-          formattedText = `<b>${selectedText}</b>`;
+          formattedText = selectedText.toUpperCase();
         } else if (formatType === 'italic') {
-          formattedText = `<i>${selectedText}</i>`;
+          formattedText = `*${selectedText}*`;
         } else if (formatType === 'heading') {
-          formattedText = `\n<h3>${selectedText}</h3>\n`;
+          formattedText = `\n\n${selectedText.toUpperCase()}:\n`;
         } else if (formatType === 'bullet') {
           formattedText = selectedText.split('\n').map(l => l.startsWith('• ') ? l : `• ${l}`).join('\n');
         } else if (formatType === 'number') {
           formattedText = selectedText.split('\n').map((l, i) => `${i + 1}. ${l.replace(/^\d+\.\s*/, '')}`).join('\n');
         } else if (formatType === 'subscript') {
-          formattedText = `<sub>${selectedText}</sub>`;
+          formattedText = selectedText.replace(/2/g, '₂').replace(/3/g, '₃').replace(/4/g, '₄');
         } else if (formatType === 'superscript') {
-          formattedText = `<sup>${selectedText}</sup>`;
+          formattedText = selectedText.replace(/2\+/g, '²⁺').replace(/2/g, '²').replace(/3\+/g, '³⁺');
         }
 
         const newContent = content.substring(0, start) + formattedText + content.substring(end);
@@ -467,19 +468,19 @@ ${cleaned}` : cleaned);
     // Default fallback when no text is selected:
     let text = content;
     if (formatType === 'bold') {
-      text += text ? ' <b>Bold Text</b>' : '<b>Bold Text</b>';
+      text += text ? ' Bold Text' : 'Bold Text';
     } else if (formatType === 'italic') {
-      text += text ? ' <i>Italic Text</i>' : '<i>Italic Text</i>';
+      text += text ? ' Italic Text' : 'Italic Text';
     } else if (formatType === 'heading') {
-      text += text ? '\n\n<h3>SECTION HEADING:</h3> ' : '<h3>SECTION HEADING:</h3> ';
+      text += text ? '\n\nSECTION HEADING:\n' : 'SECTION HEADING:\n';
     } else if (formatType === 'bullet') {
       text += text ? '\n• New Bullet Item' : '• New Bullet Item';
     } else if (formatType === 'number') {
       text += text ? '\n1. New List Item' : '1. New List Item';
     } else if (formatType === 'subscript') {
-      text += '<sub>₂</sub>';
+      text += '₂';
     } else if (formatType === 'superscript') {
-      text += '<sup>²⁺</sup>';
+      text += '²⁺';
     }
 
     updateBlock(blockId, 'content', text);
