@@ -3,6 +3,18 @@ import { Plus, Edit, Eye, Power, Trash2, AlignLeft, Image as ImageIcon, Table, C
 import { supabase } from '../../lib/supabaseClient';
 import { useInlineNotification } from '../../hooks/useInlineNotification';
 
+
+  // Helpers for table defaultRows
+  const getTableColumns = (content) => {
+    if (Array.isArray(content)) return content;
+    if (typeof content === 'string') return content.split(',').map(s => s.trim()).filter(Boolean);
+    return [];
+  };
+
+  const getTableDefaultRows = (block) => {
+    return Array.isArray(block.defaultRows) ? block.defaultRows : [];
+  };
+
 export const BPharmExperimentMasterView = ({ subjectName }) => {
   const [experiments, setExperiments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -241,35 +253,70 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
                 </div>
               )}
 
-              {block.type === 'table' && (
-                <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
-                  <table className="w-full text-left">
-                    <thead className="bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-                      <tr>
-                        {Array.isArray(block.content) && block.content.map((col, i) => (
-                          <th key={i} className="px-4 py-3 text-sm font-black text-slate-700 dark:text-slate-300">{col || `Column ${i+1}`}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      <tr>
-                        {Array.isArray(block.content) && block.content.map((_, i) => (
-                          <td key={i} className="p-3"><input type="text" disabled placeholder="Student types here..." className="w-full p-2 text-sm bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-50" /></td>
-                        ))}
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              {block.type === 'table' && (() => {
+                const cols = getTableColumns(block.content);
+                const rows = getTableDefaultRows(block);
 
-              {block.type === 'graph' && (
-                <div className="h-64 rounded-xl border-2 border-dashed border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20 flex flex-col items-center justify-center text-emerald-700 dark:text-emerald-500">
-                  <Activity className="w-10 h-10 mb-3 opacity-50" />
-                  <div className="font-black text-lg">Dynamic Graph Area</div>
-                  <div className="text-sm font-medium mt-1">Y-Axis: {block.content?.yAxis || '?'} | X-Axis: {block.content?.xAxis || '?'}</div>
-                  <div className="text-xs mt-2 opacity-75">Graph will auto-plot when student enters data</div>
-                </div>
-              )}
+                return (
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                        <tr>
+                          {cols.map((col, i) => (
+                            <th key={i} className="px-4 py-3 text-sm font-black text-slate-700 dark:text-slate-300">{col || `Column ${i+1}`}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {rows.length === 0 ? (
+                          <tr>
+                            {cols.map((_, i) => (
+                              <td key={i} className="p-3"><input type="text" disabled placeholder="Student types here..." className="w-full p-2 text-sm bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-50" /></td>
+                            ))}
+                          </tr>
+                        ) : (
+                          rows.map((r, rIdx) => (
+                            <tr key={rIdx} className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                              {cols.map((_, cIdx) => (
+                                <td key={cIdx} className="p-3 font-mono font-bold text-sm text-slate-800 dark:text-slate-200">{r[cIdx] || '-'}</td>
+                              ))}
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+
+              {block.type === 'graph' && (() => {
+                const tableBlock = blocksToRender.find(b => b.type === 'table');
+                const defaultRows = tableBlock?.defaultRows || [];
+
+                const graphPoints = defaultRows.map(r => ({
+                  x: parseFloat(r[0]) || 0,
+                  y: parseFloat(r[1]) || 0
+                })).sort((a, b) => a.x - b.x);
+
+                return graphPoints.length > 0 ? (
+                  <div className="h-64 w-full pt-4 bg-white dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={graphPoints}>
+                        <Line type="monotone" dataKey="y" stroke="#10b981" strokeWidth={3} dot={{ r: 5, fill: '#10b981' }} />
+                        <CartesianGrid stroke="#ccc" strokeDasharray="5 5" opacity={0.2} />
+                        <XAxis dataKey="x" label={{ value: block.content?.xAxis || 'X Axis', position: 'insideBottom', offset: -5 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-64 rounded-xl border-2 border-dashed border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20 flex flex-col items-center justify-center text-emerald-700 dark:text-emerald-500">
+                    <Activity className="w-10 h-10 mb-3 opacity-50" />
+                    <div className="font-black text-lg">Dynamic Graph Area</div>
+                    <div className="text-sm font-medium mt-1">Y-Axis: {block.content?.yAxis || '?'} | X-Axis: {block.content?.xAxis || '?'}</div>
+                    <div className="text-xs mt-2 opacity-75">Pre-load table data to view plotted graph curve</div>
+                  </div>
+                );
+              })()}
 
               {block.type === 'code' && (
                 <div className="h-64 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-900 flex items-center justify-center text-slate-400 font-mono text-sm">
@@ -380,17 +427,99 @@ export const BPharmExperimentMasterView = ({ subjectName }) => {
                   </div>
                 )}
 
-                {block.type === 'table' && (
-                  <div>
-                    <input 
-                      type="text" 
-                      value={Array.isArray(block.content) ? block.content.join(', ') : block.content}
-                      onChange={(e) => updateBlock(block.id, 'content', e.target.value.split(',').map(s => s.trim()))}
-                      placeholder="Enter column names separated by commas (e.g., Time, Pupil Size, Heart Rate)"
-                      className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-medium"
-                    />
-                  </div>
-                )}
+                {block.type === 'table' && (() => {
+                  const cols = getTableColumns(block.content);
+                  const rows = getTableDefaultRows(block);
+
+                  return (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">Table Columns (Comma Separated)</label>
+                        <input 
+                          type="text" 
+                          value={Array.isArray(block.content) ? block.content.join(', ') : (block.content || '')}
+                          onChange={(e) => updateBlock(block.id, 'content', e.target.value.split(',').map(s => s.trim()))}
+                          placeholder="Enter column names (e.g., DOSE, RESPONSE)"
+                          className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold"
+                        />
+                      </div>
+
+                      {cols.length > 0 && (
+                        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                              Pre-Load Learning Mode Data (Reference Rows)
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newRows = [...rows, Array(cols.length).fill('')];
+                                updateBlock(block.id, 'defaultRows', newRows);
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 transition-all"
+                            >
+                              <Plus className="w-3.5 h-3.5" /> Add Reference Row
+                            </button>
+                          </div>
+
+                          {rows.length === 0 ? (
+                            <p className="text-xs text-slate-400 font-medium italic">No pre-loaded reference rows added yet. Click "Add Reference Row" to add sample data for Learning Mode.</p>
+                          ) : (
+                            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
+                              <table className="w-full text-left border-collapse">
+                                <thead className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                                  <tr>
+                                    {cols.map((col, cIdx) => (
+                                      <th key={cIdx} className="px-3 py-2 text-xs font-black text-slate-700 dark:text-slate-300">{col || `Col ${cIdx+1}`}</th>
+                                    ))}
+                                    <th className="px-3 py-2 w-10"></th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                  {rows.map((rowVals, rIdx) => (
+                                    <tr key={rIdx}>
+                                      {cols.map((_, cIdx) => (
+                                        <td key={cIdx} className="p-2">
+                                          <input
+                                            type="text"
+                                            value={rowVals[cIdx] || ''}
+                                            onChange={(e) => {
+                                              const newRows = rows.map((r, i) => {
+                                                if (i !== rIdx) return r;
+                                                const updatedRow = [...r];
+                                                updatedRow[cIdx] = e.target.value;
+                                                return updatedRow;
+                                              });
+                                              updateBlock(block.id, 'defaultRows', newRows);
+                                            }}
+                                            placeholder="Sample val..."
+                                            className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 font-bold"
+                                          />
+                                        </td>
+                                      ))}
+                                      <td className="p-2 text-center">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const newRows = rows.filter((_, i) => i !== rIdx);
+                                            updateBlock(block.id, 'defaultRows', newRows);
+                                          }}
+                                          className="text-rose-500 hover:bg-rose-50 rounded p-1"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {block.type === 'graph' && (
                   <div className="space-y-3">

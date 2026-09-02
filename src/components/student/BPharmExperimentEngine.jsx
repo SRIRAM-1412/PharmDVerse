@@ -19,7 +19,15 @@ export const BPharmExperimentEngine = ({ student, assignment, onBack }) => {
     const initData = {};
     blocks.forEach(block => {
       if (block.type === 'table') {
-        initData[block.id] = [{ id: Date.now().toString(), values: Array(block.content.length).fill('') }];
+        const defaultRows = Array.isArray(block.defaultRows) ? block.defaultRows : [];
+        if (defaultRows.length > 0) {
+          initData[block.id] = defaultRows.map((r, idx) => ({
+            id: (Date.now() + idx).toString(),
+            values: Array.isArray(r) ? r : []
+          }));
+        } else {
+          initData[block.id] = [{ id: Date.now().toString(), values: Array(Array.isArray(block.content) ? block.content.length : 2).fill('') }];
+        }
       }
     });
 
