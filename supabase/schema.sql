@@ -581,4 +581,22 @@ DROP POLICY IF EXISTS "Allow read access to all users for drug_knowledge" ON pub
 CREATE POLICY "Allow read access to all users for drug_knowledge" 
     ON public.drug_knowledge FOR SELECT USING (true);
 
+-- B.PHARM TABLES RLS POLICIES
+ALTER TABLE IF EXISTS public.bpharm_master_experiments ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All bpharm_master_experiments" ON public.bpharm_master_experiments;
+CREATE POLICY "Allow All bpharm_master_experiments" ON public.bpharm_master_experiments FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE IF EXISTS public.bpharm_assignments ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All bpharm_assignments" ON public.bpharm_assignments;
+CREATE POLICY "Allow All bpharm_assignments" ON public.bpharm_assignments FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE IF EXISTS public.bpharm_student_records ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All bpharm_student_records" ON public.bpharm_student_records;
+CREATE POLICY "Allow All bpharm_student_records" ON public.bpharm_student_records FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE IF EXISTS public.bpharm_branding_settings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All bpharm_branding_settings" ON public.bpharm_branding_settings;
+CREATE POLICY "Allow All bpharm_branding_settings" ON public.bpharm_branding_settings FOR ALL USING (true) WITH CHECK (true);
+
+
 
