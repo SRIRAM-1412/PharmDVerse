@@ -112,7 +112,7 @@ const BPharmAdminFormatPDFPreview = ({ college, settings }) => {
   );
 };
 
-export const BPharmDocumentBrandingView = ({ college: initialCollege }) => {
+export const BPharmDocumentBrandingView = ({ college: initialCollege, isExpired }) => {
   const [college, setCollege] = useState(initialCollege);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

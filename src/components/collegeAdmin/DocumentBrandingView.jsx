@@ -265,7 +265,7 @@ const SamplePptSlidePreview = ({ college, settings }) => {
   );
 };
 
-export const DocumentBrandingView = ({ college: initialCollege }) => {
+export const DocumentBrandingView = ({ college: initialCollege, isExpired }) => {
   const [college, setCollege] = useState(initialCollege);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
