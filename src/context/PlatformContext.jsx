@@ -39,21 +39,25 @@ export const PlatformProvider = ({ children }) => {
 
   // Update browser document title and favicon dynamically whenever settings change
   useEffect(() => {
-    if (platformSettings) {
-      // 1. Update Document Title
-      const title = platformSettings.platform_name || DEFAULT_PLATFORM_SETTINGS.platform_name;
-      document.title = `${title} — Clinical Case Analysis ERP`;
+    try {
+      if (typeof document !== 'undefined') {
+        const title = platformSettings?.platform_name || DEFAULT_PLATFORM_SETTINGS.platform_name;
+        document.title = `${title} — Clinical Case & Practical Platform`;
 
-      // 2. Update Favicon Link Element
-      if (platformSettings.favicon_url) {
+        const favUrl = platformSettings?.favicon_url || '/pharmdverse-logo.png';
         let link = document.querySelector("link[rel*='icon']");
-        if (!link) {
+        if (link) {
+          link.href = favUrl;
+        } else {
           link = document.createElement('link');
           link.rel = 'icon';
+          link.type = 'image/png';
+          link.href = favUrl;
           document.getElementsByTagName('head')[0].appendChild(link);
         }
-        link.href = platformSettings.favicon_url;
       }
+    } catch (e) {
+      console.warn('Could not update document title or favicon:', e);
     }
   }, [platformSettings]);
 
