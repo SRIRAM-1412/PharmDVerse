@@ -107,7 +107,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Lege
   };
 
 
-  // Advanced Word Sanitizer & Paragraph Smoother
+  // Clean Plain Text Word Sanitizer
   const sanitizeAndSmoothWordText = (rawStr) => {
     if (!rawStr) return '';
 
@@ -120,46 +120,21 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Lege
       .replace(/<style[\s\S]*?<\/style>/gi, '')
       .replace(/<script[\s\S]*?<\/script>/gi, '');
 
-    // Strip HTML tags except b, i, sub, sup
-    text = text.replace(/<(?!\/?(b|i|sub|sup)\b)[^>]+>/gi, '');
+    // Convert sub/sup HTML tags to unicode symbols
+    text = text
+      .replace(/<sub>2<\/sub>/gi, '₂')
+      .replace(/<sub>3<\/sub>/gi, '₃')
+      .replace(/<sub>4<\/sub>/gi, '₄')
+      .replace(/<sup>2\+<\/sup>/gi, '²⁺')
+      .replace(/<sup>2<\/sup>/gi, '²')
+      .replace(/<sup>3\+<\/sup>/gi, '³⁺')
+      .replace(/<[^>]+>/g, ''); // Strip all raw HTML tags completely
 
     // Normalize line breaks
     text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-    // Split into individual lines
-    const rawLines = text.split('\n');
-    const processedLines = [];
-
-    rawLines.forEach(line => {
-      let trimmed = line.trim();
-      if (!trimmed) {
-        if (processedLines.length > 0 && processedLines[processedLines.length - 1] !== '') {
-          processedLines.push('');
-        }
-        return;
-      }
-
-      // If line is a bullet item or numbered list item
-      if (/^[•-*d+.]/.test(trimmed)) {
-        let bulletText = trimmed.replace(/^[-*]s*/, '• ');
-        processedLines.push(bulletText);
-      } else {
-        // Normal paragraph line: if previous line was also a normal paragraph line, append with space
-        const lastIdx = processedLines.length - 1;
-        if (lastIdx >= 0 && processedLines[lastIdx] !== '' && !/^[•-*d+.]/.test(processedLines[lastIdx])) {
-          processedLines[lastIdx] += ' ' + trimmed;
-        } else {
-          processedLines.push(trimmed);
-        }
-      }
-    });
-
-    let result = processedLines.join('\n');
-
-    // Auto-bold key section headers (e.g. Aim:, Principle:, Materials:, Procedure:, Note:)
-    result = result.replace(/^(Aim|Principle|Theory|Materials|Reagents|Equipment|Procedure|Observation|Result|Discussion|Note):\s*/gmi, '<b>$1:</b> ');
-
-    return result;
+    const lines = text.split('\n').map(l => l.trim());
+    return lines.join('\n').replace(/\n{3,}/g, '\n\n');
   };
 
   const renderRichTextHTML = (contentStr) => {
@@ -290,21 +265,19 @@ ${cleaned}` : cleaned);
     let text = block.content || '';
 
     if (formatType === 'bold') {
-      text += text ? ' <b>Bold Text</b>' : '<b>Bold Text</b>';
+      text += text ? ' Bold Text' : 'Bold Text';
     } else if (formatType === 'italic') {
-      text += text ? ' <i>Italic Text</i>' : '<i>Italic Text</i>';
+      text += text ? ' Italic Text' : 'Italic Text';
     } else if (formatType === 'heading') {
-      text += text ? '\n\n<b>SECTION HEADING:</b> ' : '<b>SECTION HEADING:</b> ';
+      text += text ? '\n\nSECTION HEADING:\n' : 'SECTION HEADING:\n';
     } else if (formatType === 'bullet') {
       text += text ? '\n• New Bullet Item' : '• New Bullet Item';
     } else if (formatType === 'number') {
       text += text ? '\n1. New List Item' : '1. New List Item';
     } else if (formatType === 'subscript') {
-      text += '<sub>2</sub>';
+      text += '₂';
     } else if (formatType === 'superscript') {
-      text += '<sup>2+</sup>';
-    } else if (formatType === 'autoformat') {
-      text = sanitizeAndSmoothWordText(text);
+      text += '²⁺';
     }
 
     updateBlock(blockId, 'content', text);
@@ -726,22 +699,13 @@ ${cleaned}` : cleaned);
                       <button type="button" onClick={() => applyFormatting(block.id, 'number')} title="Numbered List" className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs">1. List</button>
                       <button type="button" onClick={() => applyFormatting(block.id, 'subscript')} title="Chemical Subscript" className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs">X₂</button>
                       <button type="button" onClick={() => applyFormatting(block.id, 'superscript')} title="Chemical Superscript" className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 text-slate-800 dark:text-white shadow-2xs">X²</button>
-                      
-                      <button 
-                        type="button" 
-                        onClick={() => applyFormatting(block.id, 'autoformat')} 
-                        title="Auto-Clean MS Word Paste & Join Line Wraps"
-                        className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs ml-auto flex items-center gap-1 shadow-xs transition-all"
-                      >
-                        ⚡ Smooth Word Paste
-                      </button>
                     </div>
 
                     <textarea 
                       value={block.content}
                       onChange={(e) => updateBlock(block.id, 'content', e.target.value)}
                       onPaste={(e) => handleTextPaste(e, block.id)}
-                      placeholder="Enter text content here (Supports <b>bold</b>, <i>italics</i>, <sub>X₂</sub>, <sup>X²</sup>, bullets •, and MS Word paste)..."
+                      placeholder="Enter text content here (Supports bullet lists •, 1. List, chemical formulas X₂, X², and direct MS Word copy-paste)..."
                       rows={5}
                       className="w-full p-4 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-medium text-sm focus:outline-none"
                     />
