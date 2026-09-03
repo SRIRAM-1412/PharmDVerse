@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Edit, Eye, Power, Trash2, AlignLeft, Image as ImageIcon, Table, ChevronUp, ChevronDown, Save, X, FlaskConical, Activity, Code, GitCommit, ListOrdered, CheckCircle2, ArrowDown } from 'lucide-react';
+import { Plus, Edit, Eye, Power, Trash2, AlignLeft, Image as ImageIcon, Table, ChevronUp, ChevronDown, Save, X, FlaskConical, Activity, Code, GitCommit, ListOrdered, CheckCircle2, ArrowDown, Upload, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useInlineNotification } from '../../hooks/useInlineNotification';
+import { uploadEquipmentDiagramToSupabaseStorage } from '../../services/supabaseService';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
 
@@ -362,6 +363,20 @@ ${cleaned}` : cleaned);
 
   const updateBlock = (id, field, value) => {
     setBlocks(blocks.map(b => b.id === id ? { ...b, [field]: value } : b));
+  };
+
+  const handleEquipmentUpload = async (e, blockId) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    showNotification({ type: 'info', message: 'Uploading diagram image to Supabase Storage...' });
+    const res = await uploadEquipmentDiagramToSupabaseStorage(file);
+    if (res.success && res.url) {
+      updateBlock(blockId, 'content', res.url);
+      showNotification({ type: 'success', message: 'Diagram image uploaded successfully!' });
+    } else {
+      showNotification({ type: 'error', message: res.error || 'Failed to upload image.' });
+    }
   };
 
   const removeBlock = (id) => {
@@ -1200,13 +1215,35 @@ ${cleaned}` : cleaned);
 
                 {block.type === 'equipment' && (
                   <div className="space-y-3">
-                    <input 
-                      type="text" 
-                      value={block.content || ''}
-                      onChange={(e) => updateBlock(block.id, 'content', e.target.value)}
-                      placeholder="Equipment Diagram Image URL (e.g., https://.../organ_bath.png)"
-                      className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-medium text-xs"
-                    />
+                    <div className="flex flex-col sm:flex-row items-center gap-2">
+                      <input 
+                        type="text" 
+                        value={block.content || ''}
+                        onChange={(e) => updateBlock(block.id, 'content', e.target.value)}
+                        placeholder="Equipment Diagram Image URL (or upload image below)"
+                        className="w-full sm:flex-1 p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-medium text-xs"
+                      />
+                      <label className="px-4 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-extrabold text-xs flex items-center gap-1.5 shrink-0 shadow-xs cursor-pointer transition-colors w-full sm:w-auto justify-center">
+                        <Upload className="w-4 h-4" />
+                        <span>Upload Image File</span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                          onChange={(e) => handleEquipmentUpload(e, block.id)}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+
+                    {block.content && (
+                      <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-3">
+                        <img src={block.content} alt="Diagram Preview" className="h-16 w-24 object-contain rounded-lg border border-slate-200 dark:border-slate-700 bg-white" onError={(e) => e.target.style.display='none'} />
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                          ✓ Image Linked & Ready for Interactive Zoom Inspector
+                        </span>
+                      </div>
+                    )}
+
                     <input 
                       type="text" 
                       value={block.caption || ''}

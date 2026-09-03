@@ -88,6 +88,49 @@ export const uploadProfilePhotoToSupabaseStorage = async (file, folder = 'profil
   }
 };
 
+export const uploadEquipmentDiagramToSupabaseStorage = async (file) => {
+  if (!file) return { success: false, error: 'No file provided' };
+
+  if (file.size > 5 * 1024 * 1024) {
+    return { success: false, error: 'File size exceeds 5 MB limit. Please choose a smaller image.' };
+  }
+
+  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml'];
+  if (!validTypes.includes(file.type.toLowerCase())) {
+    return { success: false, error: 'Invalid format. Only JPG, PNG, WEBP, and SVG diagrams are allowed.' };
+  }
+
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `diagram_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+    const filePath = `equipment/${fileName}`;
+
+    const { data, error } = await supabase.storage
+      .from('platform_assets')
+      .upload(filePath, file, { upsert: true });
+
+    if (error) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve({ success: true, url: reader.result });
+        reader.readAsDataURL(file);
+      });
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('platform_assets')
+      .getPublicUrl(filePath);
+
+    return { success: true, url: publicUrlData.publicUrl };
+  } catch (err) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve({ success: true, url: reader.result });
+      reader.readAsDataURL(file);
+    });
+  }
+};
+
 /**
  * Upload college logo file to Supabase Storage bucket 'college-logos' (500 KB limit)
  */
