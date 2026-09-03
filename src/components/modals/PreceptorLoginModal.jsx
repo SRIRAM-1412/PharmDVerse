@@ -145,7 +145,7 @@ export const PreceptorLoginModal = ({ isOpen, onClose, initialCollege, onLoginSu
               type="text"
               id="preceptor_username"
               name="preceptor_username"
-              autoComplete="username"
+              autoComplete="off"
               required
               value={username}
               onChange={(e) => { setUsername(e.target.value); setFieldErrors(prev => ({ ...prev, username: '' })); }}
@@ -173,7 +173,7 @@ export const PreceptorLoginModal = ({ isOpen, onClose, initialCollege, onLoginSu
                 type={showPassword ? 'text' : 'password'}
                 id="preceptor_password"
                 name="preceptor_password"
-                autoComplete="current-password"
+                autoComplete="new-password"
                 required
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setFieldErrors(prev => ({ ...prev, password: '' })); }}

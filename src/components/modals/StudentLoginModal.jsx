@@ -146,7 +146,7 @@ export const StudentLoginModal = ({ isOpen, onClose, initialCollege, onLoginSucc
               type="text"
               id="student_username"
               name="student_username"
-              autoComplete="username"
+              autoComplete="off"
               required
               value={username}
               onChange={(e) => { setUsername(e.target.value); setFieldErrors(prev => ({ ...prev, username: '' })); }}
@@ -174,7 +174,7 @@ export const StudentLoginModal = ({ isOpen, onClose, initialCollege, onLoginSucc
                 type={showPassword ? 'text' : 'password'}
                 id="student_password"
                 name="student_password"
-                autoComplete="current-password"
+                autoComplete="new-password"
                 required
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setFieldErrors(prev => ({ ...prev, password: '' })); }}
