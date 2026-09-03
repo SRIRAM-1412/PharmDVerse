@@ -1831,6 +1831,75 @@ export const promoteStudentsBatchInSupabase = async (studentIds, targetYear, tar
   }
 };
 
+export const insertBatchStudentsToSupabase = async (collegeId, studentArray) => {
+  try {
+    if (!studentArray || studentArray.length === 0) {
+      return { success: false, error: 'No student records provided for batch import.' };
+    }
+
+    const preparedPayloads = await Promise.all(studentArray.map(async (st) => {
+      const rawPassword = st.password || st.rollNumber || 'Student@123';
+      const passwordHash = await hashPassword(rawPassword);
+      return {
+        college_id: collegeId,
+        roll_number: String(st.rollNumber).trim(),
+        username: String(st.rollNumber).trim(),
+        full_name: String(st.fullName).trim(),
+        gender: st.gender || 'Male',
+        mobile_number: st.mobileNumber || null,
+        email: st.email || `${String(st.rollNumber).trim().toLowerCase()}@student.edu`,
+        batch: st.batch || 'Y26',
+        course: st.course || 'Pharm.D',
+        academic_year: st.academicYear || '2026–2027',
+        year: st.year || '1st Year',
+        semester: st.semester || null,
+        password_hash: passwordHash,
+        profile_photo_url: st.profilePhotoUrl || null,
+        status: 'Active'
+      };
+    }));
+
+    const { data, error } = await supabase.from('students').insert(preparedPayloads).select();
+    if (error) return { success: false, error: error.message };
+    return { success: true, count: data?.length || 0, data };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+export const insertBatchPreceptorsToSupabase = async (collegeId, preceptorArray) => {
+  try {
+    if (!preceptorArray || preceptorArray.length === 0) {
+      return { success: false, error: 'No preceptor records provided for batch import.' };
+    }
+
+    const preparedPayloads = await Promise.all(preceptorArray.map(async (pr) => {
+      const rawPassword = pr.password || 'Preceptor@123';
+      const passwordHash = await hashPassword(rawPassword);
+      return {
+        college_id: collegeId,
+        full_name: String(pr.fullName).trim(),
+        gender: pr.gender || 'Male',
+        mobile_number: pr.mobileNumber || pr.phone || null,
+        email: String(pr.email).trim().toLowerCase(),
+        username: String(pr.email).trim().toLowerCase(),
+        qualification: pr.qualification || 'M.Pharm',
+        designation: pr.designation || 'Assistant Professor',
+        department: pr.department || 'Pharmacy Practice',
+        password_hash: passwordHash,
+        profile_photo_url: pr.profilePhotoUrl || null,
+        status: 'Active'
+      };
+    }));
+
+    const { data, error } = await supabase.from('preceptors').insert(preparedPayloads).select();
+    if (error) return { success: false, error: error.message };
+    return { success: true, count: data?.length || 0, data };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
 // ====================================================================
 // REGISTRATION REQUEST & COLLEGE CORE SERVICES
 // ====================================================================

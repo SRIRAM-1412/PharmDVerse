@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { User, Search, Filter, Plus, Edit3, Trash2, CheckCircle2, XCircle, Eye, Download, ChevronLeft, ChevronRight, Phone, Mail, Award, Briefcase, Building2, AlertTriangle, ShieldCheck, Loader2 } from 'lucide-react';
+import { User, Search, Filter, Plus, Edit3, Trash2, CheckCircle2, XCircle, Eye, Download, ChevronLeft, ChevronRight, Phone, Mail, Award, Briefcase, Building2, AlertTriangle, ShieldCheck, Loader2, Upload } from 'lucide-react';
 import { fetchPreceptorsFromSupabase, updatePreceptorInSupabase, deletePreceptorFromSupabase } from '../../services/supabaseService';
 import { ModalWrapper } from '../modals/ModalWrapper';
 import { SecurityManagementSection } from './SecurityManagementSection';
 import { EditPreceptorModal } from './EditPreceptorModal';
+import { BulkPreceptorImportModal } from './BulkPreceptorImportModal';
 
 export const PreceptorListView = ({ college, onAddNew }) => {
   const [preceptors, setPreceptors] = useState([]);
@@ -16,10 +17,11 @@ export const PreceptorListView = ({ college, onAddNew }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
-  // View / Edit / Delete Modal State
+  // View / Edit / Delete / Bulk Import Modal State
   const [selectedPreceptor, setSelectedPreceptor] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [preceptorToDelete, setPreceptorToDelete] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -76,6 +78,25 @@ export const PreceptorListView = ({ college, onAddNew }) => {
     await loadPreceptors();
   };
 
+  const handleExportCSV = () => {
+    if (!filteredPreceptors || filteredPreceptors.length === 0) {
+      alert('No preceptor records to export.');
+      return;
+    }
+    let csv = "Full Name,Email,Department,Designation,Qualification,Gender,Phone,Status\n";
+    filteredPreceptors.forEach(p => {
+      csv += `"${p.full_name || ''}","${p.email || ''}","${p.department || ''}","${p.designation || ''}","${p.qualification || ''}","${p.gender || ''}","${p.mobile_number || ''}","${p.status || ''}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Preceptors_Directory_${college?.code || 'CLG'}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* Header & Quick Action */}
@@ -90,19 +111,28 @@ export const PreceptorListView = ({ college, onAddNew }) => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button
-            onClick={() => alert('Exporting Preceptors list to CSV/Excel...')}
-            className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold flex items-center gap-1.5 transition-colors"
-            title="Export List"
+            onClick={handleExportCSV}
+            className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Export List to CSV"
           >
             <Download className="w-4 h-4 text-slate-500" />
-            <span>Export</span>
+            <span>Export CSV</span>
+          </button>
+
+          <button
+            onClick={() => setIsBulkImportOpen(true)}
+            className="px-3.5 py-2 rounded-xl border border-cyan-300 dark:border-cyan-700 bg-cyan-50 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-200 hover:bg-cyan-100 dark:hover:bg-cyan-900/60 text-xs font-extrabold flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Bulk Import CSV"
+          >
+            <Upload className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+            <span>Bulk Import</span>
           </button>
 
           <button
             onClick={onAddNew}
-            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all transform hover:-translate-y-0.5"
+            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all transform hover:-translate-y-0.5 cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span>Add Preceptor</span>
@@ -470,6 +500,14 @@ export const PreceptorListView = ({ college, onAddNew }) => {
           </div>
         </ModalWrapper>
       )}
+
+      {/* BULK IMPORT MODAL */}
+      <BulkPreceptorImportModal
+        isOpen={isBulkImportOpen}
+        onClose={() => setIsBulkImportOpen(false)}
+        college={college}
+        onSuccess={loadPreceptors}
+      />
 
     </div>
   );
