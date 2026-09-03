@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useInlineNotification } from '../../hooks/useInlineNotification';
-import { ChevronLeft, Save, Loader2, Send, Activity, Table as TableIcon, Lock, ArrowDown, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, Save, Loader2, Send, Activity, Table as TableIcon, Lock, ArrowDown, CheckCircle2, ZoomIn, Info } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { EquipmentZoomModal } from '../modals/EquipmentZoomModal';
 
 
   const PALETTE = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899'];
@@ -99,6 +100,7 @@ export const BPharmExperimentEngine = ({ student = {}, assignment = {}, onBack }
   const { notification, showNotification } = useInlineNotification();
   const [existingRecord, setExistingRecord] = useState(null);
   const [completedSteps, setCompletedSteps] = useState({});
+  const [zoomEquipment, setZoomEquipment] = useState({ isOpen: false, imageUrl: '', title: '', caption: '', partsGuide: [] });
 
   // Initialize table data structures based on the master blocks
   useEffect(() => {
@@ -338,8 +340,8 @@ export const BPharmExperimentEngine = ({ student = {}, assignment = {}, onBack }
                   />
                 )}
 
-                {block.type === 'media' && (
-                  <div className="flex justify-center bg-slate-50 dark:bg-slate-950 rounded-2xl p-2 sm:p-4 border border-slate-100 dark:border-slate-800">
+                {(block.type === 'media' || block.type === 'equipment') && (
+                  <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-950 rounded-2xl p-3 sm:p-5 border border-slate-200/80 dark:border-slate-800 space-y-3">
                      {block.content ? (
                         block.content.includes('youtube.com') || block.content.includes('youtu.be') ? (
                           <iframe 
@@ -348,9 +350,32 @@ export const BPharmExperimentEngine = ({ student = {}, assignment = {}, onBack }
                             allowFullScreen
                           />
                         ) : (
-                          <img src={block.content} alt="Experiment Media" className="max-h-96 rounded-xl shadow-sm object-contain" />
+                          <div
+                            onClick={() => setZoomEquipment({
+                              isOpen: true,
+                              imageUrl: block.content,
+                              title: block.heading || 'Device & Equipment Diagram',
+                              caption: block.caption || block.description || '',
+                              partsGuide: Array.isArray(block.partsGuide) ? block.partsGuide : (typeof block.partsGuide === 'string' ? block.partsGuide.split(',').map(s=>s.trim()) : [])
+                            })}
+                            className="relative group cursor-pointer overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs max-h-96"
+                          >
+                            <img src={block.content} alt={block.heading || "Experiment Equipment Diagram"} className="max-h-96 rounded-xl object-contain transition-transform duration-300 group-hover:scale-105" />
+                            <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-xs font-bold gap-1.5 p-4 text-center">
+                              <ZoomIn className="w-6 h-6 animate-pulse" />
+                              <span>Click to Enlarge & Inspect Labeled Apparatus Parts</span>
+                            </div>
+                          </div>
                         )
-                     ) : null}
+                     ) : (
+                       <span className="italic text-xs opacity-50 text-slate-500">No equipment diagram URL provided</span>
+                     )}
+                     
+                     {block.caption && (
+                       <p className="text-xs font-medium text-slate-600 dark:text-slate-400 text-center max-w-md">
+                         {block.caption}
+                       </p>
+                     )}
                   </div>
                 )}
 
@@ -526,6 +551,17 @@ export const BPharmExperimentEngine = ({ student = {}, assignment = {}, onBack }
           })}
         </div>
       </div>
+
+      {/* EQUIPMENT DIAGRAM ZOOM INSPECTOR MODAL */}
+      <EquipmentZoomModal
+        isOpen={zoomEquipment.isOpen}
+        onClose={() => setZoomEquipment(prev => ({ ...prev, isOpen: false }))}
+        imageUrl={zoomEquipment.imageUrl}
+        title={zoomEquipment.title}
+        caption={zoomEquipment.caption}
+        partsGuide={zoomEquipment.partsGuide}
+      />
+
     </div>
   );
 };

@@ -331,6 +331,8 @@ ${cleaned}` : cleaned);
     let defaultRows = [];
     let xAxis = '';
     let yAxis = '';
+    let caption = '';
+    let partsGuide = '';
 
     if (type === 'procedure') {
       content = [{ id: Date.now().toString(), title: 'Procedure Steps', steps: [{ id: Date.now().toString(), step_no: 1, instruction: '' }] }];
@@ -339,13 +341,18 @@ ${cleaned}` : cleaned);
       defaultRows = [];
       xAxis = 'DOSE';
       yAxis = 'RESPONSE';
+    } else if (type === 'equipment') {
+      caption = 'Labeled apparatus diagram for pharmacology practical simulation.';
+      partsGuide = '1. Outer Jacket (37°C), 2. Inner Organ Cup, 3. Aeration Tube, 4. Writing Lever Pen Tip';
     }
     
     const newBlock = {
       id: Date.now().toString(),
       type,
-      heading: type === 'procedure' ? 'Procedure Flowchart' : type === 'table' ? 'Observation Table & Graph' : 'Section Heading',
+      heading: type === 'procedure' ? 'Procedure Flowchart' : type === 'table' ? 'Observation Table & Graph' : type === 'equipment' ? 'Device & Equipment Diagram' : 'Section Heading',
       content,
+      caption,
+      partsGuide,
       defaultRows,
       xAxis,
       yAxis
@@ -1191,6 +1198,32 @@ ${cleaned}` : cleaned);
                   );
                 })()}
 
+                {block.type === 'equipment' && (
+                  <div className="space-y-3">
+                    <input 
+                      type="text" 
+                      value={block.content || ''}
+                      onChange={(e) => updateBlock(block.id, 'content', e.target.value)}
+                      placeholder="Equipment Diagram Image URL (e.g., https://.../organ_bath.png)"
+                      className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-medium text-xs"
+                    />
+                    <input 
+                      type="text" 
+                      value={block.caption || ''}
+                      onChange={(e) => updateBlock(block.id, 'caption', e.target.value)}
+                      placeholder="Apparatus Description / Subtitle Caption"
+                      className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-medium text-xs"
+                    />
+                    <input 
+                      type="text" 
+                      value={block.partsGuide || ''}
+                      onChange={(e) => updateBlock(block.id, 'partsGuide', e.target.value)}
+                      placeholder="Labeled Components (Comma separated, e.g., 1. Outer Water Jacket, 2. Organ Cup, 3. Aeration Tube)"
+                      className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-medium text-xs"
+                    />
+                  </div>
+                )}
+
                 {block.type === 'code' && (
                   <textarea 
                     value={block.content}
@@ -1207,14 +1240,17 @@ ${cleaned}` : cleaned);
 
         {/* Add Block Buttons */}
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <button onClick={() => addBlock('text')} className="px-5 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-indigo-400 hover:shadow-md font-extrabold text-sm transition-all flex items-center gap-2 shadow-xs">
+          <button onClick={() => addBlock('text')} className="px-5 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-indigo-400 hover:shadow-md font-extrabold text-sm transition-all flex items-center gap-2 shadow-xs cursor-pointer">
             <AlignLeft className="w-4 h-4 text-indigo-600" /> 1. Text Block
           </button>
-          <button onClick={() => addBlock('procedure')} className="px-5 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-indigo-400 hover:shadow-md font-extrabold text-sm transition-all flex items-center gap-2 shadow-xs">
+          <button onClick={() => addBlock('procedure')} className="px-5 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-indigo-400 hover:shadow-md font-extrabold text-sm transition-all flex items-center gap-2 shadow-xs cursor-pointer">
             <ArrowDown className="w-4 h-4 text-indigo-600 animate-bounce" /> 2. Procedure Flowchart
           </button>
-          <button onClick={() => addBlock('table')} className="px-5 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-md font-extrabold text-sm transition-all flex items-center gap-2 shadow-xs">
+          <button onClick={() => addBlock('table')} className="px-5 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:shadow-md font-extrabold text-sm transition-all flex items-center gap-2 shadow-xs cursor-pointer">
             <Table className="w-4 h-4 text-emerald-600" /> 3. Observation Table & Graph
+          </button>
+          <button onClick={() => addBlock('equipment')} className="px-5 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:shadow-md font-extrabold text-sm transition-all flex items-center gap-2 shadow-xs cursor-pointer">
+            <Image className="w-4 h-4 text-cyan-600" /> 4. Device & Equipment Diagram
           </button>
         </div>
       </div>
