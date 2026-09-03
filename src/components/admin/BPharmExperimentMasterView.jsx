@@ -1250,7 +1250,7 @@ ${cleaned}` : cleaned);
             <Table className="w-4 h-4 text-emerald-600" /> 3. Observation Table & Graph
           </button>
           <button onClick={() => addBlock('equipment')} className="px-5 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:shadow-md font-extrabold text-sm transition-all flex items-center gap-2 shadow-xs cursor-pointer">
-            <Image className="w-4 h-4 text-cyan-600" /> 4. Device & Equipment Diagram
+            <ImageIcon className="w-4 h-4 text-cyan-600" /> 4. Device & Equipment Diagram
           </button>
         </div>
       </div>
