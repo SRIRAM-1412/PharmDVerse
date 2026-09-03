@@ -63,9 +63,6 @@ export const Header = ({ onOpenPricing, onOpenContact }) => {
                 <span className="font-extrabold text-base sm:text-lg tracking-tight text-slate-900 dark:text-white leading-none truncate">
                   {platformName}
                 </span>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium tracking-wide truncate">
-                  Clinical ERP Platform
-                </span>
               </a>
             </div>
 
