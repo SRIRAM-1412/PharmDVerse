@@ -27,6 +27,17 @@ export const StudentLoginModal = ({ isOpen, onClose, initialCollege, onLoginSucc
 
   const collegeName = initialCollege?.name || initialCollege?.college_name || 'Pharmacy College';
 
+  // Reset fields on modal open to prevent any browser prefilling
+  React.useEffect(() => {
+    if (isOpen) {
+      setUsername('');
+      setPassword('');
+      setErrorMsg('');
+      setSuccessMsg('');
+      setFieldErrors({});
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
@@ -107,7 +118,7 @@ export const StudentLoginModal = ({ isOpen, onClose, initialCollege, onLoginSucc
           />
         }
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
 
           {/* PORTAL LOGIN TITLE & SUBTITLE */}
           <div className="text-center pt-2 pb-1">
@@ -145,7 +156,7 @@ export const StudentLoginModal = ({ isOpen, onClose, initialCollege, onLoginSucc
             <input
               type="text"
               id="student_username"
-              name="student_username"
+              name="student_username_noautofill"
               autoComplete="off"
               required
               value={username}
@@ -173,7 +184,7 @@ export const StudentLoginModal = ({ isOpen, onClose, initialCollege, onLoginSucc
               <input
                 type={showPassword ? 'text' : 'password'}
                 id="student_password"
-                name="student_password"
+                name="student_password_noautofill"
                 autoComplete="new-password"
                 required
                 value={password}

@@ -29,6 +29,17 @@ export const CollegeAdminLoginModal = ({ isOpen, onClose, initialCollege, onLogi
 
   const collegeName = initialCollege?.name || initialCollege?.college_name || 'Pharmacy College';
 
+  // Reset fields on modal open to prevent any browser prefilling
+  React.useEffect(() => {
+    if (isOpen) {
+      setUsername('');
+      setPassword('');
+      setErrorMsg('');
+      setSuccessMsg('');
+      setFieldErrors({});
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
@@ -108,7 +119,7 @@ export const CollegeAdminLoginModal = ({ isOpen, onClose, initialCollege, onLogi
           />
         }
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
 
           {/* PORTAL LOGIN TITLE & SUBTITLE */}
           <div className="text-center pt-2 pb-1">
@@ -146,7 +157,7 @@ export const CollegeAdminLoginModal = ({ isOpen, onClose, initialCollege, onLogi
             <input
               type="text"
               id="collegeadmin_username"
-              name="collegeadmin_username"
+              name="collegeadmin_username_noautofill"
               autoComplete="off"
               required
               value={username}
@@ -174,7 +185,7 @@ export const CollegeAdminLoginModal = ({ isOpen, onClose, initialCollege, onLogi
               <input
                 type={showPassword ? 'text' : 'password'}
                 id="collegeadmin_password"
-                name="collegeadmin_password"
+                name="collegeadmin_password_noautofill"
                 autoComplete="new-password"
                 required
                 value={password}

@@ -26,6 +26,16 @@ export const SuperAdminModal = ({ isOpen, onClose, onLoginSuccess }) => {
   const [pendingSuperAdmin, setPendingSuperAdmin] = useState(null);
   const [conflictLoading, setConflictLoading] = useState(false);
 
+  // Reset fields on modal open to prevent any prefilling
+  React.useEffect(() => {
+    if (isOpen) {
+      setLoginEmail('');
+      setLoginPassword('');
+      setLoginErrors({});
+      setAuthError('');
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const validateLoginForm = () => {
@@ -148,7 +158,7 @@ export const SuperAdminModal = ({ isOpen, onClose, onLoginSuccess }) => {
           )}
 
           {/* Form Fields */}
-          <form onSubmit={handleSignIn} className="space-y-4">
+          <form onSubmit={handleSignIn} autoComplete="off" className="space-y-4">
             
             {/* Email Address */}
             <div>
@@ -159,8 +169,8 @@ export const SuperAdminModal = ({ isOpen, onClose, onLoginSuccess }) => {
                 <input
                   type="email"
                   id="superadmin_username"
-                  name="superadmin_username"
-                  autoComplete="username"
+                  name="superadmin_username_noautofill"
+                  autoComplete="off"
                   value={loginEmail}
                   onChange={(e) => {
                     setLoginEmail(e.target.value);
@@ -189,8 +199,8 @@ export const SuperAdminModal = ({ isOpen, onClose, onLoginSuccess }) => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   id="superadmin_password"
-                  name="superadmin_password"
-                  autoComplete="current-password"
+                  name="superadmin_password_noautofill"
+                  autoComplete="new-password"
                   value={loginPassword}
                   onChange={(e) => {
                     setLoginPassword(e.target.value);
