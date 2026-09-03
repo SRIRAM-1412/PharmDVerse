@@ -40,7 +40,7 @@ import { StudentLoginModal } from './components/modals/StudentLoginModal';
 import { InfoModal } from './components/modals/InfoModal';
 
 export default function App() {
-  const [showSplash, setShowSplash] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
   const [viewMode, setViewMode] = useState('landing'); // 'landing' | 'admin' | 'college_portal' | 'college_admin' | 'preceptor_portal' | 'student_portal'
   
   const [pricingOpen, setPricingOpen] = useState(false);
@@ -325,6 +325,7 @@ export default function App() {
     setActivePortalCollege(normalized);
     setViewMode('college_admin');
     setCollegeAdminLoginOpen(false);
+    setShowSplash(true);
     saveActiveSession({ viewMode: 'college_admin', college: normalized, user: college, sessionToken });
   };
 
@@ -334,6 +335,7 @@ export default function App() {
     if (collegeObj) setActivePortalCollege(collegeObj);
     setViewMode('preceptor_portal');
     setPreceptorLoginOpen(false);
+    setShowSplash(true);
     saveActiveSession({ viewMode: 'preceptor_portal', college: collegeObj, user: preceptor, sessionToken });
   };
 
@@ -343,6 +345,7 @@ export default function App() {
     if (collegeObj) setActivePortalCollege(collegeObj);
     setViewMode('student_portal');
     setStudentLoginOpen(false);
+    setShowSplash(true);
     saveActiveSession({ viewMode: 'student_portal', college: collegeObj, user: student, sessionToken });
   };
 
